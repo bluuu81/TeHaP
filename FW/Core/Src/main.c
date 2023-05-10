@@ -81,6 +81,7 @@ static void MX_IWDG_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM16_Init(void);
+static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -126,28 +127,34 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   MX_CRC_Init();
-//  MX_IWDG_Init();
+  MX_IWDG_Init();
   MX_TIM1_Init();
   MX_TIM2_Init();
   MX_TIM16_Init();
+
+  /* Initialize interrupts */
+  MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
-  PWM_Init_Timers();
+  HAL_TIM_PWM_Start(&htim16, TIM_CHANNEL_1);
   LED1_ON();
-  LED2_ON();
+  led2Sweep(100,0xFFFF,50);
+  uint32_t ticks1s = HAL_GetTick();
+//  LED2_ON();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  LED1_ON();
-	  LED2_ON();
-	  HAL_Delay(1000);
-	  LED1_OFF();
-	  LED2_OFF();
-	  HAL_Delay(1000);
-    /* USER CODE END WHILE */
+	  if(HAL_GetTick()-ticks1s >= 1000)
+		  {
+		  	    ticks1s = HAL_GetTick();
+			    LED1_TOGGLE();
+//			    led2Sweep(100,0xFFFF,50);
+		  }
 
+    /* USER CODE END WHILE */
+	  WDR();
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -200,6 +207,17 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief NVIC Configuration.
+  * @retval None
+  */
+static void MX_NVIC_Init(void)
+{
+  /* RCC_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(RCC_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(RCC_IRQn);
 }
 
 /**

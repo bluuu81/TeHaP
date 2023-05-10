@@ -48,13 +48,9 @@ void setLed2(uint8_t bri)
     setPwmLed(bri_corr[bri], TIM_CHANNEL_1);
 }
 
-void ledSweepPwr(uint16_t spd, uint16_t cnt, uint16_t wait)
+void led2Sweep(uint16_t spd, uint16_t cnt, uint16_t wait)
 {
     led2_tim = spd;
     led2_cycles = cnt | (wait<<16);
 }
 
-void PWM_Init_Timers()
-{
-	HAL_TIM_PWM_Start(&htim16, TIM_CHANNEL_1);
-}
