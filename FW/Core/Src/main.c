@@ -130,8 +130,8 @@ int main(void)
   MX_TIM1_Init();
   MX_TIM2_Init();
   MX_TIM16_Init();
-  PWM_Init_Timers();
   /* USER CODE BEGIN 2 */
+  PWM_Init_Timers();
   LED1_ON();
   LED2_ON();
   /* USER CODE END 2 */
