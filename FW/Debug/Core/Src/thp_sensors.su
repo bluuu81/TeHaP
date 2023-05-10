@@ -1,0 +1,4 @@
+../Core/Src/thp_sensors.c:13:9:i2c_read16	40	static
+../Core/Src/thp_sensors.c:21:9:i2c_write16	40	static
+../Core/Src/thp_sensors.c:28:6:clr_bit	24	static
+../Core/Src/thp_sensors.c:35:6:set_bit	24	static
