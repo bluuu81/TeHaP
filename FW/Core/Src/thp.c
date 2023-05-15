@@ -8,7 +8,8 @@
 #include "main.h"
 #include "thp.h"
 
-uint16_t led2_tim, led2_cycles;
+uint16_t led2_tim;
+uint32_t led2_cycles;
 
 static const uint8_t bri_corr[]= {
    0, 1, 2, 3, 4, 5, 7, 9, 12, 15, 18, 22, 27, 32, 38, 44, 51, 58,
@@ -19,33 +20,29 @@ void HAL_SYSTICK_Callback(void)
 {
 	static uint32_t led2swp, led2lev;
 
-     if(led2_tim && ++led2swp >= led2_tim)
-     {
-         led2swp = 0;
-         if(++led2lev >= 64 + (led2_cycles>>16))
-         {
-             led2lev = 0;
-             led2_cycles--;
-             if((led2_cycles & 0xFFFF) == 0) led2_tim = 0;
-         }
-         if(led2lev>=64) setLed2(0); else setLed2((led2lev<32) ? led2lev : 63-led2lev);
+    if(led2_tim && ++led2swp >= led2_tim)
+    {
+        led2swp = 0;
+        if(++led2lev >= 64 + (led2_cycles>>16))
+        {
+            led2lev = 0;
+            if((led2_cycles & 0xFFFF) != 0xFFFF) led2_cycles--;
+            if((led2_cycles & 0xFFFF) == 0) led2_tim = 0;
+        }
+        if(led2lev>=64) setLed2(0); else setLed2((led2lev<32) ? led2lev : 63-led2lev);
      } else if(led2_tim == 0) {led2swp=0; led2lev=0;}
+
 }
 
 
-void setPwmLed(uint8_t pwm, uint32_t channel)
+void setPwmLed(uint8_t bri)
 {
-    TIM_OC_InitTypeDef sConfig;
-    memset(&sConfig, 0, sizeof(sConfig));
-    sConfig.OCMode = (pwm==0) ? TIM_OCMODE_FORCED_INACTIVE : TIM_OCMODE_PWM1;
-    sConfig.Pulse = pwm;
-    HAL_TIM_OC_ConfigChannel(&htim16, &sConfig, channel);
-    HAL_TIM_PWM_Start(&htim16, channel);
+	__HAL_TIM_SET_COMPARE(&htim16, TIM_CHANNEL_1, bri_corr[bri]);
 }
 
 void setLed2(uint8_t bri)
 {
-    setPwmLed(bri_corr[bri], TIM_CHANNEL_1);
+    setPwmLed(bri_corr[bri]);
 }
 
 void led2Sweep(uint16_t spd, uint16_t cnt, uint16_t wait)
