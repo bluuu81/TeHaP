@@ -7,6 +7,7 @@
 
 #include "main.h"
 #include "thp.h"
+#include "bq25798.h"
 
 uint16_t led2_tim;
 uint32_t led2_cycles;
@@ -35,9 +36,9 @@ void HAL_SYSTICK_Callback(void)
 }
 
 
-void setPwmLed(uint8_t bri)
+void setPwmLed(uint8_t pwm)
 {
-	__HAL_TIM_SET_COMPARE(&htim16, TIM_CHANNEL_1, bri_corr[bri]);
+	__HAL_TIM_SET_COMPARE(&htim16, TIM_CHANNEL_1, pwm);
 }
 
 void setLed2(uint8_t bri)
@@ -50,4 +51,7 @@ void led2Sweep(uint16_t spd, uint16_t cnt, uint16_t wait)
     led2_tim = spd;
     led2_cycles = cnt | (wait<<16);
 }
+
+//Charger function
+
 

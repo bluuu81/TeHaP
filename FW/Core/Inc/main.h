@@ -33,6 +33,8 @@ extern "C" {
 /* USER CODE BEGIN Includes */
 #include "String.h"
 #include "thp.h"
+#include "thp_sensors.h"
+#include "bq25798.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
