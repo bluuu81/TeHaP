@@ -1,7 +1,7 @@
-TeHaP/FW/Debug/Core/*
-TeHaP/FW/Debug/Drivers/*
-TeHaP/FW/Debug/makefile
-TeHaP/FW/Debug/objects.list
-TeHaP/FW/Debug/objects.mk
-TeHaP/FW/Debug/sources.mk
-TeHaP/FW/Debug/THPFW.map
+FW/Debug/Core/*
+FW/Debug/Drivers/*
+FW/Debug/makefile
+FW/Debug/objects.list
+FW/Debug/objects.mk
+FW/Debug/sources.mk
+FW/Debug/THPFW.map
