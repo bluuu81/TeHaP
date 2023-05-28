@@ -6,6 +6,7 @@
  */
 
 #include "cli.h"
+#include "adc.h"
 #include "main.h"
 #include "ctype.h"
 #include <stdio.h>
@@ -13,6 +14,8 @@
 
 #define DEBUG_BUF_SIZE 512
 #define SIM_BUF_SIZE 512
+
+extern uint8_t charger_state;
 
 uint8_t  debug_rx_buf[DEBUG_BUF_SIZE];
 uint16_t debug_rxtail;
@@ -56,65 +59,6 @@ uint8_t UART_receive()       // Receive byte from buffer
     if(debug_rxtail >= DEBUG_BUF_SIZE) debug_rxtail = 0;
     return tmp;
 }
-
-void CLI() {
-    int len = UART_has_char();
-    if(len) { for(int i=0; i<len; ++i) CLI_proc(UART_receive()); }
-}
-
-void CLI_proc(char ch)
-{
-	char *p;
-	if(cliptr < sizeof(clibuf)) clibuf[cliptr++] = ch;
-	if(ch == 10)	// LF
-	{ }
-//	    if(clibuf[cliptr-1] == 13) cliptr--;
-//		memset(clibuf+cliptr, 0, sizeof(clibuf)-cliptr);
-//		cliptr = 0;
-//// Main commands ------------------------------------------------------------------------------
-//		if(find("?")==clibuf+1 || find("help")==clibuf+4)	{help(); return;}
-//		if(find("load defaults")==clibuf+13)
-//		{
-//			Load_defaults();
-//			Save_config();
-//			printf("return to defaults ...\r\n");
-//			return;
-//		}
-//// ................................................................................
-//        if((p = find("debug ")))
-//        {
-//            int32_t tmp = -1;
-//            getval(p, &tmp, 0, 2);
-//            if(tmp >= 0)
-//            {
-//                debug_level = tmp;
-//                printf("Debug: %u\r\n", debug_level);
-//            }
-//            return;
-//        }
-//
-//        p = find("charger ");           // set commands
-//        if(p == clibuf+8)
-//        {
-//            if((p = find("start")))
-//            {
-//            	printf("Start charging\r\n");
-//            	start_charging();
-//                return;
-//            }
-//            if((p = find("stop")))
-//            {
-//            	printf("Stop charging\r\n");
-//            	stop_charging();
-//                return;
-//            }
-//
-//        }
-//	}
-}
-
-
-
 
 // string functions
 
@@ -170,4 +114,83 @@ char * get_hex(char *p, uint8_t chars, uint16_t *val)
     }
     *val = tmp;
     return p;
+}
+
+void CLI() {
+    int len = UART_has_char();
+    if(len) { for(int i=0; i<len; ++i) CLI_proc(UART_receive()); }
+}
+
+void CLI_proc(char ch)
+{
+	char *p;
+	if(cliptr < sizeof(clibuf)) clibuf[cliptr++] = ch;
+	if(ch == 10)	// LF
+	{
+	    if(clibuf[cliptr-1] == 13) cliptr--;
+		memset(clibuf+cliptr, 0, sizeof(clibuf)-cliptr);
+		cliptr = 0;
+// Main commands ------------------------------------------------------------------------------
+		if(find("?")==clibuf+1 || find("help")==clibuf+4)	{help(); return;}
+	}
+//		if(find("load defaults")==clibuf+13)
+//		{
+//			Load_defaults();
+//			Save_config();
+//			printf("return to defaults ...\r\n");
+//			return;
+//		}
+//// ................................................................................
+//        if((p = find("debug ")))
+//        {
+//            int32_t tmp = -1;
+//            getval(p, &tmp, 0, 2);
+//            if(tmp >= 0)
+//            {
+//                debug_level = tmp;
+//                printf("Debug: %u\r\n", debug_level);
+//            }
+//            return;
+//        }
+//
+//        p = find("charger ");           // set commands
+//        if(p == clibuf+8)
+//        {
+//            if((p = find("start")))
+//            {
+//            	printf("Start charging\r\n");
+//            	start_charging();
+//                return;
+//            }
+//            if((p = find("stop")))
+//            {
+//            	printf("Stop charging\r\n");
+//            	stop_charging();
+//                return;
+//            }
+//
+//        }
+//	}
+}
+
+void help()
+{
+	printf("--- THP HW v%1.1f  FW v%1.1f --- \r\n", HW_VER*0.1f,FW_VER*0.1f );
+	printf("Charger state : ");
+	switch (charger_state)
+	{
+	case 0:
+		printf("FAULT\r\n");
+		break;
+	case 1:
+		printf("OK\r\n");
+		break;
+	case 2:
+		printf("No charging ...\r\n");
+		break;
+	case 3:
+		printf("Charging ...\r\n");
+		break;
+	}
+	printf("MCU Temp: %3.1f [degC]\r\n", GET_MCU_Temp());
 }

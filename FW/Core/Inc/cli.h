@@ -10,6 +10,7 @@
 
 #include "stm32l4xx_hal.h"
 
+void help();
 void CLI();
 void CLI_proc(char ch);
 

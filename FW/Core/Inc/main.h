@@ -35,6 +35,9 @@ extern "C" {
 #include "thp.h"
 #include "thp_sensors.h"
 #include "bq25798.h"
+#include "adc.h"
+#include "cli.h"
+
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -66,8 +69,6 @@ void Error_Handler(void);
 #define But_ONOFF_GPIO_Port GPIOC
 #define Tamp_Pin GPIO_PIN_0
 #define Tamp_GPIO_Port GPIOA
-#define ADC_AUX_Pin GPIO_PIN_1
-#define ADC_AUX_GPIO_Port GPIOA
 #define SIM_UART_TX_Pin GPIO_PIN_2
 #define SIM_UART_TX_GPIO_Port GPIOA
 #define SIM_UART_RX_Pin GPIO_PIN_3

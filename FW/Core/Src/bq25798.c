@@ -19,19 +19,19 @@ uint8_t BQ25798_check()
 {
 	HAL_StatusTypeDef status;
 	uint8_t res;
-	printf("Checking LTC4015 ... ");
+	printf("Checking BQ25798 ... ");
 	for (int i = 0; i < 10; i++) {
 		status = HAL_I2C_IsDeviceReady(&hi2c1, BQ25798_ADDR, 3, 1500);
 		HAL_Delay(100);
 	    if (status == HAL_OK) {
 	    	printf("OK !\r\n");
-	    	res = 1;
+	    	res = OK;
 	        break;
 	    } else {
-	    	printf("not ready\r\n");
-	    	res = 0;
+	    	res = FAULT;
 	    	HAL_Delay(500);
 	    }
 	}
+	if(res == FAULT) printf("not ready\r\n");
 	return res;
 }

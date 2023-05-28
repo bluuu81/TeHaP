@@ -16,6 +16,9 @@ static const uint8_t bri_corr[]= {
    0, 1, 2, 3, 4, 5, 7, 9, 12, 15, 18, 22, 27, 32, 38, 44, 51, 58,
    67, 76, 86, 96, 108, 120, 134, 148, 163, 180, 197, 216, 235, 255 };
 
+volatile uint8_t device_state = 0;
+volatile uint32_t offTim;
+
 
 void HAL_SYSTICK_Callback(void)
 {
@@ -52,6 +55,61 @@ void led2Sweep(uint16_t spd, uint16_t cnt, uint16_t wait)
     led2_cycles = cnt | (wait<<16);
 }
 
-//Charger function
+void check_powerOn()
+{
+	  POWER_OFF();
+	  if (__HAL_PWR_GET_FLAG(PWR_FLAG_SB) != RESET)
+	  {
+	    /* Clear Standby flag */
+	    __HAL_PWR_CLEAR_FLAG(PWR_FLAG_SB);
+	  }
+	  uint32_t timon = HAL_GetTick();
+	  while(Power_SW_READ() == GPIO_PIN_SET)
+	  {
+	    if(HAL_GetTick() - timon > 1000)     // 1 sec pushing
+	    {
+	    	timon = HAL_GetTick();
+	        POWER_ON();    // pull-up power supply
+	    	printf("Power ON\r\n");
+	    	device_state = STANDBY;
+	        break;                // break while loop
+	    }
 
+	  //  WDR();    // watchdog reset
+	  }
+	  if(device_state == INIT)
+	  {
+	      HAL_Delay(300);
+	      MCUgoSleep();
+	  }
+}
 
+void check_powerOff()
+{
+  if(Power_SW_READ()) //power button pressed
+  {
+     if(offTim && HAL_GetTick() - offTim > 2000)    // 2 sec pressed
+     {
+    	 printf("Power down in progress ...\r\n");
+    	 MCUgoSleep();
+     }
+  } else offTim = HAL_GetTick();   // button released, update offTim
+
+}
+
+void MCUgoSleep()
+{
+    // prepare wakeup pin
+    HAL_PWR_DisableWakeUpPin(PWR_WAKEUP_PIN2);
+    __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
+    HAL_PWR_EnableWakeUpPin(PWR_WAKEUP_PIN2);
+    // go sleep
+    printf("Sleep\r\n");
+    POWER_OFF();
+    HAL_PWR_EnterSTANDBYMode();
+}
+
+void thp_loop()
+{
+	CLI();
+}

@@ -1,4 +1,0 @@
-thp.c:18:6:HAL_SYSTICK_Callback	8
-thp.c:36:6:setPwmLed	2
-thp.c:46:6:setLed2	1
-thp.c:51:6:led2Sweep	1

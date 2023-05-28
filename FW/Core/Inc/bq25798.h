@@ -71,9 +71,10 @@ extern I2C_HandleTypeDef hi2c1;
 
 enum charge_state
 {
-	NO_CHARGE = 0,
-	CHARGE,
-	FAULT
+	FAULT = 0,
+	OK,
+	NO_CHARGE,
+	CHARGE
 };
 
 uint8_t BQ25798_check();
