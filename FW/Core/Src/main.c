@@ -55,6 +55,22 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 volatile uint8_t charger_state;
+volatile uint8_t cyclic=1;
+TEMP_struct_t TMP117_temp_sensor;
+TEMP_struct_t MS8607_temp_sensor;
+TEMP_struct_t SHTC3_temp_sensor;
+TEMP_struct_t BME280_temp_sensor;
+TEMP_struct_t DPS368_temp_sensor;
+
+PRESS_struct_t MS8607_press_sensor;
+PRESS_struct_t BME280_press_sensor;
+PRESS_struct_t DPS368_press_sensor;
+
+HUM_struct_t MS8607_hum_sensor;
+HUM_struct_t SHTC3_hum_sensor;
+HUM_struct_t BME280_hum_sensor;
+HUM_struct_t DPS368_hum_sensor;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -131,6 +147,39 @@ int main(void)
   ADC_DMA_Start();
   uint32_t ticks1s = HAL_GetTick();
   uint32_t ticks30ms = HAL_GetTick();
+  I2C2TCA_RST();
+//  i2c_scan(&hi2c2, 0x38, 0xA0);
+  TMP117_temp_sensor.sensor_present = TMP117_check();
+  MS8607_temp_sensor.sensor_present = MS8607_check();
+  if(MS8607_temp_sensor.sensor_present) {
+	  MS8607_press_sensor.sensor_present = 1;
+	  MS8607_hum_sensor.sensor_present = 1;
+  } else {
+	  MS8607_press_sensor.sensor_present = 0;
+	  MS8607_hum_sensor.sensor_present = 0;
+  }
+  SHTC3_temp_sensor.sensor_present = SHTC3_check();
+  if(SHTC3_temp_sensor.sensor_present) SHTC3_hum_sensor.sensor_present = 1; else SHTC3_hum_sensor.sensor_present = 0;
+
+  BME280_temp_sensor.sensor_present = BME280_check();
+  if(BME280_temp_sensor.sensor_present) {
+	  BME280_press_sensor.sensor_present = 1;
+	  BME280_hum_sensor.sensor_present = 1;
+  } else {
+	  BME280_press_sensor.sensor_present = 0;
+	  BME280_hum_sensor.sensor_present = 0;
+  }
+
+  DPS368_temp_sensor.sensor_present = DPS368_check();
+  if(DPS368_temp_sensor.sensor_present) {
+	  DPS368_press_sensor.sensor_present = 1;
+	  DPS368_hum_sensor.sensor_present = 1;
+  } else {
+	  DPS368_press_sensor.sensor_present = 0;
+	  DPS368_hum_sensor.sensor_present = 0;
+  }
+
+
 //  LED2_ON();
   /* USER CODE END 2 */
 
@@ -139,14 +188,45 @@ int main(void)
   while (1)
   {
 	  thp_loop();
-	  if(HAL_GetTick()-ticks1s >= 1000)
+	  if(HAL_GetTick()-ticks1s >= 10000)
 	  {
-	  	    ticks1s = HAL_GetTick();
-	  	//    ADC_Print();
+		  if(cyclic) {
+			  ticks1s = HAL_GetTick();
+			  TMP117_temp_sensor.temperature=TMP117_get_temp(avg8);
+			  MS8607_temp_sensor.temperature=MS8607_get_temp();
+			  SHTC3_temp_sensor.temperature=SHTC3_get_temp(0);
+			  SHTC3_hum_sensor.humidity=SHTC3_get_hum(0);
+			  printf("-- TEMPERATURE --\r\n");
+			  printf("TMP117: %.3f", TMP117_temp_sensor.temperature);
+			  printf("    ");
+			  printf("MS8607: %.3f", MS8607_temp_sensor.temperature);
+			  printf("    \r\n");
+			  printf("SHTC3 Normal\r\n");
+			  printf("SHTC3: %.3f", SHTC3_temp_sensor.temperature);
+			  printf("      ");
+			  printf("SHTC3: %.3f", SHTC3_hum_sensor.humidity);
+			  printf("\r\n");
+			  SHTC3_temp_sensor.temperature=SHTC3_get_temp(1);
+			  SHTC3_hum_sensor.humidity=SHTC3_get_hum(1);
+
+			  printf("SHTC3 LP\r\n");
+			  printf("SHTC3: %.3f", SHTC3_temp_sensor.temperature);
+			  printf("      ");
+			  printf("SHTC3: %.3f", SHTC3_hum_sensor.humidity);
+			  printf("\r\n");
+			  printf("Sensor present: \r\n");
+			  printf("TMP117: %d \r\n",TMP117_temp_sensor.sensor_present);
+			  printf("MS8607: %d %d %d \r\n",MS8607_temp_sensor.sensor_present, MS8607_press_sensor.sensor_present, MS8607_hum_sensor.sensor_present);
+			  printf("SHTC3: %d %d \r\n",SHTC3_temp_sensor.sensor_present, SHTC3_hum_sensor.sensor_present);
+			  printf("BME280: %d %d %d \r\n",BME280_temp_sensor.sensor_present, BME280_press_sensor.sensor_present, BME280_hum_sensor.sensor_present);
+			  printf("DPS368: %d %d %d \r\n",DPS368_temp_sensor.sensor_present, DPS368_press_sensor.sensor_present, DPS368_hum_sensor.sensor_present);
+
+		  }
 	  }
 	  if(HAL_GetTick()-ticks30ms >= 30)
 	  {
 	  	    ticks30ms = HAL_GetTick();
+	  	    LED1_TOGGLE();
 //	  	    check_powerOff();
 	  }
     /* USER CODE END WHILE */
@@ -296,8 +376,11 @@ static void MX_CRC_Init(void)
 
   /* USER CODE END CRC_Init 1 */
   hcrc.Instance = CRC;
-  hcrc.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_ENABLE;
-  hcrc.Init.DefaultInitValueUse = DEFAULT_INIT_VALUE_ENABLE;
+  hcrc.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_DISABLE;
+  hcrc.Init.DefaultInitValueUse = DEFAULT_INIT_VALUE_DISABLE;
+  hcrc.Init.GeneratingPolynomial = 0x31;
+  hcrc.Init.CRCLength = CRC_POLYLENGTH_8B;
+  hcrc.Init.InitValue = 0xFF;
   hcrc.Init.InputDataInversionMode = CRC_INPUTDATA_INVERSION_NONE;
   hcrc.Init.OutputDataInversionMode = CRC_OUTPUTDATA_INVERSION_DISABLE;
   hcrc.InputDataFormat = CRC_INPUTDATA_FORMAT_BYTES;
@@ -375,14 +458,14 @@ static void MX_I2C2_Init(void)
 
   /* USER CODE END I2C2_Init 1 */
   hi2c2.Instance = I2C2;
-  hi2c2.Init.Timing = 0x00301347;
+  hi2c2.Init.Timing = 0x00909BEB;
   hi2c2.Init.OwnAddress1 = 0;
   hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
   hi2c2.Init.OwnAddress2 = 0;
   hi2c2.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
   hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_ENABLE;
   if (HAL_I2C_Init(&hi2c2) != HAL_OK)
   {
     Error_Handler();
@@ -696,6 +779,8 @@ void Error_Handler(void)
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
+  LED1_OFF();
+  LED2_ON();
   while (1)
   {
   }

@@ -8,6 +8,8 @@
 #include "cli.h"
 #include "adc.h"
 #include "main.h"
+#include "thp_sensors.h"
+#include "thp.h"
 #include "ctype.h"
 #include <stdio.h>
 #include <string.h>
@@ -16,6 +18,7 @@
 #define SIM_BUF_SIZE 512
 
 extern uint8_t charger_state;
+extern uint8_t cyclic;
 
 uint8_t  debug_rx_buf[DEBUG_BUF_SIZE];
 uint16_t debug_rxtail;
@@ -132,7 +135,10 @@ void CLI_proc(char ch)
 		cliptr = 0;
 // Main commands ------------------------------------------------------------------------------
 		if(find("?")==clibuf+1 || find("help")==clibuf+4)	{help(); return;}
-	}
+		if(find("cyclic")==clibuf+6) {cyclic = !cyclic; return;}
+		if(find("i2cscan")==clibuf+7) {i2c_scan(&hi2c2, 0x38, 0xA0); return;}
+
+//	}
 //		if(find("load defaults")==clibuf+13)
 //		{
 //			Load_defaults();
@@ -170,7 +176,7 @@ void CLI_proc(char ch)
 //            }
 //
 //        }
-//	}
+	}
 }
 
 void help()
@@ -193,4 +199,7 @@ void help()
 		break;
 	}
 	printf("MCU Temp: %3.1f [degC]\r\n", GET_MCU_Temp());
+	printf("TMP117 Stat: %d", TMP117_temp_sensor.sensor_present);
+	printf("   MS8607 Stat: %d", MS8607_temp_sensor.sensor_present);
+	printf("   SHTC3 Stat: %d \r\n", SHTC3_temp_sensor.sensor_present);
 }

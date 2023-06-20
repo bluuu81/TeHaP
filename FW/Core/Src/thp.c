@@ -113,3 +113,28 @@ void thp_loop()
 {
 	CLI();
 }
+
+uint8_t HALcalculateCRC(uint8_t* data, uint8_t len)
+{
+    HAL_CRC_Init(&hcrc);
+    __HAL_CRC_DR_RESET(&hcrc);
+    uint32_t crc = HAL_CRC_Calculate(&hcrc, (uint32_t*)data, len);
+    return (uint8_t)(crc & 0xFF);
+}
+
+uint8_t calculateCRC(uint8_t data[], uint8_t len)
+{
+    uint8_t crc = 0xFF;
+    for (uint8_t i = 0; i < len; i++)
+    {
+        crc ^= data[i];
+        for (uint8_t bit = 0; bit < 8; bit++)
+        {
+            if (crc & 0x80)
+                crc = (crc << 1) ^ 0x31;
+            else
+                crc = crc << 1;
+        }
+    }
+    return crc;
+}

@@ -50,4 +50,7 @@ void MCUgoSleep();
 
 void thp_loop();
 
+uint8_t HALcalculateCRC(uint8_t data[], uint8_t len);
+uint8_t calculateCRC(uint8_t data[], uint8_t len);
+
 #endif /* INC_THP_H_ */

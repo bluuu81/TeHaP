@@ -9,6 +9,11 @@
 #define INC_CLI_H_
 
 #include "stm32l4xx_hal.h"
+#include "thp_sensors.h"
+
+extern TEMP_struct_t TMP117_temp_sensor;
+extern TEMP_struct_t MS8607_temp_sensor;
+extern TEMP_struct_t SHTC3_temp_sensor;
 
 void help();
 void CLI();

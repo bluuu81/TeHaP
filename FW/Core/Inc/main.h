@@ -35,6 +35,8 @@ extern "C" {
 #include "thp.h"
 #include "thp_sensors.h"
 #include "bq25798.h"
+#include "bme280.h"
+#include "dps368.h"
 #include "adc.h"
 #include "cli.h"
 
@@ -124,6 +126,11 @@ void Error_Handler(void);
 
 #define GPS_ON()		HAL_GPIO_WritePin(SIM_GPS_GPIO_Port, SIM_GPS_Pin, GPIO_PIN_SET)
 #define GPS_OFF()		HAL_GPIO_WritePin(SIM_GPS_GPIO_Port, SIM_GPS_Pin, GPIO_PIN_RESET)
+
+#define I2C2TCA_RST()	HAL_GPIO_WritePin(RST2_GPIO_Port, RST2_Pin, GPIO_PIN_RESET)
+#define I2C2TCA_NRST()	HAL_GPIO_WritePin(RST2_GPIO_Port, RST2_Pin, GPIO_PIN_SET)
+#define I2C3TCA_RST()	HAL_GPIO_WritePin(RST3_GPIO_Port, RST3_Pin, GPIO_PIN_RESET)
+#define I2C3TCA_NRST()	HAL_GPIO_WritePin(RST3_GPIO_Port, RST3_Pin, GPIO_PIN_SET)
 
 #define WDR() if(hiwdg.Instance == IWDG) {HAL_IWDG_Refresh(&hiwdg);}
 
