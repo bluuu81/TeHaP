@@ -28,6 +28,21 @@ uint8_t i2c_read16(I2C_HandleTypeDef * i2c, uint16_t offset, uint16_t *value, ui
     return res;
 }
 
+uint8_t i2c_read24(I2C_HandleTypeDef * i2c, uint16_t offset, uint32_t *value, uint8_t addr)
+{
+	uint32_t tmp;
+    uint8_t res = HAL_I2C_Mem_Read(i2c, addr, offset, I2C_MEMADD_SIZE_8BIT, (uint8_t*)&tmp, 3, 8);
+    *value = tmp;
+    return res;
+}
+
+uint8_t i2c_write8(I2C_HandleTypeDef * i2c, uint16_t offset, uint8_t value, uint8_t addr)
+{
+	uint8_t tmp = value;
+    uint8_t res = HAL_I2C_Mem_Write(i2c, addr, offset, I2C_MEMADD_SIZE_8BIT, (uint8_t*)&tmp, 1, 8);
+    return res;
+}
+
 uint8_t i2c_write16(I2C_HandleTypeDef * i2c, uint16_t offset, uint16_t value, uint8_t addr)
 {
 	uint16_t tmp = value;
@@ -257,3 +272,19 @@ float SHTC3_get_hum(uint8_t mode)
 	return -1000.0;
 }
 
+uint8_t BME280_check()
+{
+	uint8_t value;
+	TCA9543A_SelectChannel(1);
+	HAL_Delay(1);
+	HAL_StatusTypeDef status;
+	status = HAL_I2C_IsDeviceReady(&hi2c2, BMP280_I2C_ADDRESS_0 << 1, 3, 150);
+	HAL_Delay(100);
+	if (status == HAL_OK) {
+		i2c_read8(&hi2c2, BMP280_REG_ID, &value, BMP280_I2C_ADDRESS_0 << 1);
+		TCA9543A_SelectChannel(0);
+		if(value == BME280_CHIP_ID) {printf("BME280 OK\r\n"); return 1;} else {printf("NOT BME280\r\n"); return 0;}
+	} else {printf("BME280 FAILED\r\n"); return 0;}
+	return 0;
+
+}

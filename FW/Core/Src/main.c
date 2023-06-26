@@ -196,6 +196,7 @@ int main(void)
 			  MS8607_temp_sensor.temperature=MS8607_get_temp();
 			  SHTC3_temp_sensor.temperature=SHTC3_get_temp(0);
 			  SHTC3_hum_sensor.humidity=SHTC3_get_hum(0);
+
 			  printf("-- TEMPERATURE --\r\n");
 			  printf("TMP117: %.3f", TMP117_temp_sensor.temperature);
 			  printf("    ");
@@ -214,12 +215,14 @@ int main(void)
 			  printf("      ");
 			  printf("SHTC3: %.3f", SHTC3_hum_sensor.humidity);
 			  printf("\r\n");
-			  printf("Sensor present: \r\n");
-			  printf("TMP117: %d \r\n",TMP117_temp_sensor.sensor_present);
-			  printf("MS8607: %d %d %d \r\n",MS8607_temp_sensor.sensor_present, MS8607_press_sensor.sensor_present, MS8607_hum_sensor.sensor_present);
-			  printf("SHTC3: %d %d \r\n",SHTC3_temp_sensor.sensor_present, SHTC3_hum_sensor.sensor_present);
-			  printf("BME280: %d %d %d \r\n",BME280_temp_sensor.sensor_present, BME280_press_sensor.sensor_present, BME280_hum_sensor.sensor_present);
-			  printf("DPS368: %d %d %d \r\n",DPS368_temp_sensor.sensor_present, DPS368_press_sensor.sensor_present, DPS368_hum_sensor.sensor_present);
+			  printf("BME280: %.3f", BME280_temp_sensor.temperature);
+			  printf("\r\n");
+//			  printf("Sensor present: \r\n");
+//			  printf("TMP117: %d \r\n",TMP117_temp_sensor.sensor_present);
+//			  printf("MS8607: %d %d %d \r\n",MS8607_temp_sensor.sensor_present, MS8607_press_sensor.sensor_present, MS8607_hum_sensor.sensor_present);
+//			  printf("SHTC3: %d %d \r\n",SHTC3_temp_sensor.sensor_present, SHTC3_hum_sensor.sensor_present);
+//			  printf("BME280: %d %d %d \r\n",BME280_temp_sensor.sensor_present, BME280_press_sensor.sensor_present, BME280_hum_sensor.sensor_present);
+//			  printf("DPS368: %d %d %d \r\n",DPS368_temp_sensor.sensor_present, DPS368_press_sensor.sensor_present, DPS368_hum_sensor.sensor_present);
 
 		  }
 	  }

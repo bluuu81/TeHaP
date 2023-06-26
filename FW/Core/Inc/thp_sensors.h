@@ -6,6 +6,7 @@
  */
 
 #include "main.h"
+#include "bmp280.h"
 
 #ifndef INC_THP_SENSORS_H_
 #define INC_THP_SENSORS_H_
@@ -70,6 +71,10 @@ typedef struct {
 void TCA9543A_SelectChannel(uint8_t channel);
 void i2c_scan(I2C_HandleTypeDef * i2c, uint8_t addr_min, uint8_t addr_max);
 uint8_t i2c_read8(I2C_HandleTypeDef * i2c, uint16_t offset, uint8_t *value, uint8_t addr);
+uint8_t i2c_read16(I2C_HandleTypeDef * i2c, uint16_t offset, uint16_t *value, uint8_t addr);
+uint8_t i2c_read24(I2C_HandleTypeDef * i2c, uint16_t offset, uint32_t *value, uint8_t addr);
+uint8_t i2c_write8(I2C_HandleTypeDef * i2c, uint16_t offset, uint8_t value, uint8_t addr);
+uint8_t i2c_write16(I2C_HandleTypeDef * i2c, uint16_t offset, uint16_t value, uint8_t addr);
 uint8_t TMP117_check();
 void TMP117_RST_Conf_Reg();
 float TMP117_get_temp(uint8_t avg_mode);
@@ -82,5 +87,7 @@ float MS8607_get_hum();
 uint8_t SHTC3_check();
 float SHTC3_get_temp(uint8_t mode);
 float SHTC3_get_hum(uint8_t mode);
+
+uint8_t BME280_check();
 
 #endif /* INC_THP_SENSORS_H_ */
