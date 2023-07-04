@@ -183,15 +183,8 @@ int main(void)
 
   BME280_init_config(1, BMP280_STANDARD, BMP280_STANDARD, BMP280_STANDARD, BMP280_FILTER_OFF);
 
-  DPS368_read_coeff();
-  DPS368_conf_int(INT_NONE);
-  DPS368_run_mode(MODE_IDLE);
-  DPS368_conf_temp(DPS_OVERSAMPLE_4, DPS_RATE_2);
-  DPS368_conf_press(DPS_OVERSAMPLE_4, DPS_RATE_2);
+  DPS368_init(FIFO_DIS, INT_NONE);
 
-  DPS368_temp_correct();
-  DPS368_fifo(FIFO_DIS);
-  DPS368_run_mode(MODE_BACKGND_ALL);
 
 //  LED2_ON();
   /* USER CODE END 2 */
@@ -213,8 +206,8 @@ int main(void)
 			  BME280_temp_sensor.temperature = BME280_get_temp();
 			  BME280_press_sensor.pressure = BME280_get_press();
 			  printf("Start TEMP DPS\r\n");
-			  DPS368_temp_sensor.temperature = DPS368_get_temp();
-			  DPS368_press_sensor.pressure = DPS368_get_press();
+			  DPS368_temp_sensor.temperature = DPS368_get_temp_cmd(DPS_OVERSAMPLE_8);
+			  DPS368_press_sensor.pressure = DPS368_get_press_cmd(DPS_OVERSAMPLE_8);
 			  printf("-- TEMPERATURE --\r\n");
 			  printf("TMP117: %.3f", TMP117_temp_sensor.temperature);
 			  printf("    ");

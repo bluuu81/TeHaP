@@ -77,17 +77,26 @@ void DPS368_read_coeff()
 //    printf("C30: %ld\r\n",DPS_coef.C30);
 }
 
+void dumpCFGreg()
+{
+	uint8_t reg;
+//	SET_DPS368();
+	HAL_I2C_Mem_Read(&hi2c2, DPS368_ADDR, DPS368_CFG, I2C_MEMADD_SIZE_8BIT, &reg, 1, 250);
+	printf("CFG REG 0x09 DUMP (hex): %#x\r\n",reg);
+	printbinaryMSB(reg);
+//	UNSET_BME_DPS();
+}
 
 void DPS368_fifo(uint8_t endis)
 {
 	uint8_t reg;
 	SET_DPS368();
 	HAL_I2C_Mem_Read(&hi2c2, DPS368_ADDR, DPS368_CFG, I2C_MEMADD_SIZE_8BIT, &reg, 1, 250);
-//	printf("CFG REG (hex): %#x\r\n",reg);
+//	printf("(fifo) CFG REG READ (hex): %#x\r\n",reg);
 //	printbinaryMSB(reg);
 	setBit(&reg,1,endis);
 //	printf("SET FIFO EN\r\n");
-//	printf("CFG REG (hex): %#x\r\n",reg);
+//	printf("(fifo) CFG REG WRITE (hex): %#x\r\n",reg);
 //	printbinaryMSB(reg);
 	HAL_I2C_Mem_Write(&hi2c2, DPS368_ADDR, DPS368_CFG, I2C_MEMADD_SIZE_8BIT, &reg, 1, 250);
 	HAL_Delay(1);
@@ -271,6 +280,8 @@ void DPS368_temp_correct()
         write_data = 0x00;
     	status = HAL_I2C_Mem_Write(&hi2c2, DPS368_ADDR, 0x0F, I2C_MEMADD_SIZE_8BIT, &write_data, 1, 250);
 	}
+	DPS368_conf_temp(DPS_OVERSAMPLE_1, DPS_RATE_1);
+	DPS368_run_mode(MODE_CMD_TEMP);
 	UNSET_BME_DPS();
 }
 
@@ -308,14 +319,17 @@ uint8_t DPS368_press_rdy()
 	return ((reg & 0x10) >> 4);
 }
 
-float DPS368_get_temp()
+float DPS368_get_temp_cmd(uint8_t ovr)
 {
-//	DPS368_run_mode(MODE_CMD_TEMP);
-//	HAL_Delay(16);
+	DPS368_conf_temp(ovr, 0U);
+	DPS368_run_mode(MODE_CMD_TEMP);
+	HAL_Delay(calcBusyTime(ovr));
+	HAL_Delay(1);
 	SET_DPS368();
 	uint8_t value[3];
 	int32_t raw_temp;
 	float temp_scaled, temperature;
+//	dumpCFGreg();
 	HAL_I2C_Mem_Read(&hi2c2, DPS368_ADDR, DPS368_TEMP, I2C_MEMADD_SIZE_8BIT, value, 3, 250);
 	UNSET_BME_DPS();
 	raw_temp = (int32_t)(value[2]) + (value[1] << 8) + (value[0] << 16);
@@ -329,120 +343,62 @@ float DPS368_get_temp()
 	return temperature;
 }
 
-float DPS368_get_press()
+
+
+float DPS368_get_press_cmd(uint8_t ovr)
 {
-	uint8_t reg;
-//	DPS368_run_mode(MODE_CMD_PRESS);
-//	HAL_Delay(46);
-	SET_DPS368();
-	HAL_I2C_Mem_Read(&hi2c2, DPS368_ADDR, DPS368_MEAS_CFG, I2C_MEMADD_SIZE_8BIT, &reg, 1, 250);
-	printf("MAES REG: %#x\r\n", reg);
-	printbinaryMSB(reg);
-	HAL_Delay(46);
-	printf("MAES REG: %#x\r\n", reg);
-	printbinaryMSB(reg);
-	HAL_Delay(46);
-	printf("MAES REG: %#x\r\n", reg);
-	printbinaryMSB(reg);
-	HAL_Delay(46);
-	printf("MAES REG: %#x\r\n", reg);
-	printbinaryMSB(reg);
-	HAL_Delay(46);
-	printf("MAES REG: %#x\r\n", reg);
-	printbinaryMSB(reg);
-	uint8_t value[3];
-	int32_t raw_press;
-	float press_scaled, pressure;
-	HAL_I2C_Mem_Read(&hi2c2, DPS368_ADDR, 0x00, I2C_MEMADD_SIZE_8BIT, value, 3, 250);
-
-	for(int i=0; i<3; i++)
-	{
-		printf("Reg %d: %#x   ", i, value[i]);
-	}
-	printf("\r\n");
-	UNSET_BME_DPS();
-	raw_press = (int32_t)(value[2]) + (value[1] << 8) + (value[0] << 16);
-	getTwosComplement(&raw_press, 24);
-	const float scaling = 1.0f/Kp_coef;
-	printf("DPS RAW VALUE: %ld\r\n", raw_press);
-	printf("DPS SCALING VALUE: %.12f\r\n", scaling);
-	press_scaled = (float)raw_press * scaling;
-	printf("DPS PRESS SCALED VALUE: %.3f\r\n", press_scaled);
-    pressure = DPS_coef.C00;
-	pressure += press_scaled * (DPS_coef.C10 + press_scaled * (DPS_coef.C20 + press_scaled * DPS_coef.C30));
-	//                 + (temp_scaled * c01)
-	//                 + (temp_scaled * press_scaled * (c11 + press_scaled * c21));
-	return pressure *0.01f;
-
-}
-
-/*
-float DPS368_get_press()
-{
-//	DPS368_run_mode(MODE_CMD_TEMP);
-//	HAL_Delay(16);
+	DPS368_conf_temp(ovr, 0U);
+	DPS368_run_mode(MODE_CMD_TEMP);
+	HAL_Delay(calcBusyTime(ovr));
+	HAL_Delay(1);
 	SET_DPS368();
 	uint8_t value[3];
 	int32_t raw_temp, raw_press;
-	float temp_scaled, press_scaled, pressure;
-//	HAL_I2C_Mem_Read(&hi2c2, DPS368_ADDR, DPS368_TEMP, I2C_MEMADD_SIZE_8BIT, value, 3, 250);
+	HAL_I2C_Mem_Read(&hi2c2, DPS368_ADDR, DPS368_TEMP, I2C_MEMADD_SIZE_8BIT, value, 3, 250);
 	UNSET_BME_DPS();
-//	raw_temp = (int32_t)(value[2]) + (value[1] << 8) + (value[0] << 16);
-//	getTwosComplement(&raw_temp, 24);
-//	const float scalingT = 1.0f/Kt_coef;
-//	printf("DPS TEMP RAW VALUE: %ld\r\n", raw_temp);
-//	printf("DPS SCALING VALUE: %.12f\r\n", scaling);
-//	temp_scaled = (float)raw_temp * scalingT;
-//	printf("DPS TEMP SCALED VALUE: %f\r\n", temp_scaled);
-//	DPS368_run_mode(MODE_CMD_PRESS);
-//	HAL_Delay(36);
+	raw_temp = (int32_t)(value[2]) + (value[1] << 8) + (value[0] << 16);
+	getTwosComplement(&raw_temp, 24);
+	const float scalingT = 1.0f/Kt_coef;
+	printf("DPS RAW TEMP VALUE: %ld\r\n", raw_temp);
+	printf("DPS SCALING TEMP VALUE: %.12f\r\n", scalingT);
+	float temp_scaled = (float)raw_temp * scalingT;
+	printf("DPS TEMP SCALED VALUE: %.3f\r\n", temp_scaled);
+
+	float press_scaled, pressure;
+	DPS368_conf_press(ovr, 0U);
+	DPS368_run_mode(MODE_CMD_PRESS);
+	HAL_Delay(calcBusyTime(ovr));
+	HAL_Delay(1);
 	SET_DPS368();
 	HAL_I2C_Mem_Read(&hi2c2, DPS368_ADDR, DPS368_PRESS, I2C_MEMADD_SIZE_8BIT, value, 3, 250);
 	UNSET_BME_DPS();
 	raw_press = (int32_t)(value[2]) + (value[1] << 8) + (value[0] << 16);
 	getTwosComplement(&raw_press, 24);
 	const float scalingP = 1.0f/Kp_coef;
-	printf("DPS PRESS RAW VALUE: %ld\r\n", raw_press);
+	printf("DPS RAW PRESS VALUE: %ld\r\n", raw_press);
+	printf("DPS SCALING PRESS VALUE: %.12f\r\n", scalingP);
 	press_scaled = (float)raw_press * scalingP;
-	printf("DPS TEMP SCALED VALUE: %f\r\n", press_scaled);
-
-/*
-	DPS368_run_mode(MODE_CMD_TEMP);
-//	HAL_Delay(1);
-//	DPS368_run_mode(MODE_CMD_PRESS);
-	HAL_Delay(18);
-	SET_DPS368();
-	uint8_t value[6];
-	int32_t raw_temp, raw_press;
-	float press_scaled, pressure, temp_scaled;
-
-	HAL_I2C_Mem_Read(&hi2c2, DPS368_ADDR, DPS368_PRESS, I2C_MEMADD_SIZE_8BIT, value, 6, 500);
-	raw_temp = (int32_t)(value[5]) + (value[4] << 8) + (value[3] << 16);
-	raw_press = (int32_t)(value[2]) + (value[1] << 8) + (value[0] << 16);
-	UNSET_BME_DPS();
-	getTwosComplement(&raw_temp, 24);
-	getTwosComplement(&raw_press, 24);
-	const float scalingT = 1.0f/Kt_coef;
-	const float scalingP = 1.0f/Kp_coef;
-
-	temp_scaled = (float)raw_temp * scalingT;
-	press_scaled = (float)raw_press * scalingP;
-	printf("DPS TEMP ADC VALUE: %ld\r\n", raw_temp);
-	printf("DPS PRESS ADC VALUE: %ld\r\n", raw_press);
-
-	printf("DPS TEMP SCALED VALUE: %f\r\n", temp_scaled);
-	printf("DPS PRESS SCALED VALUE: %f\r\n", press_scaled);
-
-//    pressure = c00;
-//    pressure += press_scaled * (c10 + press_scaled * (c20 + press_scaled * c30));
-//                 + (temp_scaled * c01)
-//                 + (temp_scaled * press_scaled * (c11 + press_scaled * c21));
+	printf("DPS PRESS SCALED VALUE: %.3f\r\n", press_scaled);
+    pressure = DPS_coef.C00;
+	pressure += press_scaled * (DPS_coef.C10 + press_scaled * (DPS_coef.C20 + press_scaled * DPS_coef.C30));
+	pressure += (temp_scaled * DPS_coef.C01);
+	pressure += (temp_scaled * press_scaled * (DPS_coef.C11 + press_scaled * DPS_coef.C21));
 	return pressure *0.01f;
-
 }
-*/
-
-//TODO read press
-//TODO kompensacja
 
 
+
+uint32_t calcBusyTime(uint8_t osr)
+{
+    // formula from datasheet (optimized)
+    return (((uint32_t)20U) + ((uint32_t)16U << ((uint16_t)osr)));
+}
+
+void DPS368_init(uint8_t fifo, uint8_t int_m)
+{
+	DPS368_read_coeff();
+	DPS368_conf_int(int_m);
+	DPS368_fifo(fifo);
+	DPS368_run_mode(MODE_IDLE);
+	DPS368_temp_correct();
+}
