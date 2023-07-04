@@ -12,6 +12,8 @@
 #include <stdlib.h>
 #include <math.h>
 
+
+
 uint8_t i2c_read8(I2C_HandleTypeDef * i2c, uint16_t offset, uint8_t *value, uint8_t addr)
 {
 	uint8_t tmp;
@@ -50,19 +52,31 @@ uint8_t i2c_write16(I2C_HandleTypeDef * i2c, uint16_t offset, uint16_t value, ui
     return res;
 }
 
-void clr_bit(I2C_HandleTypeDef * i2c, unsigned char sub_address, unsigned short new_word, uint8_t addr) {
+void clr_bit16(I2C_HandleTypeDef * i2c, unsigned char sub_address, unsigned short new_word, uint8_t addr) {
     unsigned short old_word;
     i2c_read16(i2c, sub_address, &old_word, addr);
     old_word &= ~new_word;
     i2c_write16(i2c, sub_address, old_word, addr);
 }
 
-void set_bit(I2C_HandleTypeDef * i2c, unsigned char sub_address, unsigned short new_word, uint8_t addr)
+void set_bit16(I2C_HandleTypeDef * i2c, unsigned char sub_address, unsigned short new_word, uint8_t addr)
 {
     unsigned short old_word;
     i2c_read16(i2c, sub_address, &old_word, addr);
     old_word |= new_word;
     i2c_write16(i2c, sub_address, old_word, addr);
+}
+
+void setBit(unsigned char* reg, int bitNumber, int value) {
+    if (value == 0) {
+        *reg &= ~(1 << bitNumber);  // Ustawienie bitu na 0
+    } else if (value == 1) {
+        *reg |= (1 << bitNumber);   // Ustawienie bitu na 1
+    }
+}
+
+void modifyRegister(unsigned char* reg, unsigned char mask, unsigned char value) {
+    *reg = (*reg & ~mask) | (value & mask);
 }
 
 void i2c_scan(I2C_HandleTypeDef * i2c, uint8_t addr_min, uint8_t addr_max)
@@ -99,6 +113,17 @@ void printbinary(uint16_t value)
 	printf("\r\n");
 }
 
+void printbinaryMSB(uint8_t value)
+{
+  for (int i = 7; i >= 0; i--) {
+    if (value & (1 << i))
+      printf("1");
+    else
+      printf("0");
+  }
+  printf("\r\n");
+}
+
 void TCA9543A_SelectChannel(uint8_t channel)
 {
 	if (channel == 1 || channel == 2) {
@@ -106,8 +131,24 @@ void TCA9543A_SelectChannel(uint8_t channel)
 			HAL_Delay(1);
 		    uint8_t data = (1 << (channel - 1));
 		    HAL_I2C_Master_Transmit(&hi2c2, TCA9543A_ADDRESS, &data, sizeof(data), HAL_MAX_DELAY);
-	} else if (channel == 0) {I2C2TCA_RST();}
+		    HAL_Delay(1);
+	} else if (channel == 0) {I2C2TCA_RST(); HAL_Delay(1);}
 	else printf("Wrong parameter\r\n");
+}
+
+void SET_BME280()
+{
+	TCA9543A_SelectChannel(1);
+}
+
+void SET_DPS368()
+{
+	TCA9543A_SelectChannel(2);
+}
+
+void UNSET_BME_DPS()
+{
+	TCA9543A_SelectChannel(0);
 }
 
 
@@ -197,7 +238,7 @@ uint8_t SHTC3_sleep()
 	HAL_StatusTypeDef status;
 	uint16_t command = SHTC3_CMD_SLEEP;
 	status = HAL_I2C_Master_Transmit(&hi2c2, SHTC3_ADDR_WRITE, (uint8_t*)&command, 3, 150);
-	HAL_Delay(10);
+	HAL_Delay(2);
 	if(status == HAL_OK) return 1;
 	else return 0;
 }
@@ -287,4 +328,73 @@ uint8_t BME280_check()
 	} else {printf("BME280 FAILED\r\n"); return 0;}
 	return 0;
 
+}
+
+void BME280_init_config(uint8_t conf_mode, uint8_t ovr_temp, uint8_t ovr_press, uint8_t ovr_hum, uint8_t coeff)
+{
+	TCA9543A_SelectChannel(1);
+	HAL_Delay(1);
+//	bmp280_init_default_params(&bmp280.params);
+
+	bmp280.params.filter = coeff;
+	bmp280.params.oversampling_pressure = ovr_press;
+	bmp280.params.oversampling_temperature = ovr_temp;
+	bmp280.params.oversampling_humidity = ovr_hum;
+	bmp280.params.standby = BMP280_STANDBY_250;
+	bmp280.addr = BMP280_I2C_ADDRESS_0;
+	bmp280.i2c = &hi2c2;
+
+	switch (conf_mode)
+	{
+	case 1:
+		bmp280.params.mode = BMP280_MODE_FORCED;
+		break;
+	case 2:
+		bmp280.params.mode = BMP280_MODE_NORMAL;
+		break;
+	default:
+		bmp280.params.mode = BMP280_MODE_NORMAL;
+	  }
+	bmp280_init(&bmp280, &bmp280.params);
+	HAL_Delay(1);
+	TCA9543A_SelectChannel(0);
+}
+
+float BME280_get_temp()
+{
+	TCA9543A_SelectChannel(1);
+	HAL_Delay(1);
+	float temp, press, hum;
+	bmp280_force_measurement(&bmp280);
+	while(bmp280_is_measuring(&bmp280));
+	bmp280_read_float(&bmp280, &temp, &press, &hum);
+	HAL_Delay(1);
+	TCA9543A_SelectChannel(0);
+	return temp;
+}
+
+float BME280_get_press()
+{
+	TCA9543A_SelectChannel(1);
+	HAL_Delay(1);
+	float temp, press, hum;
+	bmp280_force_measurement(&bmp280);
+	while(bmp280_is_measuring(&bmp280));
+	bmp280_read_float(&bmp280, &temp, &press, &hum);
+	HAL_Delay(1);
+	TCA9543A_SelectChannel(0);
+	return press;
+}
+
+float BME280_get_hum()
+{
+	TCA9543A_SelectChannel(1);
+	HAL_Delay(1);
+	float temp, press, hum;
+	bmp280_force_measurement(&bmp280);
+	while(bmp280_is_measuring(&bmp280));
+	bmp280_read_float(&bmp280, &temp, &press, &hum);
+	HAL_Delay(1);
+	TCA9543A_SelectChannel(0);
+	return hum;
 }

@@ -71,6 +71,8 @@ HUM_struct_t SHTC3_hum_sensor;
 HUM_struct_t BME280_hum_sensor;
 HUM_struct_t DPS368_hum_sensor;
 
+BMP280_HandleTypedef bmp280;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -179,6 +181,17 @@ int main(void)
 	  DPS368_hum_sensor.sensor_present = 0;
   }
 
+  BME280_init_config(1, BMP280_STANDARD, BMP280_STANDARD, BMP280_STANDARD, BMP280_FILTER_OFF);
+
+  DPS368_read_coeff();
+  DPS368_conf_int(INT_NONE);
+  DPS368_run_mode(MODE_IDLE);
+  DPS368_conf_temp(DPS_OVERSAMPLE_4, DPS_RATE_2);
+  DPS368_conf_press(DPS_OVERSAMPLE_4, DPS_RATE_2);
+
+  DPS368_temp_correct();
+  DPS368_fifo(FIFO_DIS);
+  DPS368_run_mode(MODE_BACKGND_ALL);
 
 //  LED2_ON();
   /* USER CODE END 2 */
@@ -194,27 +207,43 @@ int main(void)
 			  ticks1s = HAL_GetTick();
 			  TMP117_temp_sensor.temperature=TMP117_get_temp(avg8);
 			  MS8607_temp_sensor.temperature=MS8607_get_temp();
+			  MS8607_press_sensor.pressure=MS8607_get_press();
 			  SHTC3_temp_sensor.temperature=SHTC3_get_temp(0);
 			  SHTC3_hum_sensor.humidity=SHTC3_get_hum(0);
-
+			  BME280_temp_sensor.temperature = BME280_get_temp();
+			  BME280_press_sensor.pressure = BME280_get_press();
+			  printf("Start TEMP DPS\r\n");
+			  DPS368_temp_sensor.temperature = DPS368_get_temp();
+			  DPS368_press_sensor.pressure = DPS368_get_press();
 			  printf("-- TEMPERATURE --\r\n");
 			  printf("TMP117: %.3f", TMP117_temp_sensor.temperature);
 			  printf("    ");
 			  printf("MS8607: %.3f", MS8607_temp_sensor.temperature);
+			  printf("    ");
+			  printf("DPS368: %.3f", DPS368_temp_sensor.temperature);
 			  printf("    \r\n");
 			  printf("SHTC3 Normal\r\n");
 			  printf("SHTC3: %.3f", SHTC3_temp_sensor.temperature);
 			  printf("      ");
 			  printf("SHTC3: %.3f", SHTC3_hum_sensor.humidity);
 			  printf("\r\n");
-			  SHTC3_temp_sensor.temperature=SHTC3_get_temp(1);
-			  SHTC3_hum_sensor.humidity=SHTC3_get_hum(1);
+			  printf("-- PRESSURE --\r\n");
+			  printf("MS8607: %.3f", MS8607_press_sensor.pressure);
+			  printf("    ");
+			  printf("BME280: %.3f", BME280_press_sensor.pressure);
+			  printf("    ");
+			  printf("DPS368: %.3f", DPS368_press_sensor.pressure);
+			  printf("    \r\n");
 
-			  printf("SHTC3 LP\r\n");
-			  printf("SHTC3: %.3f", SHTC3_temp_sensor.temperature);
-			  printf("      ");
-			  printf("SHTC3: %.3f", SHTC3_hum_sensor.humidity);
-			  printf("\r\n");
+
+//			  SHTC3_temp_sensor.temperature=SHTC3_get_temp(1);
+//			  SHTC3_hum_sensor.humidity=SHTC3_get_hum(1);
+
+//			  printf("SHTC3 LP\r\n");
+//			  printf("SHTC3: %.3f", SHTC3_temp_sensor.temperature);
+//			  printf("      ");
+//			  printf("SHTC3: %.3f", SHTC3_hum_sensor.humidity);
+//			  printf("\r\n");
 			  printf("BME280: %.3f", BME280_temp_sensor.temperature);
 			  printf("\r\n");
 //			  printf("Sensor present: \r\n");

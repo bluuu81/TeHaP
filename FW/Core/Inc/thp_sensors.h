@@ -14,6 +14,8 @@
 extern I2C_HandleTypeDef hi2c2;
 extern I2C_HandleTypeDef hi2c3;
 
+extern BMP280_HandleTypedef bmp280;
+
 #define TCA9543A_ADDRESS 0x72 << 1
 
 #define TMP117_ADDR 		0x49
@@ -49,6 +51,7 @@ typedef struct {
 	uint8_t sensor_conf		:4;
 	uint8_t uu				:2;
 	float	temperature;
+	float	offset;
 } __attribute__((packed)) TEMP_struct_t;
 
 typedef struct {
@@ -57,6 +60,7 @@ typedef struct {
 	uint8_t sensor_conf		:4;
 	uint8_t uu				:2;
 	float	pressure;
+	float	offset;
 } __attribute__((packed)) PRESS_struct_t;
 
 typedef struct {
@@ -65,10 +69,20 @@ typedef struct {
 	uint8_t sensor_conf		:4;
 	uint8_t uu				:2;
 	float	humidity;
+	float	offset;
 } __attribute__((packed)) HUM_struct_t;
 
 
 void TCA9543A_SelectChannel(uint8_t channel);
+void SET_BME280();
+void SET_DPS368();
+void UNSET_BME_DPS();
+
+void printbinary(uint16_t value);
+void printbinaryMSB(uint8_t value);
+void setBit(unsigned char* reg, int bitNumber, int value);
+void modifyRegister(unsigned char* reg, unsigned char mask, unsigned char value);
+
 void i2c_scan(I2C_HandleTypeDef * i2c, uint8_t addr_min, uint8_t addr_max);
 uint8_t i2c_read8(I2C_HandleTypeDef * i2c, uint16_t offset, uint8_t *value, uint8_t addr);
 uint8_t i2c_read16(I2C_HandleTypeDef * i2c, uint16_t offset, uint16_t *value, uint8_t addr);
@@ -89,5 +103,9 @@ float SHTC3_get_temp(uint8_t mode);
 float SHTC3_get_hum(uint8_t mode);
 
 uint8_t BME280_check();
+void BME280_init_config(uint8_t conf_mode, uint8_t ovr_temp, uint8_t ovr_press, uint8_t ovr_hum, uint8_t coeff);
+float BME280_get_temp();
+float BME280_get_press();
+float BME280_get_hum();
 
 #endif /* INC_THP_SENSORS_H_ */
