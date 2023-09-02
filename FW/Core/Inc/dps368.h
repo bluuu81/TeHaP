@@ -14,7 +14,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define DPS368_ADDR				0x76 << 1
+#define DPS368_ADDR				0x77 << 1
 #define DPS368_REG_ID			0x0D
 #define DPS368_ID_CHK			0x10
 

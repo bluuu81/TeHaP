@@ -319,10 +319,10 @@ uint8_t BME280_check()
 	TCA9543A_SelectChannel(1);
 	HAL_Delay(1);
 	HAL_StatusTypeDef status;
-	status = HAL_I2C_IsDeviceReady(&hi2c2, BMP280_I2C_ADDRESS_0 << 1, 3, 150);
+	status = HAL_I2C_IsDeviceReady(&hi2c2, BMP280_I2C_ADDRESS_1 << 1, 3, 150);
 	HAL_Delay(100);
 	if (status == HAL_OK) {
-		i2c_read8(&hi2c2, BMP280_REG_ID, &value, BMP280_I2C_ADDRESS_0 << 1);
+		i2c_read8(&hi2c2, BMP280_REG_ID, &value, BMP280_I2C_ADDRESS_1 << 1);
 		TCA9543A_SelectChannel(0);
 		if(value == BME280_CHIP_ID) {printf("BME280 OK\r\n"); return 1;} else {printf("NOT BME280\r\n"); return 0;}
 	} else {printf("BME280 FAILED\r\n"); return 0;}
@@ -341,7 +341,7 @@ void BME280_init_config(uint8_t conf_mode, uint8_t ovr_temp, uint8_t ovr_press, 
 	bmp280.params.oversampling_temperature = ovr_temp;
 	bmp280.params.oversampling_humidity = ovr_hum;
 	bmp280.params.standby = BMP280_STANDBY_250;
-	bmp280.addr = BMP280_I2C_ADDRESS_0;
+	bmp280.addr = BMP280_I2C_ADDRESS_1;
 	bmp280.i2c = &hi2c2;
 
 	switch (conf_mode)
