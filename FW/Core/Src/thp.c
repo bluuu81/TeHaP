@@ -58,29 +58,18 @@ void led2Sweep(uint16_t spd, uint16_t cnt, uint16_t wait)
 void check_powerOn()
 {
 	  POWER_OFF();
-	  if (__HAL_PWR_GET_FLAG(PWR_FLAG_SB) != RESET)
-	  {
-	    /* Clear Standby flag */
-	    __HAL_PWR_CLEAR_FLAG(PWR_FLAG_SB);
-	  }
+	  printf("1. Check Power ON\r\n");
 	  uint32_t timon = HAL_GetTick();
 	  while(Power_SW_READ() == GPIO_PIN_SET)
 	  {
+//		  printf("2. Check Power BUT\r\n");
 	    if(HAL_GetTick() - timon > 1000)     // 1 sec pushing
 	    {
 	    	timon = HAL_GetTick();
 	        POWER_ON();    // pull-up power supply
 	    	printf("Power ON\r\n");
-	    	device_state = STANDBY;
 	        break;                // break while loop
 	    }
-
-	  //  WDR();    // watchdog reset
-	  }
-	  if(device_state == INIT)
-	  {
-	      HAL_Delay(300);
-	      MCUgoSleep();
 	  }
 }
 
@@ -90,8 +79,11 @@ void check_powerOff()
   {
      if(offTim && HAL_GetTick() - offTim > 2000)    // 2 sec pressed
      {
-    	 printf("Power down in progress ...\r\n");
-    	 MCUgoSleep();
+    	 printf("Power off\r\n");
+    	 POWER_OFF();
+    	 HAL_Delay(3000);
+    	 LED1_OFF();
+    	 LED2_OFF();
      }
   } else offTim = HAL_GetTick();   // button released, update offTim
 

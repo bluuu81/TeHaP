@@ -141,8 +141,8 @@ int main(void)
   HAL_TIM_PWM_Start(&htim16, TIM_CHANNEL_1);	// LED2 na PWM
   HAL_UART_RxCpltCallback(&huart1); //CLI
   HAL_UART_RxCpltCallback(&huart2); //SIM
+  check_powerOn();
   printf("Initializing ...\r\n");
-//  check_powerOn();
   charger_state = BQ25798_check();
   LED1_ON();
   LED2_OFF();
@@ -150,7 +150,7 @@ int main(void)
   uint32_t ticks1s = HAL_GetTick();
   uint32_t ticks30ms = HAL_GetTick();
   I2C2TCA_RST();
-//  i2c_scan(&hi2c2, 0x38, 0xA0);
+  // i2c_scan(&hi2c1, 0x38, 0xA0);
   TMP117_temp_sensor.sensor_present = TMP117_check();
   MS8607_temp_sensor.sensor_present = MS8607_check();
   if(MS8607_temp_sensor.sensor_present) {
@@ -198,47 +198,34 @@ int main(void)
 	  {
 		  if(cyclic) {
 			  ticks1s = HAL_GetTick();
-			  TMP117_temp_sensor.temperature=TMP117_get_temp(avg8);
-			  MS8607_temp_sensor.temperature=MS8607_get_temp();
-			  MS8607_press_sensor.pressure=MS8607_get_press();
+//			  TMP117_temp_sensor.temperature=TMP117_get_temp(avg8);
+//			  MS8607_temp_sensor.temperature=MS8607_get_temp();
+//			  MS8607_press_sensor.pressure=MS8607_get_press();
 			  SHTC3_temp_sensor.temperature=SHTC3_get_temp(0);
 			  SHTC3_hum_sensor.humidity=SHTC3_get_hum(0);
-			  BME280_temp_sensor.temperature = BME280_get_temp();
-			  BME280_press_sensor.pressure = BME280_get_press();
-			  printf("Start TEMP DPS\r\n");
-			  DPS368_temp_sensor.temperature = DPS368_get_temp_cmd(DPS_OVERSAMPLE_8);
-			  DPS368_press_sensor.pressure = DPS368_get_press_cmd(DPS_OVERSAMPLE_8);
-			  printf("-- TEMPERATURE --\r\n");
-			  printf("TMP117: %.3f", TMP117_temp_sensor.temperature);
-			  printf("    ");
-			  printf("MS8607: %.3f", MS8607_temp_sensor.temperature);
-			  printf("    ");
-			  printf("DPS368: %.3f", DPS368_temp_sensor.temperature);
-			  printf("    \r\n");
+//			  BME280_temp_sensor.temperature = BME280_get_temp();
+//			  BME280_press_sensor.pressure = BME280_get_press();
+//			  printf("Start TEMP DPS\r\n");
+//			  DPS368_temp_sensor.temperature = DPS368_get_temp_cmd(DPS_OVERSAMPLE_8);
+//			  DPS368_press_sensor.pressure = DPS368_get_press_cmd(DPS_OVERSAMPLE_8);
 			  printf("SHTC3 Normal\r\n");
 			  printf("SHTC3: %.3f", SHTC3_temp_sensor.temperature);
 			  printf("      ");
 			  printf("SHTC3: %.3f", SHTC3_hum_sensor.humidity);
 			  printf("\r\n");
-			  printf("-- PRESSURE --\r\n");
-			  printf("MS8607: %.3f", MS8607_press_sensor.pressure);
-			  printf("    ");
-			  printf("BME280: %.3f", BME280_press_sensor.pressure);
-			  printf("    ");
-			  printf("DPS368: %.3f", DPS368_press_sensor.pressure);
-			  printf("    \r\n");
 
 
-//			  SHTC3_temp_sensor.temperature=SHTC3_get_temp(1);
-//			  SHTC3_hum_sensor.humidity=SHTC3_get_hum(1);
 
-//			  printf("SHTC3 LP\r\n");
-//			  printf("SHTC3: %.3f", SHTC3_temp_sensor.temperature);
-//			  printf("      ");
-//			  printf("SHTC3: %.3f", SHTC3_hum_sensor.humidity);
-//			  printf("\r\n");
-			  printf("BME280: %.3f", BME280_temp_sensor.temperature);
+			  SHTC3_temp_sensor.temperature=SHTC3_get_temp(1);
+			  SHTC3_hum_sensor.humidity=SHTC3_get_hum(1);
+
+			  printf("SHTC3 LP\r\n");
+			  printf("SHTC3: %.3f", SHTC3_temp_sensor.temperature);
+			  printf("      ");
+			  printf("SHTC3: %.3f", SHTC3_hum_sensor.humidity);
 			  printf("\r\n");
+//			  printf("BME280: %.3f", BME280_temp_sensor.temperature);
+//			  printf("\r\n");
 //			  printf("Sensor present: \r\n");
 //			  printf("TMP117: %d \r\n",TMP117_temp_sensor.sensor_present);
 //			  printf("MS8607: %d %d %d \r\n",MS8607_temp_sensor.sensor_present, MS8607_press_sensor.sensor_present, MS8607_hum_sensor.sensor_present);
@@ -252,7 +239,7 @@ int main(void)
 	  {
 	  	    ticks30ms = HAL_GetTick();
 	  	    LED1_TOGGLE();
-//	  	    check_powerOff();
+	  	    check_powerOff();
 	  }
     /* USER CODE END WHILE */
 
@@ -483,7 +470,7 @@ static void MX_I2C2_Init(void)
 
   /* USER CODE END I2C2_Init 1 */
   hi2c2.Instance = I2C2;
-  hi2c2.Init.Timing = 0x00909BEB;
+  hi2c2.Init.Timing = 0x00301347;
   hi2c2.Init.OwnAddress1 = 0;
   hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -538,7 +525,7 @@ static void MX_I2C3_Init(void)
   hi2c3.Init.OwnAddress2 = 0;
   hi2c3.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
   hi2c3.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c3.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  hi2c3.Init.NoStretchMode = I2C_NOSTRETCH_ENABLE;
   if (HAL_I2C_Init(&hi2c3) != HAL_OK)
   {
     Error_Handler();
@@ -735,6 +722,12 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, SIM_PWR_Pin|RST3_Pin|LED1_Pin|Main_SW_Pin, GPIO_PIN_RESET);
 
+  /*Configure GPIO pin : But_ONOFF_Pin */
+  GPIO_InitStruct.Pin = But_ONOFF_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(But_ONOFF_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pins : PC14 PC15 */
   GPIO_InitStruct.Pin = GPIO_PIN_14|GPIO_PIN_15;
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
@@ -753,17 +746,15 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(SIM_UART_RI_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : SIM_UART_DTR_Pin SIM_GPS_Pin RST2_Pin BQ_QON_Pin
-                           BQ_CE_Pin */
-  GPIO_InitStruct.Pin = SIM_UART_DTR_Pin|SIM_GPS_Pin|RST2_Pin|BQ_QON_Pin
-                          |BQ_CE_Pin;
+  /*Configure GPIO pins : SIM_UART_DTR_Pin SIM_GPS_Pin BQ_QON_Pin BQ_CE_Pin */
+  GPIO_InitStruct.Pin = SIM_UART_DTR_Pin|SIM_GPS_Pin|BQ_QON_Pin|BQ_CE_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : SIM_PWR_Pin RST3_Pin LED1_Pin Main_SW_Pin */
-  GPIO_InitStruct.Pin = SIM_PWR_Pin|RST3_Pin|LED1_Pin|Main_SW_Pin;
+  /*Configure GPIO pins : SIM_PWR_Pin LED1_Pin Main_SW_Pin */
+  GPIO_InitStruct.Pin = SIM_PWR_Pin|LED1_Pin|Main_SW_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -780,6 +771,20 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : RST3_Pin */
+  GPIO_InitStruct.Pin = RST3_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(RST3_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : RST2_Pin */
+  GPIO_InitStruct.Pin = RST2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(RST2_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PH3 */
   GPIO_InitStruct.Pin = GPIO_PIN_3;

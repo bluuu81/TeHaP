@@ -10,6 +10,7 @@
 #include "main.h"
 #include "thp_sensors.h"
 #include "thp.h"
+#include "bq25798.h"
 #include "ctype.h"
 #include <stdio.h>
 #include <string.h>
@@ -199,7 +200,6 @@ void help()
 		break;
 	}
 	printf("MCU Temp: %3.1f [degC]\r\n", GET_MCU_Temp());
-	printf("TMP117 Stat: %d", TMP117_temp_sensor.sensor_present);
-	printf("   MS8607 Stat: %d", MS8607_temp_sensor.sensor_present);
-	printf("   SHTC3 Stat: %d \r\n", SHTC3_temp_sensor.sensor_present);
+	printf("VBAT: %u [mV]  ", BQ25798_Vbat_read());
+	printf("VSYS: %u [mV]  \r\n", BQ25798_Vsys_read());
 }

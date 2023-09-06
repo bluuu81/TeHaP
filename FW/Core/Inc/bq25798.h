@@ -78,5 +78,8 @@ enum charge_state
 };
 
 uint8_t BQ25798_check();
+void BQ25798_set_ADC();
+uint16_t BQ25798_Vbat_read();
+uint16_t BQ25798_Vsys_read();
 
 #endif /* INC_BQ25798_H_ */
