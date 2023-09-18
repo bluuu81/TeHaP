@@ -59,3 +59,57 @@ uint16_t BQ25798_Vsys_read()
     i2c_read16(&hi2c1, REG3D_VSYS_ADC, &value, BQ25798_ADDR);
     return byteswap16(value);
 }
+
+uint16_t BQ25798_Vbus_read()
+{
+	uint16_t value;
+    i2c_read16(&hi2c1, REG35_VBUS_ADC, &value, BQ25798_ADDR);
+    return byteswap16(value);
+}
+
+uint16_t BQ25798_Vac1_read()
+{
+	uint16_t value;
+    i2c_read16(&hi2c1, REG37_VAC1_ADC, &value, BQ25798_ADDR);
+    return byteswap16(value);
+}
+
+uint16_t BQ25798_Vac2_read()
+{
+	uint16_t value;
+    i2c_read16(&hi2c1, REG39_VAC2_ADC, &value, BQ25798_ADDR);
+    return byteswap16(value);
+}
+
+uint16_t BQ25798_Ibus_read()
+{
+	uint16_t value;
+    i2c_read16(&hi2c1, REG31_IBUS_ADC, &value, BQ25798_ADDR);
+    return byteswap16(value);
+}
+
+uint16_t BQ25798_Ibat_read()
+{
+	uint16_t value;
+    i2c_read16(&hi2c1, REG33_IBAT_ADC, &value, BQ25798_ADDR);
+    return byteswap16(value);
+}
+
+uint16_t BQ25798_Sys_Min_Voltage_read()
+{
+	uint8_t value;
+	uint8_t mask = 0x3F;
+	uint16_t voltage;
+    HAL_I2C_Mem_Read(&hi2c1, BQ25798_ADDR, REG00_Minimal_System_Voltage, I2C_MEMADD_SIZE_8BIT, &value, 1, 500);
+    voltage= value & mask;
+    voltage *= 250;
+    voltage += 2500;
+    return voltage;
+}
+
+uint8_t BQ25798_Sys_Min_Voltage_write(uint8_t bits) // 6 bits multiplier (2500mV + 6bits * 250mV) e.g 3000mV = 2500 + 3*250 = 3,25V / bits=3
+{
+	uint8_t res;
+    res = i2c_write8(&hi2c1, REG00_Minimal_System_Voltage, (bits & 0x3F), BQ25798_ADDR);
+    return res;
+}

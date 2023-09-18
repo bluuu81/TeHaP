@@ -201,5 +201,11 @@ void help()
 	}
 	printf("MCU Temp: %3.1f [degC]\r\n", GET_MCU_Temp());
 	printf("VBAT: %u [mV]  ", BQ25798_Vbat_read());
+	printf("Vac1: %u [mV]  ", BQ25798_Vac1_read());
+	printf("Vac2: %u [mV]  ", BQ25798_Vac2_read());
 	printf("VSYS: %u [mV]  \r\n", BQ25798_Vsys_read());
+	printf("Ibus: %u [mA]  ", BQ25798_Ibus_read());
+	printf("Ibat: %u [mA]  \r\n", BQ25798_Ibat_read());
+	printf("Minimal SYS Voltage: %u [mV]  \r\n", BQ25798_Sys_Min_Voltage_read());
+
 }

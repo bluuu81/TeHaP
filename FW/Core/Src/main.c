@@ -144,13 +144,16 @@ int main(void)
   check_powerOn();
   printf("Initializing ...\r\n");
   charger_state = BQ25798_check();
+  if (charger_state) {
+	  printf("Configure charger \r\n");
+	  BQ25798_Sys_Min_Voltage_write(3); // 3250mV
+  }
   LED1_ON();
   LED2_OFF();
   ADC_DMA_Start();
   uint32_t ticks1s = HAL_GetTick();
   uint32_t ticks30ms = HAL_GetTick();
   I2C2TCA_RST();
-  // i2c_scan(&hi2c1, 0x38, 0xA0);
   TMP117_temp_sensor.sensor_present = TMP117_check();
   MS8607_temp_sensor.sensor_present = MS8607_check();
   if(MS8607_temp_sensor.sensor_present) {

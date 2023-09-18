@@ -81,5 +81,13 @@ uint8_t BQ25798_check();
 void BQ25798_set_ADC();
 uint16_t BQ25798_Vbat_read();
 uint16_t BQ25798_Vsys_read();
+uint16_t BQ25798_Vbus_read();
+uint16_t BQ25798_Vac1_read();
+uint16_t BQ25798_Vac2_read();
+uint16_t BQ25798_Ibus_read();
+uint16_t BQ25798_Ibat_read();
+
+uint16_t BQ25798_Sys_Min_Voltage_read();
+uint8_t BQ25798_Sys_Min_Voltage_write(uint8_t bits); // 6 bits multiplier (2500mV + 6bits * 250mV) e.g 3000mV = 2500 + 3*250 = 3,25V / bits=3
 
 #endif /* INC_BQ25798_H_ */
