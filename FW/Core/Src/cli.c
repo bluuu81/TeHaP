@@ -207,5 +207,7 @@ void help()
 	printf("Ibus: %u [mA]  ", BQ25798_Ibus_read());
 	printf("Ibat: %u [mA]  \r\n", BQ25798_Ibat_read());
 	printf("Minimal SYS Voltage: %u [mV]  \r\n", BQ25798_Sys_Min_Voltage_read());
+	printf("Charge Voltage Limit: %u [mV]  \r\n",BQ25798_Chr_Volt_Limit_read());
+	printf("Charge Current Limit: %u [mA]  \r\n",BQ25798_Chr_Curr_Limit_read());
 
 }

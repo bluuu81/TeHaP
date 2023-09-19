@@ -88,6 +88,10 @@ uint16_t BQ25798_Ibus_read();
 uint16_t BQ25798_Ibat_read();
 
 uint16_t BQ25798_Sys_Min_Voltage_read();
+uint16_t BQ25798_Chr_Volt_Limit_read();
+uint16_t BQ25798_Chr_Curr_Limit_read();
 uint8_t BQ25798_Sys_Min_Voltage_write(uint8_t bits); // 6 bits multiplier (2500mV + 6bits * 250mV) e.g 3000mV = 2500 + 3*250 = 3,25V / bits=3
+uint8_t BQ25798_Chr_Volt_Limit_write(uint16_t val); // mV
+uint8_t BQ25798_Chr_Curr_Limit_write(uint16_t val); // mA
 
 #endif /* INC_BQ25798_H_ */
