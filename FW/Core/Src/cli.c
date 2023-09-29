@@ -14,6 +14,7 @@
 #include "ctype.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include "EEPROM.h"
 
 
@@ -107,6 +108,15 @@ void getString(char *p, char *dst, int16_t minlen, int16_t maxlen, const char *n
 	printf("%s: %s\r\n", nam, dst);
 }
 
+char * getFloat (char *p, float *val, float min, float max)
+{
+	 char* pend;
+	float tmp = 0;
+		while(*p == ' ') p++;
+		tmp = strtof(p, &pend);
+		if(tmp >= min && tmp <= max) {*val = tmp; return 1;} else { printf("Bad value\r\n"); return 0;}
+
+}
 char * get_hex(char *p, uint8_t chars, uint16_t *val)
 {
     uint16_t tmp = 0;
@@ -133,6 +143,7 @@ void CLI() {
 void CLI_proc(char ch)
 {
 	char *p;
+	float tempfloat;
 	if(cliptr < sizeof(clibuf)) clibuf[cliptr++] = ch;
 	if(ch == 10)	// LF
 	{
@@ -148,7 +159,8 @@ void CLI_proc(char ch)
 		if(find("loadconfig")==clibuf+10) {printf("LOADING CONFIG. Status: %i (0==OK)\r\n",EEPROM_Load_config()); return;}
 		if(find("saveconfig")==clibuf+10) {printf("SAVING CONFIG. Status: %i (0==NO CHANGES; 1==SAVE OK, 2==ERR)\r\n",EEPROM_Save_config()); return;}
 		if(find("setbattalarm")==clibuf+12){getval(clibuf+13, &temp, 0, 15000); config.batt_alarm=temp; printf("Batt alarm:%i",config.batt_alarm); return;};
-
+		if(find("setbatscale")==clibuf+11){getFloat(clibuf+12, &tempfloat, -10.0, 10.0); config.bat_scale=tempfloat; printf("Batt scale:%f \r\n",config.bat_scale); return;};
+		if(find("setoffset")==clibuf+9){setOffset();return;}
 
 
 //	}
@@ -191,6 +203,126 @@ void CLI_proc(char ch)
 //        }
 	}
 }
+
+
+void setOffset(void)
+{ float valtostore;
+
+switch (clibuf[10])
+{
+
+case 'h':
+	if(find("sht3")==clibuf+16)
+	{
+		if (getFloat(clibuf+17, &valtostore, MIN_OFFSET, MAX_OFFSET))
+		{config.SHT3_h_offset=valtostore;}
+		printf("SHT3 hum offset:%f \r\n",config.SHT3_h_offset);
+		return;
+		break;
+	}
+
+	if(find("ms8607")==clibuf+18)
+	{
+		if (getFloat(clibuf+19, &valtostore, MIN_OFFSET, MAX_OFFSET))
+		{config.MS8607_h_offset=valtostore;}
+		printf("MS8607 hump offset:%f \r\n",config.MS8607_h_offset);
+		return;
+		break;
+	}
+	if(find("bme280")==clibuf+18)
+	{
+		if (getFloat(clibuf+19, &valtostore, MIN_OFFSET, MAX_OFFSET))
+		{config.BME280_h_offset=valtostore;}
+		printf("BME280 hum offset:%f \r\n",config.BME280_h_offset);
+		return;
+		break;
+	}
+
+	printf("unknown sensor");
+	break;
+case 'p':
+	if(find("ms8607")==clibuf+18)
+	{
+		if (getFloat(clibuf+19, &valtostore, MIN_OFFSET, MAX_OFFSET))
+		{config.MS8607_p_offset=valtostore;}
+		printf("MS8607 press offset:%f \r\n",config.MS8607_p_offset);
+		return;
+		break;
+	}
+	if(find("bme280")==clibuf+18)
+	{
+		if (getFloat(clibuf+19, &valtostore, MIN_OFFSET, MAX_OFFSET))
+		{config.BME280_p_offset=valtostore;}
+		printf("BME280 press offset:%f \r\n",config.BME280_p_offset);
+		return;
+		break;
+	}
+	if(find("dps368")==clibuf+18)
+	{
+		if (getFloat(clibuf+19, &valtostore, MIN_OFFSET, MAX_OFFSET))
+		{config.DPS368_p_offset=valtostore;}
+		printf("DPS368 press offset:%f \r\n",config.DPS368_p_offset);
+		return;
+		break;
+	}
+	printf("unknown sensor");
+	break;
+case 't':
+	if(find("tmp117")==clibuf+18)
+	{
+		if (getFloat(clibuf+19, &valtostore, MIN_OFFSET, MAX_OFFSET))
+		{config.TMP117_t_offset=valtostore;}
+		printf("TMP117 temp offset:%f \r\n",config.TMP117_t_offset);
+		return;
+		break;
+	}
+
+	if(find("sht3")==clibuf+16)
+	{
+		if (getFloat(clibuf+17, &valtostore, MIN_OFFSET, MAX_OFFSET))
+		{config.SHT3_t_offset=valtostore;}
+		printf("SHT3 temp offset:%f \r\n",config.SHT3_t_offset);
+		return;
+		break;
+	}
+
+	if(find("ms8607")==clibuf+18)
+	{
+		if (getFloat(clibuf+19, &valtostore, MIN_OFFSET, MAX_OFFSET))
+		{config.MS8607_t_offset=valtostore;}
+		printf("MS8607 temp offset:%f \r\n",config.MS8607_t_offset);
+		return;
+		break;
+	}
+	if(find("bme280")==clibuf+18)
+	{
+		if (getFloat(clibuf+19, &valtostore, MIN_OFFSET, MAX_OFFSET))
+		{config.BME280_t_offset=valtostore;}
+		printf("BME280 temp offset:%f \r\n",config.BME280_t_offset);
+		return;
+		break;
+	}
+	if(find("dps368")==clibuf+18)
+	{
+		if (getFloat(clibuf+19, &valtostore, MIN_OFFSET, MAX_OFFSET))
+		{config.DPS368_t_offset=valtostore;}
+		printf("DPS368 temp offset:%f \r\n",config.DPS368_t_offset);
+		return;
+		break;
+	}
+	printf("unknown sensor");
+	break;
+
+default:
+	printf( "unknown parameter");
+	break;
+}
+
+printf("bad parameters. usage: setoffset X YYYY ff.fff | x:t/p/h | Y:sensor name | ff.fff: offset\r\n");
+return;
+}
+
+
 
 void help()
 {
