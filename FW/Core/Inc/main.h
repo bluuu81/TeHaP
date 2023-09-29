@@ -39,6 +39,8 @@ extern "C" {
 #include "dps368.h"
 #include "adc.h"
 #include "cli.h"
+#include "EEPROM.h"
+
 
 /* USER CODE END Includes */
 

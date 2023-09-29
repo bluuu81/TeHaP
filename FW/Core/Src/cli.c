@@ -14,18 +14,23 @@
 #include "ctype.h"
 #include <stdio.h>
 #include <string.h>
+#include "EEPROM.h"
+
 
 #define DEBUG_BUF_SIZE 512
 #define SIM_BUF_SIZE 512
 
 extern uint8_t charger_state;
 extern uint8_t cyclic;
+extern Config_TypeDef config;
 
 uint8_t  debug_rx_buf[DEBUG_BUF_SIZE];
 uint16_t debug_rxtail;
 
 uint8_t sim_rx_buf[32];    // 32 bytes buffer
 uint16_t sim_rxtail;
+
+uint32_t temp;
 
 static char clibuf[32];
 static int cliptr;
@@ -138,6 +143,13 @@ void CLI_proc(char ch)
 		if(find("?")==clibuf+1 || find("help")==clibuf+4)	{help(); return;}
 		if(find("cyclic")==clibuf+6) {cyclic = !cyclic; return;}
 		if(find("i2cscan")==clibuf+7) {i2c_scan(&hi2c2, 0x38, 0xA0); return;}
+		if(find("clearconfig")==clibuf+11) {printf("config reset to defaults"); EEPROM_Load_defaults(); return;}
+		if(find("printconfig")==clibuf+11) {EEPROM_Print_config(); return;}
+		if(find("loadconfig")==clibuf+10) {printf("LOADING CONFIG. Status: %i (0==OK)\r\n",EEPROM_Load_config()); return;}
+		if(find("saveconfig")==clibuf+10) {printf("SAVING CONFIG. Status: %i (0==NO CHANGES; 1==SAVE OK, 2==ERR)\r\n",EEPROM_Save_config()); return;}
+		if(find("setbattalarm")==clibuf+12){getval(clibuf+13, &temp, 0, 15000); config.batt_alarm=temp; printf("Batt alarm:%i",config.batt_alarm); return;};
+
+
 
 //	}
 //		if(find("load defaults")==clibuf+13)

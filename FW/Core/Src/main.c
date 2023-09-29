@@ -72,6 +72,7 @@ HUM_struct_t BME280_hum_sensor;
 HUM_struct_t DPS368_hum_sensor;
 
 BMP280_HandleTypedef bmp280;
+Config_TypeDef config;
 
 /* USER CODE END PV */
 
@@ -142,7 +143,8 @@ int main(void)
   HAL_UART_RxCpltCallback(&huart1); //CLI
   HAL_UART_RxCpltCallback(&huart2); //SIM
   check_powerOn();
-  printf("Initializing ...\r\n");
+  printf("\r\n\r\n\r\nInitializing ...\r\n");
+  if (EEPROM_Load_config()==0) {printf("Config loaded OK \r\n");};
   charger_state = BQ25798_check();
   if (charger_state) {
 	  printf("Configure charger \r\n");

@@ -15,6 +15,6 @@
 #define BME280_REG_ID			0xD0
 #define BME280_ID_CHK			0x60
 
-uint8_t BME280_check();
+//uint8_t BME280_check();
 
 #endif /* INC_BME280_H_ */
