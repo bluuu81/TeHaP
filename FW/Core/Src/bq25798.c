@@ -107,9 +107,41 @@ uint16_t BQ25798_Sys_Min_Voltage_read()
     return voltage;
 }
 
+uint16_t BQ25798_Chr_Volt_Limit_read()
+{
+	uint16_t value;
+	i2c_read16(&hi2c1, REG01_Charge_Voltage_Limit, &value, BQ25798_ADDR);
+    uint16_t swapvalue = byteswap16(value);
+    return swapvalue * 10;
+}
+
+uint16_t BQ25798_Chr_Curr_Limit_read()
+{
+	uint16_t value;
+	i2c_read16(&hi2c1, REG03_Charge_Current_Limit, &value, BQ25798_ADDR);
+    uint16_t swapvalue = byteswap16(value);
+    return swapvalue * 10;
+}
+
 uint8_t BQ25798_Sys_Min_Voltage_write(uint8_t bits) // 6 bits multiplier (2500mV + 6bits * 250mV) e.g 3000mV = 2500 + 3*250 = 3,25V / bits=3
 {
 	uint8_t res;
     res = i2c_write8(&hi2c1, REG00_Minimal_System_Voltage, (bits & 0x3F), BQ25798_ADDR);
+    return res;
+}
+
+uint8_t BQ25798_Chr_Volt_Limit_write(uint16_t val)
+{
+	uint8_t res;
+	val /= 10;
+	res = i2c_write16(&hi2c1, REG01_Charge_Voltage_Limit, byteswap16(val), BQ25798_ADDR);
+    return res;
+}
+
+uint8_t BQ25798_Chr_Curr_Limit_write(uint16_t val)
+{
+	uint8_t res;
+	val /= 10;
+	res = i2c_write16(&hi2c1, REG03_Charge_Current_Limit, byteswap16(val), BQ25798_ADDR);
     return res;
 }
