@@ -55,7 +55,7 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 volatile uint8_t charger_state;
-volatile uint8_t cyclic=1;
+volatile uint8_t cyclic=0;
 TEMP_struct_t TMP117_temp_sensor;
 TEMP_struct_t MS8607_temp_sensor;
 TEMP_struct_t SHTC3_temp_sensor;

@@ -335,7 +335,7 @@ float DPS368_get_temp_cmd(uint8_t ovr)
 	raw_temp = (int32_t)(value[2]) + (value[1] << 8) + (value[0] << 16);
 	getTwosComplement(&raw_temp, 24);
 	const float scaling = 1.0f/Kt_coef;
-	printf("DPS RAW VALUE: %ld\r\n", raw_temp);
+	//printf("DPS RAW VALUE: %ld\r\n", raw_temp);
 //	printf("DPS SCALING VALUE: %.12f\r\n", scaling);
 	temp_scaled = (float)raw_temp * scaling;
 //	printf("DPS TEMP SCALED VALUE: %.3f\r\n", temp_scaled);

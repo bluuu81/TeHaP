@@ -33,6 +33,7 @@ uint16_t sim_rxtail;
 
 uint32_t temp;
 
+
 static char clibuf[32];
 static int cliptr;
 
@@ -143,6 +144,7 @@ void CLI() {
 void CLI_proc(char ch)
 {
 	char *p;
+
 	float tempfloat;
 	if(cliptr < sizeof(clibuf)) clibuf[cliptr++] = ch;
 	if(ch == 10)	// LF
@@ -161,6 +163,7 @@ void CLI_proc(char ch)
 		if(find("setbattalarm")==clibuf+12){getval(clibuf+13, &temp, 0, 15000); config.batt_alarm=temp; printf("Batt alarm:%i",config.batt_alarm); return;};
 		if(find("setbatscale")==clibuf+11){getFloat(clibuf+12, &tempfloat, -10.0, 10.0); config.bat_scale=tempfloat; printf("Batt scale:%f \r\n",config.bat_scale); return;};
 		if(find("setoffset")==clibuf+9){setOffset();return;}
+		if(find("temp2calib")==clibuf+10){temp2calib();return;}
 
 
 //	}
@@ -324,6 +327,115 @@ return;
 
 
 
+void temp2calib()
+{	uint32_t nexttimestamp,currtimestamp;
+	currtimestamp=HAL_GetTick();
+	nexttimestamp=0;
+
+	//float temps[5][255];
+	float tempmeas[5];
+	int tempptr=0;
+	uint8_t sensors[5];
+	char formatstr[10];
+	uint32_t interval,counts,format;
+	char sensorstring[5][10]={"SHTC3\0","TMP117\0","MS8607\0","BME280\0","DPS368\0"};
+
+	tempptr=getval(clibuf+11, &temp, 0, 10);
+	interval=temp;
+	tempptr=getval(tempptr+1, &temp, 1, 255);
+	counts=temp;
+	tempptr=getval(tempptr+1, &temp, 1, 2);
+	format=temp;
+	switch (format)
+		{
+		case 1:
+			strcpy(formatstr,"CSV");
+			break;
+		case 2:
+			strcpy(formatstr,"TXT");
+			break;
+		default:
+			strcpy(formatstr,"ERR");
+			break;
+
+		}
+	printf("Temp2calib! Interval: %i s, No. measures: %i, formatval: %i format: %s\r\n",interval, counts, format,  formatstr);
+	sensors[0]= SHTC3_check();
+	sensors[1]= TMP117_check();
+	sensors[2]= MS8607_check();
+	sensors[3]= BME280_check();
+	sensors[4]= DPS368_check();
+
+	sensors[3]=0;
+
+
+	if (format==1){printf("Meas_id;Timestamp;");}
+	for (int i=0;i<5;i++)
+		{if (sensors[i]) {
+			if (format==1){printf("%s;",sensorstring[i]);}}}
+	printf("\r\n");
+
+
+	int measurecount=0;
+
+	for (measurecount=0; measurecount<counts; measurecount++)
+	{	nexttimestamp=currtimestamp+1000*interval;
+		do
+				{currtimestamp=HAL_GetTick();
+				} while(nexttimestamp>currtimestamp);
+		if (format==1){printf("%i;%i;",measurecount+1,currtimestamp);}
+		if (format==2){printf("ID:%3i Timestamp; %7i ",measurecount+1,currtimestamp);}
+
+		if (sensors[0]==1)
+		{
+		//temps[0][measurecount]=SHTC3_get_temp(0);
+			tempmeas[0]=SHTC3_get_temp(0);
+
+		}
+
+		if (sensors[1]==1)
+				{
+				//temps[1][measurecount]=TMP117_get_temp(avg8);
+				tempmeas[1]=TMP117_get_temp(avg8);
+				}
+
+	if (sensors[2]==1){
+	//temps[2][measurecount]=MS8607_get_temp();
+	tempmeas[2]=MS8607_get_temp();
+
+	 }
+
+	if (sensors[3]==1)
+			{
+			//temps[3][measurecount]= BME280_get_temp();
+		tempmeas[3]=BME280_get_temp();
+
+			}
+
+	if (sensors[4]==1)
+				{
+		//temps[3][measurecount]= DPS368_get_temp_cmd(0);
+		tempmeas[4]=DPS368_get_temp_cmd(0);
+
+				}
+
+	for (int i=0;i<5;i++)
+	{
+		if (sensors[i])
+			{
+			if (format==2)
+			{printf(" %s: ",sensorstring[i] );}
+		//printf("%f;",temps[i][measurecount]);}
+		printf("%f;",tempmeas[i]);}
+
+	}
+	printf("\r\n");
+	}
+	printf("finished\r\n");
+}
+
+
+
 void help()
 {
 	printf("--- THP HW v%1.1f  FW v%1.1f --- \r\n", HW_VER*0.1f,FW_VER*0.1f );
@@ -355,3 +467,4 @@ void help()
 	printf("Charge Current Limit: %u [mA]  \r\n",BQ25798_Chr_Curr_Limit_read());
 
 }
+;
