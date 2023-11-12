@@ -104,6 +104,7 @@ void MCUgoSleep()
 void thp_loop()
 {
 	CLI();
+
 }
 
 uint8_t HALcalculateCRC(uint8_t* data, uint8_t len)

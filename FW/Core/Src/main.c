@@ -73,6 +73,9 @@ HUM_struct_t DPS368_hum_sensor;
 
 BMP280_HandleTypedef bmp280;
 Config_TypeDef config;
+uint8_t meas_temp_start = 0;
+uint8_t meas_temp_ready = 0;
+
 
 /* USER CODE END PV */
 
@@ -155,43 +158,45 @@ int main(void)
   LED1_ON();
   LED2_OFF();
   ADC_DMA_Start();
-  uint32_t ticks1s = HAL_GetTick();
-  uint32_t ticks30ms = HAL_GetTick();
-  I2C2TCA_RST();
+
   TMP117_temp_sensor.sensor_present = TMP117_check();
-  MS8607_temp_sensor.sensor_present = MS8607_check();
-  if(MS8607_temp_sensor.sensor_present) {
-	  MS8607_press_sensor.sensor_present = 1;
-	  MS8607_hum_sensor.sensor_present = 1;
-  } else {
-	  MS8607_press_sensor.sensor_present = 0;
-	  MS8607_hum_sensor.sensor_present = 0;
-  }
-  SHTC3_temp_sensor.sensor_present = SHTC3_check();
-  if(SHTC3_temp_sensor.sensor_present) SHTC3_hum_sensor.sensor_present = 1; else SHTC3_hum_sensor.sensor_present = 0;
+//  MS8607_temp_sensor.sensor_present = MS8607_check();
+//  if(MS8607_temp_sensor.sensor_present) {
+//	  MS8607_press_sensor.sensor_present = 1;
+//	  MS8607_hum_sensor.sensor_present = 1;
+//  } else {
+//	  MS8607_press_sensor.sensor_present = 0;
+//	  MS8607_hum_sensor.sensor_present = 0;
+//  }
+//  SHTC3_temp_sensor.sensor_present = SHTC3_check();
+//  if(SHTC3_temp_sensor.sensor_present) SHTC3_hum_sensor.sensor_present = 1; else SHTC3_hum_sensor.sensor_present = 0;
 
-  BME280_temp_sensor.sensor_present = BME280_check();
-  if(BME280_temp_sensor.sensor_present) {
-	  BME280_press_sensor.sensor_present = 1;
-	  BME280_hum_sensor.sensor_present = 1;
-  } else {
-	  BME280_press_sensor.sensor_present = 0;
-	  BME280_hum_sensor.sensor_present = 0;
-  }
+//  BME280_temp_sensor.sensor_present = BME280_check();
+//  if(BME280_temp_sensor.sensor_present) {
+//	  BME280_hum_sensor.sensor_present = 1;
+//  } else {
+//	  BME280_press_sensor.sensor_present = 0;
+//	  BME280_hum_sensor.sensor_present = 0;
+//  }
 
-  DPS368_temp_sensor.sensor_present = DPS368_check();
-  if(DPS368_temp_sensor.sensor_present) {
-	  DPS368_press_sensor.sensor_present = 1;
-	  DPS368_hum_sensor.sensor_present = 1;
-  } else {
-	  DPS368_press_sensor.sensor_present = 0;
-	  DPS368_hum_sensor.sensor_present = 0;
-  }
+//  DPS368_temp_sensor.sensor_present = DPS368_check();
+//  if(DPS368_temp_sensor.sensor_present) {
+//	  DPS368_press_sensor.sensor_present = 1;
+//	  DPS368_hum_sensor.sensor_present = 1;
+//  } else {
+//	  DPS368_press_sensor.sensor_present = 0;
+//	  DPS368_hum_sensor.sensor_present = 0;
+//  }
 
-  BME280_init_config(1, BMP280_STANDARD, BMP280_STANDARD, BMP280_STANDARD, BMP280_FILTER_OFF);
+//  BME280_init_config(2, BMP280_STANDARD, BMP280_STANDARD, BMP280_STANDARD, BMP280_FILTER_OFF);
 
-  DPS368_init(FIFO_DIS, INT_NONE);
+//  DPS368_init(FIFO_DIS, INT_NONE);
 
+  uint8_t tmp117_temp_use = 1;
+  uint32_t ticks10s = HAL_GetTick();
+  uint32_t ticks30ms = HAL_GetTick();
+  uint32_t ticks_meas = HAL_GetTick();
+  uint16_t meas_time = 100;
 
 //  LED2_ON();
   /* USER CODE END 2 */
@@ -201,53 +206,35 @@ int main(void)
   while (1)
   {
 	  thp_loop();
-	  if(HAL_GetTick()-ticks1s >= 10000)
-	  {
-		  if(cyclic) {
-			  ticks1s = HAL_GetTick();
-//			  TMP117_temp_sensor.temperature=TMP117_get_temp(avg8);
-//			  MS8607_temp_sensor.temperature=MS8607_get_temp();
-//			  MS8607_press_sensor.pressure=MS8607_get_press();
-			  SHTC3_temp_sensor.temperature=SHTC3_get_temp(0);
-			  SHTC3_hum_sensor.humidity=SHTC3_get_hum(0);
-//			  BME280_temp_sensor.temperature = BME280_get_temp();
-//			  BME280_press_sensor.pressure = BME280_get_press();
-//			  printf("Start TEMP DPS\r\n");
-//			  DPS368_temp_sensor.temperature = DPS368_get_temp_cmd(DPS_OVERSAMPLE_8);
-//			  DPS368_press_sensor.pressure = DPS368_get_press_cmd(DPS_OVERSAMPLE_8);
-			  printf("SHTC3 Normal\r\n");
-			  printf("SHTC3: %.3f", SHTC3_temp_sensor.temperature);
-			  printf("      ");
-			  printf("SHTC3: %.3f", SHTC3_hum_sensor.humidity);
-			  printf("\r\n");
 
-
-
-			  SHTC3_temp_sensor.temperature=SHTC3_get_temp(1);
-			  SHTC3_hum_sensor.humidity=SHTC3_get_hum(1);
-
-			  printf("SHTC3 LP\r\n");
-			  printf("SHTC3: %.3f", SHTC3_temp_sensor.temperature);
-			  printf("      ");
-			  printf("SHTC3: %.3f", SHTC3_hum_sensor.humidity);
-			  printf("\r\n");
-//			  printf("BME280: %.3f", BME280_temp_sensor.temperature);
-//			  printf("\r\n");
-//			  printf("Sensor present: \r\n");
-//			  printf("TMP117: %d \r\n",TMP117_temp_sensor.sensor_present);
-//			  printf("MS8607: %d %d %d \r\n",MS8607_temp_sensor.sensor_present, MS8607_press_sensor.sensor_present, MS8607_hum_sensor.sensor_present);
-//			  printf("SHTC3: %d %d \r\n",SHTC3_temp_sensor.sensor_present, SHTC3_hum_sensor.sensor_present);
-//			  printf("BME280: %d %d %d \r\n",BME280_temp_sensor.sensor_present, BME280_press_sensor.sensor_present, BME280_hum_sensor.sensor_present);
-//			  printf("DPS368: %d %d %d \r\n",DPS368_temp_sensor.sensor_present, DPS368_press_sensor.sensor_present, DPS368_hum_sensor.sensor_present);
-
-		  }
-	  }
 	  if(HAL_GetTick()-ticks30ms >= 30)
 	  {
-	  	    ticks30ms = HAL_GetTick();
-	  	    LED1_TOGGLE();
-	  	    check_powerOff();
+		  ticks30ms = HAL_GetTick();
+		  LED1_TOGGLE();
+		  check_powerOff();
 	  }
+	  if(HAL_GetTick()-ticks10s >= 10000)
+	  {
+		  ticks10s = HAL_GetTick();
+		  meas_temp_start = 1;
+		  printf("Czas na pomiar !\r\n");
+	  }
+
+      if (meas_temp_start && TMP117_temp_sensor.sensor_present && tmp117_temp_use) {
+    	  meas_temp_start = 0;
+          TMP117_start_meas(avg8);
+          meas_temp_ready = 1;
+          meas_time = 1200;
+          ticks_meas = HAL_GetTick();
+          printf("Komenda startu pomiaru temperatury\r\n");
+      }
+
+      if (meas_temp_ready && ((HAL_GetTick() - ticks_meas) >= meas_time)) {
+    	  TMP117_temp_sensor.temperature = TMP117_get_temp();
+          meas_temp_ready = 0;
+          printf("Temperatura : %.2f\r\n", TMP117_temp_sensor.temperature);
+      }
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

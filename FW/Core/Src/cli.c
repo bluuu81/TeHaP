@@ -366,7 +366,7 @@ void temp2calib()
 	sensors[3]= BME280_check();
 	sensors[4]= DPS368_check();
 
-	sensors[3]=0;
+//	sensors[3]=0;
 
 
 	if (format==1){printf("Meas_id;Timestamp;");}

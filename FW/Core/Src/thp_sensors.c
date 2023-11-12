@@ -172,7 +172,14 @@ void TMP117_RST_Conf_Reg()
 
 }
 
-float TMP117_get_temp(uint8_t avg_mode)
+float TMP117_get_temp()
+{
+	uint16_t value;
+    i2c_read16(&hi2c2, TMP117_TEMP_REG, &value, TMP117_ADDR << 1);
+    return (float)byteswap16(value) * TMP117_RESOLUTION;
+}
+
+void TMP117_start_meas(uint8_t avg_mode)
 {
 	uint16_t config, swapconfig;
 	TMP117_RST_Conf_Reg();
@@ -184,12 +191,7 @@ float TMP117_get_temp(uint8_t avg_mode)
 	config = byteswap16(swapconfig);
 	i2c_write16(&hi2c2, TMP117_CONF_REG, config, TMP117_ADDR << 1);
 	HAL_Delay(2);
-	if((avg_mode == no_avg) || (avg_mode == avg8)) {HAL_Delay(200);} else {HAL_Delay(1200);}
-	uint16_t value;
-    i2c_read16(&hi2c2, TMP117_TEMP_REG, &value, TMP117_ADDR << 1);
-    return (float)byteswap16(value) * TMP117_RESOLUTION;
 }
-
 
 uint8_t MS8607_check()
 {
@@ -316,14 +318,14 @@ float SHTC3_get_hum(uint8_t mode)
 uint8_t BME280_check()
 {
 	uint8_t value;
-	TCA9543A_SelectChannel(1);
+	SET_BME280();
 	HAL_Delay(1);
 	HAL_StatusTypeDef status;
 	status = HAL_I2C_IsDeviceReady(&hi2c2, BMP280_I2C_ADDRESS_1 << 1, 3, 150);
 	HAL_Delay(100);
 	if (status == HAL_OK) {
 		i2c_read8(&hi2c2, BMP280_REG_ID, &value, BMP280_I2C_ADDRESS_1 << 1);
-		TCA9543A_SelectChannel(0);
+		UNSET_BME_DPS();
 		if(value == BME280_CHIP_ID) {printf("BME280 OK\r\n"); return 1;} else {printf("NOT BME280\r\n"); return 0;}
 	} else {printf("BME280 FAILED\r\n"); return 0;}
 	return 0;
@@ -332,8 +334,7 @@ uint8_t BME280_check()
 
 void BME280_init_config(uint8_t conf_mode, uint8_t ovr_temp, uint8_t ovr_press, uint8_t ovr_hum, uint8_t coeff)
 {
-	TCA9543A_SelectChannel(1);
-	HAL_Delay(1);
+	SET_BME280();
 //	bmp280_init_default_params(&bmp280.params);
 
 	bmp280.params.filter = coeff;
@@ -356,45 +357,42 @@ void BME280_init_config(uint8_t conf_mode, uint8_t ovr_temp, uint8_t ovr_press, 
 		bmp280.params.mode = BMP280_MODE_NORMAL;
 	  }
 	bmp280_init(&bmp280, &bmp280.params);
-	HAL_Delay(1);
-	TCA9543A_SelectChannel(0);
+	UNSET_BME_DPS();
 }
 
 float BME280_get_temp()
 {
-	TCA9543A_SelectChannel(1);
-	HAL_Delay(1);
+	SET_BME280();
 	float temp, press, hum;
-	bmp280_force_measurement(&bmp280);
 	while(bmp280_is_measuring(&bmp280));
 	bmp280_read_float(&bmp280, &temp, &press, &hum);
-	HAL_Delay(1);
-	TCA9543A_SelectChannel(0);
+	UNSET_BME_DPS();
 	return temp;
 }
 
 float BME280_get_press()
 {
-	TCA9543A_SelectChannel(1);
-	HAL_Delay(1);
+	SET_BME280();
 	float temp, press, hum;
-	bmp280_force_measurement(&bmp280);
 	while(bmp280_is_measuring(&bmp280));
 	bmp280_read_float(&bmp280, &temp, &press, &hum);
-	HAL_Delay(1);
-	TCA9543A_SelectChannel(0);
+	UNSET_BME_DPS();
 	return press;
 }
 
 float BME280_get_hum()
 {
-	TCA9543A_SelectChannel(1);
-	HAL_Delay(1);
+	SET_BME280();
 	float temp, press, hum;
-	bmp280_force_measurement(&bmp280);
 	while(bmp280_is_measuring(&bmp280));
 	bmp280_read_float(&bmp280, &temp, &press, &hum);
-	HAL_Delay(1);
-	TCA9543A_SelectChannel(0);
+	UNSET_BME_DPS();
 	return hum;
+}
+
+void BME280_start_meas()
+{
+	SET_BME280();
+	bmp280_force_measurement(&bmp280);
+	UNSET_BME_DPS();
 }
