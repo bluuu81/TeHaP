@@ -61,6 +61,15 @@ void bmp280_init_default_params(bmp280_params_t *params) {
 	params->standby = BMP280_STANDBY_250;
 }
 
+void bmp280_init_params(bmp280_params_t *params) {
+	params->mode = BMP280_MODE_FORCED;
+	params->filter = BMP280_FILTER_OFF;
+	params->oversampling_pressure = BMP280_STANDARD;
+	params->oversampling_temperature = BMP280_STANDARD;
+	params->oversampling_humidity = BMP280_STANDARD;
+	params->standby = BMP280_STANDBY_250;
+}
+
 static bool read_register16(BMP280_HandleTypedef *dev, uint8_t addr, uint16_t *value) {
 	uint16_t tx_buff;
 	uint8_t rx_buff[2];

@@ -162,7 +162,6 @@ typedef struct {
 void TCA9543A_SelectChannel(uint8_t channel);
 void SET_BME280();
 void SET_DPS368();
-void UNSET_BME_DPS();
 
 uint16_t byteswap16 (uint16_t bytes);
 void printbinary(uint16_t value);
@@ -195,5 +194,6 @@ void BME280_init_config(uint8_t conf_mode, uint8_t ovr_temp, uint8_t ovr_press, 
 float BME280_get_temp();
 float BME280_get_press();
 float BME280_get_hum();
+void BME280_start_meas();
 
 #endif /* INC_THP_SENSORS_H_ */

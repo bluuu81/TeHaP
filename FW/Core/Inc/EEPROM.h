@@ -18,6 +18,7 @@
 
 uint16_t Crc16_up(uint16_t crc, uint8_t data);
 void Calc_config_crc(void);
+uint8_t EEPROM_Load_config(void);
 
 
 #define BATT_ALARM_VOLTAGE	3300

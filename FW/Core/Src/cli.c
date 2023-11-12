@@ -22,7 +22,6 @@
 #define SIM_BUF_SIZE 512
 
 extern uint8_t charger_state;
-extern uint8_t cyclic;
 extern Config_TypeDef config;
 
 uint8_t  debug_rx_buf[DEBUG_BUF_SIZE];
@@ -154,7 +153,6 @@ void CLI_proc(char ch)
 		cliptr = 0;
 // Main commands ------------------------------------------------------------------------------
 		if(find("?")==clibuf+1 || find("help")==clibuf+4)	{help(); return;}
-		if(find("cyclic")==clibuf+6) {cyclic = !cyclic; return;}
 		if(find("i2cscan")==clibuf+7) {i2c_scan(&hi2c2, 0x38, 0xA0); return;}
 		if(find("clearconfig")==clibuf+11) {printf("config reset to defaults"); EEPROM_Load_defaults(); return;}
 		if(find("printconfig")==clibuf+11) {EEPROM_Print_config(); return;}

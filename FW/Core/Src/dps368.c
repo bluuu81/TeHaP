@@ -44,7 +44,6 @@ void DPS368_read_coeff()
 //	for(uint8_t i=0; i<19;i++){
 //		printf("Coef %d : %#x\r\n",i,regs[i]);
 //	}
-	UNSET_BME_DPS();
 	DPS_coef.C0 = ((uint32_t)regs[0] << 4) | (((uint32_t)regs[1] >> 4) & 0x0F);
     getTwosComplement(&DPS_coef.C0, 12);
     // c0 is only used as c0*0.5, so c0_half is calculated immediately
@@ -80,11 +79,9 @@ void DPS368_read_coeff()
 void dumpCFGreg()
 {
 	uint8_t reg;
-//	SET_DPS368();
 	HAL_I2C_Mem_Read(&hi2c2, DPS368_ADDR, DPS368_CFG, I2C_MEMADD_SIZE_8BIT, &reg, 1, 250);
 	printf("CFG REG 0x09 DUMP (hex): %#x\r\n",reg);
 	printbinaryMSB(reg);
-//	UNSET_BME_DPS();
 }
 
 void DPS368_fifo(uint8_t endis)
@@ -100,7 +97,6 @@ void DPS368_fifo(uint8_t endis)
 //	printbinaryMSB(reg);
 	HAL_I2C_Mem_Write(&hi2c2, DPS368_ADDR, DPS368_CFG, I2C_MEMADD_SIZE_8BIT, &reg, 1, 250);
 	HAL_Delay(1);
-	UNSET_BME_DPS();
 }
 
 void DPS368_conf_int(uint8_t ints)
@@ -116,7 +112,6 @@ void DPS368_conf_int(uint8_t ints)
 //	printbinaryMSB(reg);
 	HAL_I2C_Mem_Write(&hi2c2, DPS368_ADDR, DPS368_CFG, I2C_MEMADD_SIZE_8BIT, &reg, 1, 250);
 	HAL_Delay(1);
-	UNSET_BME_DPS();
 }
 
 void DPS368_temp_source()
@@ -141,9 +136,8 @@ void DPS368_temp_source()
 //	printbinaryMSB(reg_mod);
 
 	HAL_I2C_Mem_Write(&hi2c2, DPS368_ADDR, DPS368_TEMP_CFG, I2C_MEMADD_SIZE_8BIT, &reg_mod, 1, 250);
-	UNSET_BME_DPS();
-}
 
+}
 
 
 void DPS368_conf_temp(uint8_t ovr, uint8_t rate)
@@ -194,7 +188,7 @@ void DPS368_conf_temp(uint8_t ovr, uint8_t rate)
    	HAL_I2C_Mem_Write(&hi2c2, DPS368_ADDR, DPS368_CFG, I2C_MEMADD_SIZE_8BIT, &reg, 1, 250);
 
 	DPS368_temp_source();
-	UNSET_BME_DPS();
+
 }
 
 void DPS368_conf_press(uint8_t ovr, uint8_t rate)
@@ -245,7 +239,7 @@ void DPS368_conf_press(uint8_t ovr, uint8_t rate)
     else setBit(&reg, 2, 0);
    	HAL_I2C_Mem_Write(&hi2c2, DPS368_ADDR, DPS368_CFG, I2C_MEMADD_SIZE_8BIT, &reg, 1, 250);
 
-	UNSET_BME_DPS();
+
 }
 
 void DPS368_clearFIFO(uint8_t mode)
@@ -255,7 +249,7 @@ void DPS368_clearFIFO(uint8_t mode)
 	HAL_I2C_Mem_Read(&hi2c2, DPS368_ADDR, DPS368_CFG, I2C_MEMADD_SIZE_8BIT, &reg, 1, 250);
 	setBit(&reg,7,1);
 	HAL_I2C_Mem_Write(&hi2c2, DPS368_ADDR, DPS368_CFG, I2C_MEMADD_SIZE_8BIT, &reg, 1, 250);
-	UNSET_BME_DPS();
+
 }
 
 void DPS368_temp_correct()
@@ -282,7 +276,7 @@ void DPS368_temp_correct()
 	}
 	DPS368_conf_temp(DPS_OVERSAMPLE_1, DPS_RATE_1);
 	DPS368_run_mode(MODE_CMD_TEMP);
-	UNSET_BME_DPS();
+
 }
 
 
@@ -295,7 +289,6 @@ void DPS368_run_mode(uint8_t mode)
 	reg = mode;
 	HAL_I2C_Mem_Write(&hi2c2, DPS368_ADDR, DPS368_MEAS_CFG, I2C_MEMADD_SIZE_8BIT, &reg, 1, 250);
 	HAL_Delay(2);
-	UNSET_BME_DPS();
 }
 
 uint8_t DPS368_temp_rdy()
@@ -303,7 +296,6 @@ uint8_t DPS368_temp_rdy()
 	SET_DPS368();
 	uint8_t reg;
 	HAL_I2C_Mem_Read(&hi2c2, DPS368_ADDR, DPS368_MEAS_CFG, I2C_MEMADD_SIZE_8BIT, &reg, 1, 250);
-	UNSET_BME_DPS();
 //	printf("Temp RDY: %#x\r\n", reg);
 //	printbinaryMSB(reg);
 	return ((reg & 0x20) >> 5);
@@ -315,7 +307,6 @@ uint8_t DPS368_press_rdy()
 	SET_DPS368();
 	uint8_t reg;
 	HAL_I2C_Mem_Read(&hi2c2, DPS368_ADDR, DPS368_MEAS_CFG, I2C_MEMADD_SIZE_8BIT, &reg, 1, 250);
-	UNSET_BME_DPS();
 	return ((reg & 0x10) >> 4);
 }
 
@@ -331,7 +322,6 @@ float DPS368_get_temp_cmd(uint8_t ovr)
 	float temp_scaled, temperature;
 //	dumpCFGreg();
 	HAL_I2C_Mem_Read(&hi2c2, DPS368_ADDR, DPS368_TEMP, I2C_MEMADD_SIZE_8BIT, value, 3, 250);
-	UNSET_BME_DPS();
 	raw_temp = (int32_t)(value[2]) + (value[1] << 8) + (value[0] << 16);
 	getTwosComplement(&raw_temp, 24);
 	const float scaling = 1.0f/Kt_coef;
@@ -355,7 +345,6 @@ float DPS368_get_press_cmd(uint8_t ovr)
 	uint8_t value[3];
 	int32_t raw_temp, raw_press;
 	HAL_I2C_Mem_Read(&hi2c2, DPS368_ADDR, DPS368_TEMP, I2C_MEMADD_SIZE_8BIT, value, 3, 250);
-	UNSET_BME_DPS();
 	raw_temp = (int32_t)(value[2]) + (value[1] << 8) + (value[0] << 16);
 	getTwosComplement(&raw_temp, 24);
 	const float scalingT = 1.0f/Kt_coef;
@@ -371,7 +360,6 @@ float DPS368_get_press_cmd(uint8_t ovr)
 	HAL_Delay(1);
 	SET_DPS368();
 	HAL_I2C_Mem_Read(&hi2c2, DPS368_ADDR, DPS368_PRESS, I2C_MEMADD_SIZE_8BIT, value, 3, 250);
-	UNSET_BME_DPS();
 	raw_press = (int32_t)(value[2]) + (value[1] << 8) + (value[0] << 16);
 	getTwosComplement(&raw_press, 24);
 	const float scalingP = 1.0f/Kp_coef;

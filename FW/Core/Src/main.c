@@ -55,7 +55,6 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 volatile uint8_t charger_state;
-volatile uint8_t cyclic=0;
 TEMP_struct_t TMP117_temp_sensor;
 TEMP_struct_t MS8607_temp_sensor;
 TEMP_struct_t SHTC3_temp_sensor;
@@ -74,7 +73,13 @@ HUM_struct_t DPS368_hum_sensor;
 BMP280_HandleTypedef bmp280;
 Config_TypeDef config;
 uint8_t meas_temp_start = 0;
+uint8_t meas_press_start = 0;
+uint8_t meas_hum_start = 0;
 uint8_t meas_temp_ready = 0;
+uint8_t meas_press_ready = 0;
+uint8_t meas_hum_ready = 0;
+
+uint16_t meas_interval = 10000; // default 10s
 
 
 /* USER CODE END PV */
@@ -171,13 +176,13 @@ int main(void)
 //  SHTC3_temp_sensor.sensor_present = SHTC3_check();
 //  if(SHTC3_temp_sensor.sensor_present) SHTC3_hum_sensor.sensor_present = 1; else SHTC3_hum_sensor.sensor_present = 0;
 
-//  BME280_temp_sensor.sensor_present = BME280_check();
-//  if(BME280_temp_sensor.sensor_present) {
-//	  BME280_hum_sensor.sensor_present = 1;
-//  } else {
-//	  BME280_press_sensor.sensor_present = 0;
-//	  BME280_hum_sensor.sensor_present = 0;
-//  }
+  BME280_temp_sensor.sensor_present = BME280_check();
+  if(BME280_temp_sensor.sensor_present) {
+	  BME280_hum_sensor.sensor_present = 1;
+  } else {
+	  BME280_press_sensor.sensor_present = 0;
+	  BME280_hum_sensor.sensor_present = 0;
+  }
 
 //  DPS368_temp_sensor.sensor_present = DPS368_check();
 //  if(DPS368_temp_sensor.sensor_present) {
@@ -188,15 +193,19 @@ int main(void)
 //	  DPS368_hum_sensor.sensor_present = 0;
 //  }
 
-//  BME280_init_config(2, BMP280_STANDARD, BMP280_STANDARD, BMP280_STANDARD, BMP280_FILTER_OFF);
+  BME280_init_config(1, BMP280_STANDARD, BMP280_STANDARD, BMP280_STANDARD, BMP280_FILTER_OFF);
+
+
 
 //  DPS368_init(FIFO_DIS, INT_NONE);
 
   uint8_t tmp117_temp_use = 1;
+  uint8_t bme280_temp_use = 1;
   uint32_t ticks10s = HAL_GetTick();
   uint32_t ticks30ms = HAL_GetTick();
   uint32_t ticks_meas = HAL_GetTick();
   uint16_t meas_time = 100;
+
 
 //  LED2_ON();
   /* USER CODE END 2 */
@@ -213,26 +222,41 @@ int main(void)
 		  LED1_TOGGLE();
 		  check_powerOff();
 	  }
-	  if(HAL_GetTick()-ticks10s >= 10000)
+	  if(HAL_GetTick()-ticks10s >= meas_interval)
 	  {
 		  ticks10s = HAL_GetTick();
 		  meas_temp_start = 1;
 		  printf("Czas na pomiar !\r\n");
 	  }
 
-      if (meas_temp_start && TMP117_temp_sensor.sensor_present && tmp117_temp_use) {
-    	  meas_temp_start = 0;
-          TMP117_start_meas(avg8);
-          meas_temp_ready = 1;
-          meas_time = 1200;
+	  if(meas_temp_start) {
+		  if(TMP117_temp_sensor.sensor_present && tmp117_temp_use) {
+	          TMP117_start_meas(avg8);
+	          meas_time += 200;
+		  }
+		  if(BME280_temp_sensor.sensor_present && bme280_temp_use) {
+			  BME280_start_meas();
+		      meas_time += 500;
+		  }
+		  meas_temp_ready = 1;
           ticks_meas = HAL_GetTick();
-          printf("Komenda startu pomiaru temperatury\r\n");
-      }
+          meas_temp_start = 0;
+          printf("Komenda startu pomiaru temperatury wyslana\r\n");
+
+	  }
+
 
       if (meas_temp_ready && ((HAL_GetTick() - ticks_meas) >= meas_time)) {
-    	  TMP117_temp_sensor.temperature = TMP117_get_temp();
+		  if(TMP117_temp_sensor.sensor_present && tmp117_temp_use) {
+			  TMP117_temp_sensor.temperature = TMP117_get_temp();
+	          printf("Temperatura TMP117: %.2f\r\n", TMP117_temp_sensor.temperature);
+		  }
+		  if(BME280_temp_sensor.sensor_present && bme280_temp_use) {
+			  BME280_temp_sensor.temperature = BME280_get_temp();
+	          printf("Temperatura BME280: %.2f\r\n", BME280_temp_sensor.temperature);
+		  }
           meas_temp_ready = 0;
-          printf("Temperatura : %.2f\r\n", TMP117_temp_sensor.temperature);
+	      meas_time = 200;
       }
 
     /* USER CODE END WHILE */
@@ -471,7 +495,7 @@ static void MX_I2C2_Init(void)
   hi2c2.Init.OwnAddress2 = 0;
   hi2c2.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
   hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_ENABLE;
+  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
   if (HAL_I2C_Init(&hi2c2) != HAL_OK)
   {
     Error_Handler();

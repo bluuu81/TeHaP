@@ -126,29 +126,26 @@ void printbinaryMSB(uint8_t value)
 
 void TCA9543A_SelectChannel(uint8_t channel)
 {
-	if (channel == 1 || channel == 2) {
-			I2C2TCA_NRST();
-			HAL_Delay(1);
-		    uint8_t data = (1 << (channel - 1));
-		    HAL_I2C_Master_Transmit(&hi2c2, TCA9543A_ADDRESS, &data, sizeof(data), HAL_MAX_DELAY);
-		    HAL_Delay(1);
-	} else if (channel == 0) {I2C2TCA_RST(); HAL_Delay(1);}
-	else printf("Wrong parameter\r\n");
+if (channel >1) {
+	printf("Wrong parameter\r\n");
+	return;
+}
+if (channel == 0 || channel == 1) {
+		I2C2TCA_NRST();
+		HAL_Delay(1);
+		uint8_t data = 1 << channel;
+		HAL_I2C_Mem_Write(&hi2c2, TCA9543A_ADDRESS, 0x00, I2C_MEMADD_SIZE_8BIT, &data, 1, HAL_MAX_DELAY);
+	}
 }
 
 void SET_BME280()
 {
-	TCA9543A_SelectChannel(1);
+	TCA9543A_SelectChannel(0);
 }
 
 void SET_DPS368()
 {
-	TCA9543A_SelectChannel(2);
-}
-
-void UNSET_BME_DPS()
-{
-	TCA9543A_SelectChannel(0);
+	TCA9543A_SelectChannel(1);
 }
 
 
@@ -319,13 +316,11 @@ uint8_t BME280_check()
 {
 	uint8_t value;
 	SET_BME280();
-	HAL_Delay(1);
 	HAL_StatusTypeDef status;
 	status = HAL_I2C_IsDeviceReady(&hi2c2, BMP280_I2C_ADDRESS_1 << 1, 3, 150);
 	HAL_Delay(100);
 	if (status == HAL_OK) {
 		i2c_read8(&hi2c2, BMP280_REG_ID, &value, BMP280_I2C_ADDRESS_1 << 1);
-		UNSET_BME_DPS();
 		if(value == BME280_CHIP_ID) {printf("BME280 OK\r\n"); return 1;} else {printf("NOT BME280\r\n"); return 0;}
 	} else {printf("BME280 FAILED\r\n"); return 0;}
 	return 0;
@@ -341,7 +336,7 @@ void BME280_init_config(uint8_t conf_mode, uint8_t ovr_temp, uint8_t ovr_press, 
 	bmp280.params.oversampling_pressure = ovr_press;
 	bmp280.params.oversampling_temperature = ovr_temp;
 	bmp280.params.oversampling_humidity = ovr_hum;
-	bmp280.params.standby = BMP280_STANDBY_250;
+//	bmp280.params.standby = BMP280_STANDBY_250;
 	bmp280.addr = BMP280_I2C_ADDRESS_1;
 	bmp280.i2c = &hi2c2;
 
@@ -356,8 +351,7 @@ void BME280_init_config(uint8_t conf_mode, uint8_t ovr_temp, uint8_t ovr_press, 
 	default:
 		bmp280.params.mode = BMP280_MODE_NORMAL;
 	  }
-	bmp280_init(&bmp280, &bmp280.params);
-	UNSET_BME_DPS();
+	if(bmp280_init(&bmp280, &bmp280.params)) printf("BME280 init OK\r\n"); else printf("BME280 init FAIL\r\n");
 }
 
 float BME280_get_temp()
@@ -366,7 +360,6 @@ float BME280_get_temp()
 	float temp, press, hum;
 	while(bmp280_is_measuring(&bmp280));
 	bmp280_read_float(&bmp280, &temp, &press, &hum);
-	UNSET_BME_DPS();
 	return temp;
 }
 
@@ -376,7 +369,6 @@ float BME280_get_press()
 	float temp, press, hum;
 	while(bmp280_is_measuring(&bmp280));
 	bmp280_read_float(&bmp280, &temp, &press, &hum);
-	UNSET_BME_DPS();
 	return press;
 }
 
@@ -386,13 +378,11 @@ float BME280_get_hum()
 	float temp, press, hum;
 	while(bmp280_is_measuring(&bmp280));
 	bmp280_read_float(&bmp280, &temp, &press, &hum);
-	UNSET_BME_DPS();
 	return hum;
 }
 
 void BME280_start_meas()
 {
 	SET_BME280();
-	bmp280_force_measurement(&bmp280);
-	UNSET_BME_DPS();
+	if(!bmp280_force_measurement(&bmp280)) printf("Komenda w BME280 niewykonana\r\n");
 }
