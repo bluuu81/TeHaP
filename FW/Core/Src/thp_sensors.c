@@ -140,7 +140,7 @@ if (channel == 0 || channel == 1) {
 
 void SET_BME280()
 {
-	I2C_Reinit();
+	I2C_Reinit_STR();
 	TCA9543A_SelectChannel(0);
 }
 
@@ -225,7 +225,7 @@ float MS8607_get_press()
 float MS8607_get_hum()
 {
 	float hum;
-	I2C_Reinit();
+	I2C_Reinit_STR();
 	ms8607_read_humidity(&hum);
 //	printf("MS Hum: %f\r\n",hum);
 	return hum;

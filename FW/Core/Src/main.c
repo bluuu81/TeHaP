@@ -193,7 +193,7 @@ int main(void)
 
   DPS368.press.use_meas = 1;
 
-  uint16_t meas_interval = 10000; // default 10s  //TODO: do eepromu
+  uint16_t meas_interval = 4000; // default 10s  //TODO: do eepromu
 
   uint32_t ticks10s = HAL_GetTick();
   uint32_t ticks30ms = HAL_GetTick();
@@ -971,13 +971,15 @@ static void MX_GPIO_Init(void)
 void I2C_Reinit_STR()
 {
 	HAL_I2C_DeInit(&hi2c2);
-	MX_I2C2_Init_STR();
+	MX_I2C2_Init();
+	HAL_Delay(1);
 }
 
 void I2C_Reinit()
 {
 	HAL_I2C_DeInit(&hi2c2);
-	MX_I2C2_Init();
+	MX_I2C2_Init_STR();
+	HAL_Delay(1);
 }
 
 /* USER CODE END 4 */
@@ -991,6 +993,7 @@ void Error_Handler(void)
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
+  printf("Hard fault ...\r\n");
   LED1_OFF();
   LED2_ON();
   while (1)
