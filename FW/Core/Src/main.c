@@ -55,31 +55,24 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 volatile uint8_t charger_state;
-TEMP_struct_t TMP117_temp_sensor;
-TEMP_struct_t MS8607_temp_sensor;
-TEMP_struct_t SHTC3_temp_sensor;
-TEMP_struct_t BME280_temp_sensor;
-TEMP_struct_t DPS368_temp_sensor;
 
-PRESS_struct_t MS8607_press_sensor;
-PRESS_struct_t BME280_press_sensor;
-PRESS_struct_t DPS368_press_sensor;
-
-HUM_struct_t MS8607_hum_sensor;
-HUM_struct_t SHTC3_hum_sensor;
-HUM_struct_t BME280_hum_sensor;
-HUM_struct_t DPS368_hum_sensor;
+TMP117_struct_t TMP117;
+SHT3_struct_t SHT3;
+MS8607_struct_t MS8607;
+BME280_struct_t BME280;
+DPS368_struct_t DPS368;
 
 BMP280_HandleTypedef bmp280;
+
 Config_TypeDef config;
-uint8_t meas_temp_start = 0;
+
+uint8_t meas_start = 0;
 uint8_t meas_press_start = 0;
 uint8_t meas_hum_start = 0;
 uint8_t meas_temp_ready = 0;
 uint8_t meas_press_ready = 0;
 uint8_t meas_hum_ready = 0;
 
-uint16_t meas_interval = 10000; // default 10s
 
 
 /* USER CODE END PV */
@@ -91,6 +84,7 @@ static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_I2C2_Init(void);
+static void MX_I2C2_Init_STR(void);
 static void MX_I2C3_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
@@ -159,53 +153,62 @@ int main(void)
 	  BQ25798_Sys_Min_Voltage_write(3); 	// 3250mV
 	  BQ25798_Chr_Volt_Limit_write(4200); 	// 4200mV
 	  BQ25798_Chr_Curr_Limit_write(2000); 	// 2000mA
+//	  BQ25798_Chrg_CTRL1_write(1,1,1);
   }
   LED1_ON();
   LED2_OFF();
   ADC_DMA_Start();
 
-  TMP117_temp_sensor.sensor_present = TMP117_check();
-//  MS8607_temp_sensor.sensor_present = MS8607_check();
-//  if(MS8607_temp_sensor.sensor_present) {
-//	  MS8607_press_sensor.sensor_present = 1;
-//	  MS8607_hum_sensor.sensor_present = 1;
-//  } else {
-//	  MS8607_press_sensor.sensor_present = 0;
-//	  MS8607_hum_sensor.sensor_present = 0;
-//  }
-//  SHTC3_temp_sensor.sensor_present = SHTC3_check();
-//  if(SHTC3_temp_sensor.sensor_present) SHTC3_hum_sensor.sensor_present = 1; else SHTC3_hum_sensor.sensor_present = 0;
-
-  BME280_temp_sensor.sensor_present = BME280_check();
-  if(BME280_temp_sensor.sensor_present) {
-	  BME280_hum_sensor.sensor_present = 1;
-  } else {
-	  BME280_press_sensor.sensor_present = 0;
-	  BME280_hum_sensor.sensor_present = 0;
-  }
-
-//  DPS368_temp_sensor.sensor_present = DPS368_check();
-//  if(DPS368_temp_sensor.sensor_present) {
-//	  DPS368_press_sensor.sensor_present = 1;
-//	  DPS368_hum_sensor.sensor_present = 1;
-//  } else {
-//	  DPS368_press_sensor.sensor_present = 0;
-//	  DPS368_hum_sensor.sensor_present = 0;
-//  }
+  TMP117.present = TMP117_check();
+  SHT3.present = SHTC3_check();
+  MS8607.present = MS8607_check();
+  BME280.present = BME280_check();
+  DPS368.present = DPS368_check();
 
   BME280_init_config(1, BMP280_STANDARD, BMP280_STANDARD, BMP280_STANDARD, BMP280_FILTER_OFF);
+  DPS368_init(FIFO_DIS, INT_NONE);
 
 
+  //TODO: konfiguracja w eepromie użycia czujników (całościowo)
+  TMP117.sensor_use = 1;
+  SHT3.sensor_use = 1;
+  MS8607.sensor_use = 1;
+  BME280.sensor_use = 1;
+  DPS368.sensor_use = 1;
 
-//  DPS368_init(FIFO_DIS, INT_NONE);
+  //TODO: konfiguracja w eepromie użycia czujników szczegółowo
+  TMP117.temp.use_meas = 1;
+  BME280.temp.use_meas = 1;
+  SHT3.temp.use_meas = 1;
+  MS8607.temp.use_meas = 1;
+  DPS368.temp.use_meas = 1;
 
-  uint8_t tmp117_temp_use = 1;
-  uint8_t bme280_temp_use = 1;
+  BME280.press.use_meas = 1;
+  BME280.hum.use_meas = 1;
+
+  SHT3.hum.use_meas = 1;
+
+  MS8607.press.use_meas = 1;
+  MS8607.hum.use_meas = 1;
+
+  DPS368.press.use_meas = 1;
+
+  uint16_t meas_interval = 10000; // default 10s  //TODO: do eepromu
+
   uint32_t ticks10s = HAL_GetTick();
   uint32_t ticks30ms = HAL_GetTick();
   uint32_t ticks_meas = HAL_GetTick();
+  uint32_t sht3_ticks_meas = HAL_GetTick();
+  uint32_t dps_ticks_meas = HAL_GetTick();
   uint16_t meas_time = 100;
+  uint16_t sht3_meas_time = 200;
+  uint16_t dps_meas_time = 200;
 
+  uint8_t sht3_1more = 0;
+  uint8_t sht3_1more_ready = 0;
+  uint8_t dps368_press = 0;
+  uint8_t dps368_press_ready = 0;
+  float dps_scaled_temp;
 
 //  LED2_ON();
   /* USER CODE END 2 */
@@ -225,40 +228,142 @@ int main(void)
 	  if(HAL_GetTick()-ticks10s >= meas_interval)
 	  {
 		  ticks10s = HAL_GetTick();
-		  meas_temp_start = 1;
-		  printf("Czas na pomiar !\r\n");
+		  meas_start = 1;
+		  printf("Czas na pomiary !\r\n");
 	  }
 
-	  if(meas_temp_start) {
-		  if(TMP117_temp_sensor.sensor_present && tmp117_temp_use) {
-	          TMP117_start_meas(avg8);
-	          meas_time += 200;
+	  if(meas_start) {
+		  if(TMP117.present){
+			  if(TMP117.sensor_use && TMP117.temp.use_meas) {
+				  TMP117_start_meas(avg8);
+				  meas_time += 200;
+			  }
 		  }
-		  if(BME280_temp_sensor.sensor_present && bme280_temp_use) {
-			  BME280_start_meas();
-		      meas_time += 500;
+		  if(BME280.present){
+			  if(BME280.sensor_use && (BME280.temp.use_meas || BME280.press.use_meas || BME280.hum.use_meas) ) {
+				  BME280_start_meas();
+				  meas_time += 500;
+			  }
+		  }
+		  if(SHT3.present){
+			  if(SHT3.sensor_use && (SHT3.temp.use_meas || SHT3.hum.use_meas)) {
+				  SHTC3_start_meas(normal);
+				  meas_time += 100;
+				  if (SHT3.temp.use_meas && SHT3.hum.use_meas) {
+					  sht3_1more = 1;
+				  }
+			  }
+		  }
+		  if(DPS368.present){
+			  if(DPS368.sensor_use && (DPS368.temp.use_meas || DPS368.press.use_meas)) {
+				  DPS368_start_meas_temp(0);
+				  meas_time += calcBusyTime(0);
+				  if (DPS368.press.use_meas) {
+					  dps368_press = 1;
+				  }
+			  }
 		  }
 		  meas_temp_ready = 1;
+		  meas_press_ready = 1;
+		  meas_hum_ready = 1;
           ticks_meas = HAL_GetTick();
-          meas_temp_start = 0;
+          dps_ticks_meas = HAL_GetTick();
+          sht3_ticks_meas = HAL_GetTick();
+          meas_start = 0;
           printf("Komenda startu pomiaru temperatury wyslana\r\n");
 
 	  }
 
 
-      if (meas_temp_ready && ((HAL_GetTick() - ticks_meas) >= meas_time)) {
-		  if(TMP117_temp_sensor.sensor_present && tmp117_temp_use) {
-			  TMP117_temp_sensor.temperature = TMP117_get_temp();
-	          printf("Temperatura TMP117: %.2f\r\n", TMP117_temp_sensor.temperature);
-		  }
-		  if(BME280_temp_sensor.sensor_present && bme280_temp_use) {
-			  BME280_temp_sensor.temperature = BME280_get_temp();
-	          printf("Temperatura BME280: %.2f\r\n", BME280_temp_sensor.temperature);
-		  }
+
+      if ((meas_temp_ready || meas_press_ready || meas_hum_ready) && ((HAL_GetTick() - ticks_meas) >= meas_time)) {
+    	  if(TMP117.present){
+    		  if(TMP117.sensor_use && TMP117.temp.use_meas) {
+    			  TMP117.temp.temperature = TMP117_get_temp();
+    			  printf("Temperatura TMP117: %.2f\r\n", TMP117.temp.temperature);
+    		  }
+    	  }
+    	  if(BME280.present){
+    		  if(BME280.sensor_use && BME280.temp.use_meas) {
+    			  BME280.temp.temperature = BME280_get_temp();
+    			  printf("Temperatura BME280: %.2f\r\n", BME280.temp.temperature);
+    		  }
+    		  if(BME280.sensor_use && BME280.press.use_meas) {
+    		      			  BME280.press.pressure = BME280_get_press();
+    		      			  printf("Cisnienie BME280: %.2f\r\n", BME280.press.pressure);
+    		  }
+    		  if(BME280.sensor_use && BME280.hum.use_meas) {
+    		      			  BME280.hum.humidity = BME280_get_hum();
+    		      			  printf("Wilgotnosc BME280: %.2f\r\n", BME280.hum.humidity);
+    		  }
+    	  }
+    	  if(SHT3.present){
+    		  if(SHT3.sensor_use && SHT3.temp.use_meas) {
+    			  SHT3.temp.temperature = SHTC3_get_temp();
+    			  printf("Temperatura SHT3: %.2f\r\n", SHT3.temp.temperature);
+    		  }
+    	  }
+    	  if(MS8607.present){
+    		  if(MS8607.sensor_use && MS8607.temp.use_meas) {
+    			  MS8607.temp.temperature = MS8607_get_temp();
+    			  printf("Temperatura MS8607: %.2f\r\n", MS8607.temp.temperature);
+    		  }
+    		  if(MS8607.sensor_use && MS8607.press.use_meas) {
+    			  MS8607.press.pressure = MS8607_get_press();
+    			  printf("Cisnienie MS8607: %.2f\r\n", MS8607.press.pressure);
+    		  }
+    		  if(MS8607.sensor_use && MS8607.hum.use_meas) {
+    			  MS8607.hum.humidity = MS8607_get_hum();
+    			  printf("Wilgotnosc MS8607: %.2f\r\n", MS8607.hum.humidity);
+    		  }
+    	  }
+    	  if(DPS368.present && DPS368.sensor_use){
+    		  dps_scaled_temp = DPS368_get_scaled_temp();
+    		  if(DPS368.temp.use_meas) {
+    			  DPS368.temp.temperature = DPS368_calc_temp(dps_scaled_temp);
+    			  printf("Temperatura DPS368: %.2f\r\n", DPS368.temp.temperature);
+    		  }
+    	  }
           meas_temp_ready = 0;
+          meas_press_ready = 0;
+          meas_hum_ready = 0;
 	      meas_time = 200;
+
+		  if(sht3_1more) {
+			  if(SHT3.present){
+				  if(SHT3.sensor_use && (SHT3.temp.use_meas || SHT3.hum.use_meas)) {
+					  SHTC3_start_meas(normal);
+					  sht3_meas_time = 200;
+				  }
+				  sht3_1more = 0;
+				  sht3_1more_ready = 1;
+			  }
+		  }
+		  if(dps368_press) {
+			  DPS368_start_meas_press(0);
+			  dps_meas_time = calcBusyTime(0);
+			  dps368_press = 0;
+			  dps368_press_ready = 1;
+		  }
+
+      if (sht3_1more_ready && ((HAL_GetTick() - sht3_ticks_meas) >= sht3_meas_time)) {
+   		  if(SHT3.sensor_use && SHT3.hum.use_meas) {
+   			  SHT3.hum.humidity = SHTC3_get_hum();
+    		  printf("Wilgotnosc SHT3: %.2f\r\n", SHT3.hum.humidity);
+    		  sht3_1more_ready = 0;
+   		  }
       }
 
+      if (dps368_press_ready && ((HAL_GetTick() - dps_ticks_meas) >= dps_meas_time)) {
+   		  if(DPS368.sensor_use && DPS368.press.use_meas) {
+   			  DPS368.press.pressure = DPS368_get_press(dps_scaled_temp);
+    		  printf("Cisnienie DPS368: %.2f\r\n", DPS368.press.pressure);
+    		  dps368_press_ready = 0;
+   		  }
+      }
+
+
+	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -501,6 +606,8 @@ static void MX_I2C2_Init(void)
     Error_Handler();
   }
 
+
+
   /** Configure Analogue filter
   */
   if (HAL_I2CEx_ConfigAnalogFilter(&hi2c2, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
@@ -519,6 +626,52 @@ static void MX_I2C2_Init(void)
   /* USER CODE END I2C2_Init 2 */
 
 }
+
+static void MX_I2C2_Init_STR(void)
+{
+
+  /* USER CODE BEGIN I2C2_Init 0 */
+
+  /* USER CODE END I2C2_Init 0 */
+
+  /* USER CODE BEGIN I2C2_Init 1 */
+
+  /* USER CODE END I2C2_Init 1 */
+  hi2c2.Instance = I2C2;
+  hi2c2.Init.Timing = 0x00301347;
+  hi2c2.Init.OwnAddress1 = 0;
+  hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c2.Init.OwnAddress2 = 0;
+  hi2c2.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+  hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_ENABLE;
+  if (HAL_I2C_Init(&hi2c2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+
+
+  /** Configure Analogue filter
+  */
+  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c2, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Digital filter
+  */
+  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c2, 0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C2_Init 2 */
+
+  /* USER CODE END I2C2_Init 2 */
+
+}
+
 
 /**
   * @brief I2C3 Initialization Function
@@ -815,6 +968,17 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+void I2C_Reinit_STR()
+{
+	HAL_I2C_DeInit(&hi2c2);
+	MX_I2C2_Init_STR();
+}
+
+void I2C_Reinit()
+{
+	HAL_I2C_DeInit(&hi2c2);
+	MX_I2C2_Init();
+}
 
 /* USER CODE END 4 */
 

@@ -1109,6 +1109,7 @@ enum ms8607_status psensor_read_pressure_and_temperature( float *temperature, fl
 	
 	*temperature = ( (float)TEMP - T2 ) / 100;
 	*pressure = (float)P / 100;
+//	*pressure = (float)P;
 	
 	return status;
 }
@@ -1236,8 +1237,8 @@ enum ms8607_status psensor_read_pressure( float *pressure)
 	// Temperature compensated pressure = D1 * SENS - OFF
 	P = ( ( (adc_pressure * SENS) >> 21 ) - OFF ) >> 15 ;
 
-	*pressure = (float)P / 100;
-
+//	*pressure = (float)P / 100;
+	*pressure = (float)P;
 	return status;
 }
 

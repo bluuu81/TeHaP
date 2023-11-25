@@ -130,5 +130,11 @@ uint8_t DPS368_press_rdy();
 float DPS368_get_temp_cmd(uint8_t ovr);
 float DPS368_get_press_cmd(uint8_t ovr);
 void DPS368_init(uint8_t fifo, uint8_t int_m);
+void DPS368_start_meas_temp(uint8_t ovr);
+void DPS368_start_meas_press(uint8_t ovr);
+float DPS368_get_scaled_temp();
+float DPS368_calc_temp(float temp_scaled);
+float DPS368_get_temp();
+float DPS368_get_press(float temp_scaled);
 uint32_t calcBusyTime(uint8_t ovr);
 #endif /* INC_DPS368_H_ */

@@ -145,3 +145,16 @@ uint8_t BQ25798_Chr_Curr_Limit_write(uint16_t val)
 	res = i2c_write16(&hi2c1, REG03_Charge_Current_Limit, byteswap16(val), BQ25798_ADDR);
     return res;
 }
+
+uint8_t BQ25798_Chrg_CTRL1_write(uint8_t vbus_bckp, uint8_t vac_ovp, uint8_t wdt_timer)
+{
+	uint8_t res, value;
+	i2c_read8(&hi2c1, REG10_Charger_Control_1, &value, BQ25798_ADDR);
+	printf("REG10: %x\r\n", value);
+	printf("Binary\r\n");
+	printbinary(value);
+	printf("Binary MSB\r\n");
+	printbinaryMSB(value);
+//    res = i2c_write8(&hi2c1, REG00_Minimal_System_Voltage, (bits & 0xF7), BQ25798_ADDR);
+    return res;
+}

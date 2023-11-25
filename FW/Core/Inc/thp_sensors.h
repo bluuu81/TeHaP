@@ -44,7 +44,9 @@ enum TMP117_avg   { no_avg = 0x0000, avg8 = 0x0020, avg32 = 0x0040, avg64 = 0x00
 #define SHTC3_CMD_HUM_TEMP		0x245C
 #define SHTC3_CMD_HUM_TEMP_LP	0xDE44
 
+enum SHTC3_mod	{normal = 0, lp = 1 };
 
+/*
 typedef struct {
 	uint8_t sensor_present	:1;
 	uint8_t temp_anomaly	:1;
@@ -72,9 +74,8 @@ typedef struct {
 	float	offset;
 } __attribute__((packed)) HUM_struct_t;
 
+*/
 
-/* Zmiana struktury !!!!
- *
 typedef struct {
 	uint8_t use_meas		:1;
 	uint8_t temp_anomaly	:1;
@@ -101,9 +102,7 @@ typedef struct {
 	float	humidity;
 	float	offset;
 } __attribute__((packed)) HUM_struct_t;
- *
- *
- Z powyższego robimy zestawy:
+
 
 typedef struct {
 	uint8_t present			:1;
@@ -152,16 +151,12 @@ typedef struct {
 } __attribute__((packed)) DPS368_struct_t;
 
 
- *
- *
- *
- */
-
 
 
 void TCA9543A_SelectChannel(uint8_t channel);
 void SET_BME280();
 void SET_DPS368();
+
 
 uint16_t byteswap16 (uint16_t bytes);
 void printbinary(uint16_t value);
@@ -186,8 +181,9 @@ float MS8607_get_press();
 float MS8607_get_hum();
 
 uint8_t SHTC3_check();
-float SHTC3_get_temp(uint8_t mode);
-float SHTC3_get_hum(uint8_t mode);
+uint8_t SHTC3_start_meas(uint8_t mode);
+float SHTC3_get_temp();
+float SHTC3_get_hum();
 
 uint8_t BME280_check();
 void BME280_init_config(uint8_t conf_mode, uint8_t ovr_temp, uint8_t ovr_press, uint8_t ovr_hum, uint8_t coeff);

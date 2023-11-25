@@ -14,14 +14,12 @@ volatile int32_t Kt_coef, Kp_coef;
 uint8_t DPS368_check()
 {
 	uint8_t value;
-	TCA9543A_SelectChannel(2);
-	HAL_Delay(1);
+	SET_DPS368();
 	HAL_StatusTypeDef status;
 	status = HAL_I2C_IsDeviceReady(&hi2c2, DPS368_ADDR, 3, 150);
 	HAL_Delay(100);
 	if (status == HAL_OK) {
 		i2c_read8(&hi2c2, DPS368_REG_ID, &value, DPS368_ADDR);
-		TCA9543A_SelectChannel(0);
 		if(value == DPS368_ID_CHK) {printf("DPS368 OK\r\n"); return 1;} else {printf("NOT DPS368\r\n"); return 0;}
 	} else {printf("DPS368 FAILED\r\n"); return 0;}
 	return 0;
@@ -389,4 +387,78 @@ void DPS368_init(uint8_t fifo, uint8_t int_m)
 	DPS368_fifo(fifo);
 	DPS368_run_mode(MODE_IDLE);
 	DPS368_temp_correct();
+}
+
+void DPS368_start_meas_temp(uint8_t ovr)
+{
+	DPS368_conf_temp(ovr, 0U);
+	DPS368_run_mode(MODE_CMD_TEMP);
+}
+
+float DPS368_get_temp()
+{
+	SET_DPS368();
+	uint8_t value[3];
+	int32_t raw_temp;
+	float temp_scaled, temperature;
+//	dumpCFGreg();
+	HAL_I2C_Mem_Read(&hi2c2, DPS368_ADDR, DPS368_TEMP, I2C_MEMADD_SIZE_8BIT, value, 3, 250);
+	raw_temp = (int32_t)(value[2]) + (value[1] << 8) + (value[0] << 16);
+	getTwosComplement(&raw_temp, 24);
+	const float scaling = 1.0f/Kt_coef;
+	//printf("DPS RAW VALUE: %ld\r\n", raw_temp);
+//	printf("DPS SCALING VALUE: %.12f\r\n", scaling);
+	temp_scaled = (float)raw_temp * scaling;
+//	printf("DPS TEMP SCALED VALUE: %.3f\r\n", temp_scaled);
+	temperature = DPS_coef.C0 + DPS_coef.C1 * temp_scaled;
+	return temperature;
+}
+
+float DPS368_calc_temp(float temp_scaled)
+{
+	float temperature;
+//	temp_scaled = DPS368_get_scaled_temp();
+//	printf("DPS TEMP SCALED VALUE: %.3f\r\n", temp_scaled);
+	temperature = DPS_coef.C0 + DPS_coef.C1 * temp_scaled;
+	return temperature;
+}
+
+void DPS368_start_meas_press(uint8_t ovr)
+{
+	DPS368_conf_press(ovr, 0U);
+	DPS368_run_mode(MODE_CMD_PRESS);
+}
+
+float DPS368_get_scaled_temp()
+{
+	SET_DPS368();
+	uint8_t value[3];
+	int32_t raw_temp;
+	HAL_I2C_Mem_Read(&hi2c2, DPS368_ADDR, DPS368_TEMP, I2C_MEMADD_SIZE_8BIT, value, 3, 250);
+	raw_temp = (int32_t)(value[2]) + (value[1] << 8) + (value[0] << 16);
+	getTwosComplement(&raw_temp, 24);
+	const float scalingT = 1.0f/Kt_coef;
+	return ((float)raw_temp * scalingT);
+}
+
+float DPS368_get_press(float temp_scaled)
+{
+	SET_DPS368();
+	uint8_t value[3];
+	int32_t raw_press;
+	HAL_I2C_Mem_Read(&hi2c2, DPS368_ADDR, DPS368_PRESS, I2C_MEMADD_SIZE_8BIT, value, 3, 250);
+	raw_press = (int32_t)(value[2]) + (value[1] << 8) + (value[0] << 16);
+	getTwosComplement(&raw_press, 24);
+	const float scalingP = 1.0f/Kp_coef;
+//	printf("DPS RAW PRESS VALUE: %ld\r\n", raw_press);
+//	printf("DPS SCALING PRESS VALUE: %.12f\r\n", scalingP);
+	float press_scaled, pressure;
+	press_scaled = (float)raw_press * scalingP;
+//	printf("DPS PRESS SCALED VALUE: %.3f\r\n", press_scaled);
+    pressure = DPS_coef.C00;
+	pressure += press_scaled * (DPS_coef.C10 + press_scaled * (DPS_coef.C20 + press_scaled * DPS_coef.C30));
+	pressure += (temp_scaled * DPS_coef.C01);
+	pressure += (temp_scaled * press_scaled * (DPS_coef.C11 + press_scaled * DPS_coef.C21));
+//	return pressure *0.01f;
+	return pressure;
 }
