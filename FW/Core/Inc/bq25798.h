@@ -94,6 +94,7 @@ uint8_t BQ25798_Sys_Min_Voltage_write(uint8_t bits); // 6 bits multiplier (2500m
 uint8_t BQ25798_Chr_Volt_Limit_write(uint16_t val); // mV
 uint8_t BQ25798_Chr_Curr_Limit_write(uint16_t val); // mA
 
-uint8_t BQ25798_Chrg_CTRL1_write(uint8_t vbus_bckp, uint8_t vac_ovp, uint8_t wdt_timer);
+uint8_t BQ25798_Chrg_CTRL1_write(uint8_t hex_val);
+uint8_t BQ25798_WD_RST();
 
 #endif /* INC_BQ25798_H_ */

@@ -67,7 +67,7 @@ void set_bit16(I2C_HandleTypeDef * i2c, unsigned char sub_address, unsigned shor
     i2c_write16(i2c, sub_address, old_word, addr);
 }
 
-void setBit(unsigned char* reg, int bitNumber, int value) {
+void setBit(uint8_t* reg, int bitNumber, int value) {
     if (value == 0) {
         *reg &= ~(1 << bitNumber);  // Ustawienie bitu na 0
     } else if (value == 1) {

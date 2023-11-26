@@ -153,7 +153,7 @@ int main(void)
 	  BQ25798_Sys_Min_Voltage_write(3); 	// 3250mV
 	  BQ25798_Chr_Volt_Limit_write(4200); 	// 4200mV
 	  BQ25798_Chr_Curr_Limit_write(2000); 	// 2000mA
-//	  BQ25798_Chrg_CTRL1_write(1,1,1);
+	  BQ25798_Chrg_CTRL1_write(0xAD);
   }
   LED1_ON();
   LED2_OFF();
@@ -200,6 +200,7 @@ int main(void)
   uint32_t ticks_meas = HAL_GetTick();
   uint32_t sht3_ticks_meas = HAL_GetTick();
   uint32_t dps_ticks_meas = HAL_GetTick();
+  uint32_t ticksbqwd = HAL_GetTick();
   uint16_t meas_time = 100;
   uint16_t sht3_meas_time = 200;
   uint16_t dps_meas_time = 200;
@@ -225,6 +226,13 @@ int main(void)
 		  LED1_TOGGLE();
 		  check_powerOff();
 	  }
+
+	  if(HAL_GetTick()-ticksbqwd >= 15000)
+	  {
+		  ticksbqwd = HAL_GetTick();
+		  BQ25798_WD_RST();
+	  }
+
 	  if(HAL_GetTick()-ticks10s >= meas_interval)
 	  {
 		  ticks10s = HAL_GetTick();

@@ -161,7 +161,7 @@ void SET_DPS368();
 uint16_t byteswap16 (uint16_t bytes);
 void printbinary(uint16_t value);
 void printbinaryMSB(uint8_t value);
-void setBit(unsigned char* reg, int bitNumber, int value);
+void setBit(uint8_t* reg, int bitNumber, int value);
 void modifyRegister(unsigned char* reg, unsigned char mask, unsigned char value);
 
 void i2c_scan(I2C_HandleTypeDef * i2c, uint8_t addr_min, uint8_t addr_max);
