@@ -122,6 +122,12 @@ void I2C_Reinit_STR();
 #define POWER_ON()		HAL_GPIO_WritePin(Main_SW_GPIO_Port, Main_SW_Pin, GPIO_PIN_SET)
 #define POWER_OFF()		HAL_GPIO_WritePin(Main_SW_GPIO_Port, Main_SW_Pin, GPIO_PIN_RESET)
 
+#define QON_EN()		HAL_GPIO_WritePin(BQ_QON_GPIO_Port, BQ_QON_Pin, GPIO_PIN_RESET)
+#define QON_DIS()		HAL_GPIO_WritePin(BQ_QON_GPIO_Port, BQ_QON_Pin, GPIO_PIN_SET)
+
+#define CE_EN()			HAL_GPIO_WritePin(BQ_CE_GPIO_Port, BQ_CE_Pin, GPIO_PIN_RESET)
+#define CE_DIS()		HAL_GPIO_WritePin(BQ_CE_GPIO_Port, BQ_CE_Pin, GPIO_PIN_SET)
+
 #define Power_SW_READ()	HAL_GPIO_ReadPin(But_ONOFF_GPIO_Port, But_ONOFF_Pin)
 #define Tamp_READ()		HAL_GPIO_ReadPin(Tamp_GPIO_Port, Tamp_Pin)
 

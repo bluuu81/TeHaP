@@ -463,6 +463,16 @@ void help()
 	printf("Minimal SYS Voltage: %u [mV]  \r\n", BQ25798_Sys_Min_Voltage_read());
 	printf("Charge Voltage Limit: %u [mV]  \r\n",BQ25798_Chr_Volt_Limit_read());
 	printf("Charge Current Limit: %u [mA]  \r\n",BQ25798_Chr_Curr_Limit_read());
+	BQ25798_Chrg_CTRL3_read();
+	BQ25798_Chrg_CTRL4_read();
+	BQ25798_Chrg_FAULT1_read();
+	BQ25798_Chrg_FAULT2_read();
+	BQ25798_Chrg_STAT0_read();
+	BQ25798_Chrg_STAT1_read();
+	BQ25798_Chrg_STAT2_read();
+	BQ25798_Chrg_STAT3_read();
+	BQ25798_Chrg_STAT4_read();
+	printf("-----------------\r\n");
 
 }
 ;

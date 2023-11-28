@@ -21,9 +21,9 @@ uint8_t BQ25798_check()
 	HAL_StatusTypeDef status;
 	uint8_t res;
 	printf("Checking BQ25798 ... ");
-	for (int i = 0; i < 10; i++) {
+	for (int i = 0; i < 5; i++) {
 		status = HAL_I2C_IsDeviceReady(&hi2c1, BQ25798_ADDR, 3, 1500);
-		HAL_Delay(100);
+		HAL_Delay(50);
 	    if (status == HAL_OK) {
 	    	printf("OK !\r\n");
 	    	BQ25798_set_ADC();
@@ -146,10 +146,31 @@ uint8_t BQ25798_Chr_Curr_Limit_write(uint16_t val)
     return res;
 }
 
+uint8_t BQ25798_Chr_Input_Voltage_Limit_write(uint8_t val)
+{
+	uint8_t res;
+	res = i2c_write8(&hi2c1, REG05_Input_Voltage_Limit, val, BQ25798_ADDR);
+    return res;
+}
+
+uint8_t BQ25798_Chr_Input_Curr_Limit_write(uint16_t val)
+{
+	uint8_t res;
+	res = i2c_write16(&hi2c1, REG06_Input_Current_Limit, byteswap16(val), BQ25798_ADDR);
+    return res;
+}
+
 uint8_t BQ25798_Chrg_CTRL1_write(uint8_t hex_val)
 {
 	uint8_t res;
     res = i2c_write8(&hi2c1, REG10_Charger_Control_1, hex_val, BQ25798_ADDR);
+    return res;
+}
+
+uint8_t BQ25798_Chrg_NTC_CTRL1_write(uint8_t hex_val)
+{
+	uint8_t res;
+    res = i2c_write8(&hi2c1, REG18_NTC_Control_1, hex_val, BQ25798_ADDR);
     return res;
 }
 
@@ -161,5 +182,86 @@ uint8_t BQ25798_WD_RST()
 	setBit(&value,3,1);
 //	printf("Reset REG (reset): %x\r\n", value);
     res = i2c_write8(&hi2c1, REG10_Charger_Control_1, value, BQ25798_ADDR);
+    return res;
+}
+
+uint8_t BQ25798_Chrg_CTRL3_read()
+{
+	uint8_t res,value;
+    res = i2c_read8(&hi2c1, REG12_Charger_Control_3, &value, BQ25798_ADDR);
+    printf("REG12: %x\r\n", value);
+    printbinaryMSB(value);
+    return res;
+}
+
+uint8_t BQ25798_Chrg_CTRL4_read()
+{
+	uint8_t res,value;
+    res = i2c_read8(&hi2c1, REG13_Charger_Control_4, &value, BQ25798_ADDR);
+    printf("REG13: %x\r\n", value);
+    printbinaryMSB(value);
+    return res;
+}
+
+uint8_t BQ25798_Chrg_FAULT1_read()
+{
+	uint8_t res,value;
+    res = i2c_read8(&hi2c1, REG20_FAULT_Status_0, &value, BQ25798_ADDR);
+    printf("REG20 (FAULT): %x\r\n", value);
+    printbinaryMSB(value);
+    return res;
+}
+
+uint8_t BQ25798_Chrg_FAULT2_read()
+{
+	uint8_t res,value;
+    res = i2c_read8(&hi2c1, REG21_FAULT_Status_1, &value, BQ25798_ADDR);
+    printf("REG21 (FAULT): %x\r\n", value);
+    printbinaryMSB(value);
+    return res;
+}
+
+uint8_t BQ25798_Chrg_STAT0_read()
+{
+	uint8_t res,value;
+    res = i2c_read8(&hi2c1, REG1B_Charger_Status_0, &value, BQ25798_ADDR);
+    printf("REG1B (STAT0): %x\r\n", value);
+    printbinaryMSB(value);
+    return res;
+}
+
+uint8_t BQ25798_Chrg_STAT1_read()
+{
+	uint8_t res,value;
+    res = i2c_read8(&hi2c1, REG1C_Charger_Status_1, &value, BQ25798_ADDR);
+    printf("REG1C (STAT1): %x\r\n", value);
+    printbinaryMSB(value);
+    return res;
+}
+
+uint8_t BQ25798_Chrg_STAT2_read()
+{
+	uint8_t res,value;
+    res = i2c_read8(&hi2c1, REG1D_Charger_Status_2, &value, BQ25798_ADDR);
+    printf("REG1D (STAT2): %x\r\n", value);
+    printbinaryMSB(value);
+    return res;
+}
+
+uint8_t BQ25798_Chrg_STAT3_read()
+{
+	uint8_t res,value;
+    res = i2c_read8(&hi2c1, REG1E_Charger_Status_3, &value, BQ25798_ADDR);
+    printf("REG1E (STAT3): %x\r\n", value);
+    printbinaryMSB(value);
+    return res;
+}
+
+uint8_t BQ25798_Chrg_STAT4_read()
+{
+	uint8_t res,value;
+    res = i2c_read8(&hi2c1, REG1F_Charger_Status_4, &value, BQ25798_ADDR);
+    printf("REG1F (STAT4): %x\r\n", value);
+    printbinaryMSB(value);
     return res;
 }

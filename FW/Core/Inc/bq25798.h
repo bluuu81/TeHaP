@@ -93,8 +93,24 @@ uint16_t BQ25798_Chr_Curr_Limit_read();
 uint8_t BQ25798_Sys_Min_Voltage_write(uint8_t bits); // 6 bits multiplier (2500mV + 6bits * 250mV) e.g 3000mV = 2500 + 3*250 = 3,25V / bits=3
 uint8_t BQ25798_Chr_Volt_Limit_write(uint16_t val); // mV
 uint8_t BQ25798_Chr_Curr_Limit_write(uint16_t val); // mA
+uint8_t BQ25798_Chr_Input_Voltage_Limit_write(uint8_t val); //*100mV
+uint8_t BQ25798_Chr_Input_Curr_Limit_write(uint16_t val); //*10mA
 
 uint8_t BQ25798_Chrg_CTRL1_write(uint8_t hex_val);
+uint8_t BQ25798_Chrg_NTC_CTRL1_write(uint8_t hex_val);
+
 uint8_t BQ25798_WD_RST();
+
+uint8_t BQ25798_Chrg_CTRL3_read();
+uint8_t BQ25798_Chrg_CTRL4_read();
+
+uint8_t BQ25798_Chrg_FAULT1_read();
+uint8_t BQ25798_Chrg_FAULT2_read();
+
+uint8_t BQ25798_Chrg_STAT0_read();
+uint8_t BQ25798_Chrg_STAT1_read();
+uint8_t BQ25798_Chrg_STAT2_read();
+uint8_t BQ25798_Chrg_STAT3_read();
+uint8_t BQ25798_Chrg_STAT4_read();
 
 #endif /* INC_BQ25798_H_ */

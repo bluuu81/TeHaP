@@ -150,10 +150,16 @@ int main(void)
   charger_state = BQ25798_check();
   if (charger_state) {
 	  printf("Configure charger \r\n");
+	  QON_EN();
 	  BQ25798_Sys_Min_Voltage_write(3); 	// 3250mV
 	  BQ25798_Chr_Volt_Limit_write(4200); 	// 4200mV
 	  BQ25798_Chr_Curr_Limit_write(2000); 	// 2000mA
-	  BQ25798_Chrg_CTRL1_write(0xAD);
+	  BQ25798_Chr_Input_Voltage_Limit_write(130); //*100mV
+	  BQ25798_Chr_Input_Curr_Limit_write(200); //*10mA
+	  BQ25798_Chrg_CTRL1_write(0x95);
+	  BQ25798_Chrg_NTC_CTRL1_write(1);
+	  CE_EN();
+
   }
   LED1_ON();
   LED2_OFF();
