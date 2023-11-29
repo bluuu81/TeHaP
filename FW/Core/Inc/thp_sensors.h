@@ -39,42 +39,22 @@ enum TMP117_avg   { no_avg = 0x0000, avg8 = 0x0020, avg32 = 0x0040, avg64 = 0x00
 #define SHTC3_CMD_SLEEP			0x98B0
 #define SHTC3_CMD_SOFT_RESET	0x5D80
 #define SHTC3_CMD_READ_ID		0xC8EF
+
+//clock strething ON
 #define SHTC3_CMD_TEMP_HUM		0xA27C
 #define SHTC3_CMD_TEMP_HUM_LP	0x5864
 #define SHTC3_CMD_HUM_TEMP		0x245C
 #define SHTC3_CMD_HUM_TEMP_LP	0xDE44
 
+//clock strething OFF
+//#define SHTC3_CMD_TEMP_HUM		0x6678
+//#define SHTC3_CMD_TEMP_HUM_LP	0x9C60
+//#define SHTC3_CMD_HUM_TEMP		0xE058
+//#define SHTC3_CMD_HUM_TEMP_LP	0x1A40
+
+
 enum SHTC3_mod	{normal = 0, lp = 1 };
 
-/*
-typedef struct {
-	uint8_t sensor_present	:1;
-	uint8_t temp_anomaly	:1;
-	uint8_t sensor_conf		:4;
-	uint8_t uu				:2;
-	float	temperature;
-	float	offset;
-} __attribute__((packed)) TEMP_struct_t;
-
-typedef struct {
-	uint8_t sensor_present	:1;
-	uint8_t press_anomaly	:1;
-	uint8_t sensor_conf		:4;
-	uint8_t uu				:2;
-	float	pressure;
-	float	offset;
-} __attribute__((packed)) PRESS_struct_t;
-
-typedef struct {
-	uint8_t sensor_present	:1;
-	uint8_t hum_anomaly	:1;
-	uint8_t sensor_conf		:4;
-	uint8_t uu				:2;
-	float	humidity;
-	float	offset;
-} __attribute__((packed)) HUM_struct_t;
-
-*/
 
 typedef struct {
 	uint8_t use_meas		:1;
@@ -182,8 +162,9 @@ float MS8607_get_hum();
 
 uint8_t SHTC3_check();
 uint8_t SHTC3_start_meas(uint8_t mode);
-float SHTC3_get_temp();
-float SHTC3_get_hum();
+uint8_t SHTC3_read_values(uint8_t* result);
+float SHTC3_get_temp(uint8_t* result);
+float SHTC3_get_hum(uint8_t* result);
 
 uint8_t BME280_check();
 void BME280_init_config(uint8_t conf_mode, uint8_t ovr_temp, uint8_t ovr_press, uint8_t ovr_hum, uint8_t coeff);

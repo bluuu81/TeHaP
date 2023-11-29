@@ -98,7 +98,8 @@ void i2c_scan(I2C_HandleTypeDef * i2c, uint8_t addr_min, uint8_t addr_max)
 
 uint16_t byteswap16 (uint16_t bytes)
 {
-	return ((bytes & 0xFF) << 8) | ((bytes >> 8) & 0xFF);
+//	return ((bytes & 0xFF) << 8) | ((bytes >> 8) & 0xFF);
+	return __REV16(bytes);
 }
 
 void printbinary(uint16_t value)
@@ -146,7 +147,7 @@ void SET_BME280()
 
 void SET_DPS368()
 {
-	I2C_Reinit();
+	I2C_Reinit_STR();
 	TCA9543A_SelectChannel(1);
 }
 
@@ -175,7 +176,7 @@ void TMP117_RST_Conf_Reg()
 float TMP117_get_temp()
 {
 	uint16_t value;
-	I2C_Reinit();
+	I2C_Reinit_STR();
     i2c_read16(&hi2c2, TMP117_TEMP_REG, &value, TMP117_ADDR << 1);
     return (float)byteswap16(value) * TMP117_RESOLUTION;
 }
@@ -183,7 +184,7 @@ float TMP117_get_temp()
 void TMP117_start_meas(uint8_t avg_mode)
 {
 	uint16_t config, swapconfig;
-	I2C_Reinit();
+	I2C_Reinit_STR();
 	TMP117_RST_Conf_Reg();
 	i2c_read16(&hi2c2, TMP117_CONF_REG, &config, TMP117_ADDR << 1);
 	swapconfig = byteswap16(config);
@@ -207,7 +208,7 @@ uint8_t MS8607_check()
 float MS8607_get_temp()
 {
 	float temp;
-	I2C_Reinit();
+	I2C_Reinit_STR();
 	ms8607_read_temperature(&temp);
 //	printf("MS Temp: %f\r\n",temp);
 	return temp;
@@ -216,7 +217,7 @@ float MS8607_get_temp()
 float MS8607_get_press()
 {
 	float press;
-	I2C_Reinit();
+	I2C_Reinit_STR();
 	ms8607_read_pressure(&press);
 //	printf("MS Press: %f\r\n",press);
 	return press;
@@ -235,17 +236,18 @@ uint8_t SHTC3_wakeup()
 {
 	HAL_StatusTypeDef status;
 	uint16_t command = SHTC3_CMD_WAKEUP;
-	status = HAL_I2C_Master_Transmit(&hi2c2, SHTC3_ADDR_WRITE, (uint8_t*)&command, 3, 150);
-	HAL_Delay(13);
-	if(status == HAL_OK) return 1;
-	else return 0;
+	status = HAL_I2C_Master_Transmit(&hi2c2, SHTC3_ADDR_WRITE, (uint8_t*)&command, 2, 150);
+//	status = HAL_I2C_Mem_Write(&hi2c2, SHTC3_ADDR_WRITE, 0x00, I2C_MEMADD_SIZE_8BIT, (uint8_t*)&command, 1, HAL_MAX_DELAY);
+//	HAL_Delay(13);
+	if(status == HAL_OK) { return 1; }
+	else {printf("SHTC3 Wake up fail %x\r\n", status); return 0; }
 }
 
 uint8_t SHTC3_sleep()
 {
 	HAL_StatusTypeDef status;
 	uint16_t command = SHTC3_CMD_SLEEP;
-	status = HAL_I2C_Master_Transmit(&hi2c2, SHTC3_ADDR_WRITE, (uint8_t*)&command, 3, 150);
+	status = HAL_I2C_Master_Transmit(&hi2c2, SHTC3_ADDR_WRITE, (uint8_t*)&command, 2, 150);
 	HAL_Delay(2);
 	if(status == HAL_OK) return 1;
 	else return 0;
@@ -288,40 +290,42 @@ uint8_t SHTC3_start_meas(uint8_t mode)
 	return status; //0 = OK
 }
 
-
-float SHTC3_get_temp()
+uint8_t SHTC3_read_values(uint8_t* result)
 {
 	HAL_StatusTypeDef status;
-	uint8_t data[3];
 	I2C_Reinit_STR();
-//	SHTC3_wakeup();
-	status = HAL_I2C_Master_Receive(&hi2c2, SHTC3_ADDR_READ, (uint8_t*)data, 3, 150);
-	if (status == HAL_OK) {
-		uint16_t raw_temp = data[0] << 8 | data[1];
-		uint8_t crc_hal = HALcalculateCRC(data,2);
-		if(data[2] == crc_hal) {
-			SHTC3_sleep();
-			return (float)(((raw_temp * 175.0f) / 65535.0f) - 45.0f);
-		}
-	} else {printf("SHTC3 Busy\r\n");};
+	status = HAL_I2C_Master_Receive(&hi2c2, SHTC3_ADDR_READ, (uint8_t*)result, 6, 500);
+//	HAL_Delay(20);
+	if (status != HAL_OK) {
+		return 0;
+	} 	else {
+		return 1;
+	};
+}
+
+float SHTC3_get_temp(uint8_t* result)
+{
+	uint16_t raw_temp = result[0] << 8 | result[1];
+	uint8_t data[2] = {raw_temp >> 8, raw_temp & 0xFF};
+
+	uint8_t crc_hal = HALcalculateCRC(data,2);
+	if(result[2] == crc_hal) {
+		return (float)(((raw_temp * 175.0f) / 65535.0f) - 45.0f);
+	}
+	else {printf("Bad CRC\r\n");};
 	return -1000.0;
 }
 
-float SHTC3_get_hum()
+float SHTC3_get_hum(uint8_t* result)
 {
-	HAL_StatusTypeDef status;
-	uint8_t data[3];
-	I2C_Reinit_STR();
-//	SHTC3_wakeup();
-	status = HAL_I2C_Master_Receive(&hi2c2, SHTC3_ADDR_READ, (uint8_t*)data, 3, 150);
-	if (status == HAL_OK) {
-		uint16_t raw_hum = data[0] << 8 | data[1];
-		uint8_t crc_hal = HALcalculateCRC(data,2);
-		if(data[2] == crc_hal) {
-			SHTC3_sleep();
-			return (float)((raw_hum * 100.0f) / 65535.0f);
-		}
-	} else {printf("SHTC3 Busy\r\n");};
+	uint16_t raw_hum = result[3] << 8 | result[4];
+	uint8_t data[2] = {raw_hum >> 8, raw_hum & 0xFF};
+
+	uint8_t crc_hal = HALcalculateCRC(data,2);
+	if(result[5] == crc_hal) {
+		return (float)((raw_hum * 100.0f) / 65535.0f);
+	}
+	else {printf("Bad CRC\r\n");};
 	return -1000.0;
 }
 

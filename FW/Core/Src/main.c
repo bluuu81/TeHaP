@@ -204,18 +204,15 @@ int main(void)
   uint32_t ticks10s = HAL_GetTick();
   uint32_t ticks30ms = HAL_GetTick();
   uint32_t ticks_meas = HAL_GetTick();
-  uint32_t sht3_ticks_meas = HAL_GetTick();
   uint32_t dps_ticks_meas = HAL_GetTick();
   uint32_t ticksbqwd = HAL_GetTick();
   uint16_t meas_time = 100;
-  uint16_t sht3_meas_time = 200;
   uint16_t dps_meas_time = 200;
 
-  uint8_t sht3_1more = 0;
-  uint8_t sht3_1more_ready = 0;
-  uint8_t dps368_press = 0;
+   uint8_t dps368_press = 0;
   uint8_t dps368_press_ready = 0;
   float dps_scaled_temp;
+  uint8_t shtc3_values[6];
 
 //  LED2_ON();
   /* USER CODE END 2 */
@@ -263,9 +260,6 @@ int main(void)
 			  if(SHT3.sensor_use && (SHT3.temp.use_meas || SHT3.hum.use_meas)) {
 				  SHTC3_start_meas(normal);
 				  meas_time += 100;
-				  if (SHT3.temp.use_meas && SHT3.hum.use_meas) {
-					  sht3_1more = 1;
-				  }
 			  }
 		  }
 		  if(DPS368.present){
@@ -282,7 +276,6 @@ int main(void)
 		  meas_hum_ready = 1;
           ticks_meas = HAL_GetTick();
           dps_ticks_meas = HAL_GetTick();
-          sht3_ticks_meas = HAL_GetTick();
           meas_start = 0;
           printf("Komenda startu pomiaru temperatury wyslana\r\n");
 
@@ -311,10 +304,15 @@ int main(void)
     		      			  printf("Wilgotnosc BME280: %.2f\r\n", BME280.hum.humidity);
     		  }
     	  }
-    	  if(SHT3.present){
-    		  if(SHT3.sensor_use && SHT3.temp.use_meas) {
-    			  SHT3.temp.temperature = SHTC3_get_temp();
+    	  if(SHT3.present && SHT3.sensor_use){
+    		  SHTC3_read_values(shtc3_values);
+    		  if(SHT3.temp.use_meas) {
+    			  SHT3.temp.temperature = SHTC3_get_temp(shtc3_values);
     			  printf("Temperatura SHT3: %.2f\r\n", SHT3.temp.temperature);
+    		  }
+    		  if(SHT3.hum.use_meas) {
+    			  SHT3.hum.humidity = SHTC3_get_hum(shtc3_values);
+    			  printf("Wilgotnosc SHT3: %.2f\r\n", SHT3.hum.humidity);
     		  }
     	  }
     	  if(MS8607.present){
@@ -343,16 +341,7 @@ int main(void)
           meas_hum_ready = 0;
 	      meas_time = 200;
 
-		  if(sht3_1more) {
-			  if(SHT3.present){
-				  if(SHT3.sensor_use && (SHT3.temp.use_meas || SHT3.hum.use_meas)) {
-					  SHTC3_start_meas(normal);
-					  sht3_meas_time = 200;
-				  }
-				  sht3_1more = 0;
-				  sht3_1more_ready = 1;
-			  }
-		  }
+
 		  if(dps368_press) {
 			  DPS368_start_meas_press(0);
 			  dps_meas_time = calcBusyTime(0);
@@ -360,12 +349,7 @@ int main(void)
 			  dps368_press_ready = 1;
 		  }
 
-      if (sht3_1more_ready && ((HAL_GetTick() - sht3_ticks_meas) >= sht3_meas_time)) {
-   		  if(SHT3.sensor_use && SHT3.hum.use_meas) {
-   			  SHT3.hum.humidity = SHTC3_get_hum();
-    		  printf("Wilgotnosc SHT3: %.2f\r\n", SHT3.hum.humidity);
-    		  sht3_1more_ready = 0;
-   		  }
+
       }
 
       if (dps368_press_ready && ((HAL_GetTick() - dps_ticks_meas) >= dps_meas_time)) {
@@ -376,8 +360,6 @@ int main(void)
    		  }
       }
 
-
-	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

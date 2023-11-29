@@ -161,7 +161,8 @@ enum ms8607_status psensor_read_pressure( float *);
  */
 void ms8607_init(void)
 {	
-	hsensor_i2c_master_mode = ms8607_i2c_no_hold;
+//	hsensor_i2c_master_mode = ms8607_i2c_no_hold;
+	hsensor_i2c_master_mode = ms8607_i2c_hold;
 	psensor_resolution_osr = ms8607_pressure_resolution_osr_8192;
 	
 	/* Initialize and enable device with config. */
