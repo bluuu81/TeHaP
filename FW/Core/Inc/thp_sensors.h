@@ -58,36 +58,18 @@ enum SHTC3_mod	{normal = 0, lp = 1 };
 
 typedef struct {
 	uint8_t use_meas		:1;
-	uint8_t temp_anomaly	:1;
+	uint8_t anomaly			:1;
 	uint8_t sensor_conf		:4;
 	uint8_t uu				:2;
-	float	temperature;
+	float	value;
 	float	offset;
-} __attribute__((packed)) TEMP_struct_t;
-
-typedef struct {
-	uint8_t use_meas		:1;
-	uint8_t press_anomaly	:1;
-	uint8_t sensor_conf		:4;
-	uint8_t uu				:2;
-	float	pressure;
-	float	offset;
-} __attribute__((packed)) PRESS_struct_t;
-
-typedef struct {
-	uint8_t use_meas		:1;
-	uint8_t hum_anomaly		:1;
-	uint8_t sensor_conf		:4;
-	uint8_t uu				:2;
-	float	humidity;
-	float	offset;
-} __attribute__((packed)) HUM_struct_t;
+} __attribute__((packed)) MEAS_struct_t;
 
 
 typedef struct {
 	uint8_t present			:1;
 	uint8_t sensor_use		:1;
-	TEMP_struct_t	temp;
+	MEAS_struct_t	temp;
 	uint32_t maes_timestamp;
 	uint8_t uu				:2;
 } __attribute__((packed)) TMP117_struct_t;
@@ -95,8 +77,8 @@ typedef struct {
 typedef struct {
 	uint8_t present			:1;
 	uint8_t sensor_use		:1;
-	TEMP_struct_t	temp;
-	HUM_struct_t	hum;
+	MEAS_struct_t	temp;
+	MEAS_struct_t	hum;
 	uint32_t maes_timestamp;
 	uint8_t uu				:2;
 } __attribute__((packed)) SHT3_struct_t;
@@ -104,9 +86,9 @@ typedef struct {
 typedef struct {
 	uint8_t present			:1;
 	uint8_t sensor_use		:1;
-	TEMP_struct_t	temp;
-	HUM_struct_t	hum;
-	PRESS_struct_t	press;
+	MEAS_struct_t	temp;
+	MEAS_struct_t	hum;
+	MEAS_struct_t	press;
 	uint32_t maes_timestamp;
 	uint8_t uu				:2;
 } __attribute__((packed)) MS8607_struct_t;
@@ -114,9 +96,9 @@ typedef struct {
 typedef struct {
 	uint8_t present			:1;
 	uint8_t sensor_use		:1;
-	TEMP_struct_t	temp;
-	HUM_struct_t	hum;
-	PRESS_struct_t	press;
+	MEAS_struct_t	temp;
+	MEAS_struct_t	hum;
+	MEAS_struct_t	press;
 	uint32_t maes_timestamp;
 	uint8_t uu				:2;
 } __attribute__((packed)) BME280_struct_t;
@@ -124,19 +106,16 @@ typedef struct {
 typedef struct {
 	uint8_t present			:1;
 	uint8_t sensor_use		:1;
-	TEMP_struct_t	temp;
-	PRESS_struct_t	press;
+	MEAS_struct_t	temp;
+	MEAS_struct_t	press;
 	uint32_t maes_timestamp;
 	uint8_t uu				:2;
 } __attribute__((packed)) DPS368_struct_t;
 
 
-
-
 void TCA9543A_SelectChannel(uint8_t channel);
 void SET_BME280();
 void SET_DPS368();
-
 
 uint16_t byteswap16 (uint16_t bytes);
 void printbinary(uint16_t value);

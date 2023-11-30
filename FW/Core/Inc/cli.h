@@ -11,9 +11,6 @@
 #include "stm32l4xx_hal.h"
 #include "thp_sensors.h"
 
-extern TEMP_struct_t TMP117_temp_sensor;
-extern TEMP_struct_t MS8607_temp_sensor;
-extern TEMP_struct_t SHTC3_temp_sensor;
 
 #define MIN_OFFSET -10.0
 #define MAX_OFFSET +10.0

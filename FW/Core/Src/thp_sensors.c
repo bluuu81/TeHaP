@@ -141,13 +141,11 @@ if (channel == 0 || channel == 1) {
 
 void SET_BME280()
 {
-	I2C_Reinit_STR();
 	TCA9543A_SelectChannel(0);
 }
 
 void SET_DPS368()
 {
-	I2C_Reinit_STR();
 	TCA9543A_SelectChannel(1);
 }
 
@@ -176,7 +174,6 @@ void TMP117_RST_Conf_Reg()
 float TMP117_get_temp()
 {
 	uint16_t value;
-	I2C_Reinit_STR();
     i2c_read16(&hi2c2, TMP117_TEMP_REG, &value, TMP117_ADDR << 1);
     return (float)byteswap16(value) * TMP117_RESOLUTION;
 }
@@ -184,7 +181,6 @@ float TMP117_get_temp()
 void TMP117_start_meas(uint8_t avg_mode)
 {
 	uint16_t config, swapconfig;
-	I2C_Reinit_STR();
 	TMP117_RST_Conf_Reg();
 	i2c_read16(&hi2c2, TMP117_CONF_REG, &config, TMP117_ADDR << 1);
 	swapconfig = byteswap16(config);
@@ -208,7 +204,6 @@ uint8_t MS8607_check()
 float MS8607_get_temp()
 {
 	float temp;
-	I2C_Reinit_STR();
 	ms8607_read_temperature(&temp);
 //	printf("MS Temp: %f\r\n",temp);
 	return temp;
@@ -217,7 +212,6 @@ float MS8607_get_temp()
 float MS8607_get_press()
 {
 	float press;
-	I2C_Reinit_STR();
 	ms8607_read_pressure(&press);
 //	printf("MS Press: %f\r\n",press);
 	return press;
@@ -226,7 +220,6 @@ float MS8607_get_press()
 float MS8607_get_hum()
 {
 	float hum;
-	I2C_Reinit_STR();
 	ms8607_read_humidity(&hum);
 //	printf("MS Hum: %f\r\n",hum);
 	return hum;
@@ -282,7 +275,6 @@ uint8_t SHTC3_start_meas(uint8_t mode)
 {
 	HAL_StatusTypeDef status;
 	uint16_t command;
-	I2C_Reinit_STR();
 	SHTC3_wakeup();
 	if(mode == 0) command = SHTC3_CMD_TEMP_HUM;
 	else command = SHTC3_CMD_TEMP_HUM_LP;
@@ -293,7 +285,6 @@ uint8_t SHTC3_start_meas(uint8_t mode)
 uint8_t SHTC3_read_values(uint8_t* result)
 {
 	HAL_StatusTypeDef status;
-	I2C_Reinit_STR();
 	status = HAL_I2C_Master_Receive(&hi2c2, SHTC3_ADDR_READ, (uint8_t*)result, 6, 500);
 //	HAL_Delay(20);
 	if (status != HAL_OK) {
@@ -307,7 +298,6 @@ float SHTC3_get_temp(uint8_t* result)
 {
 	uint16_t raw_temp = result[0] << 8 | result[1];
 	uint8_t data[2] = {raw_temp >> 8, raw_temp & 0xFF};
-
 	uint8_t crc_hal = HALcalculateCRC(data,2);
 	if(result[2] == crc_hal) {
 		return (float)(((raw_temp * 175.0f) / 65535.0f) - 45.0f);
@@ -320,7 +310,6 @@ float SHTC3_get_hum(uint8_t* result)
 {
 	uint16_t raw_hum = result[3] << 8 | result[4];
 	uint8_t data[2] = {raw_hum >> 8, raw_hum & 0xFF};
-
 	uint8_t crc_hal = HALcalculateCRC(data,2);
 	if(result[5] == crc_hal) {
 		return (float)((raw_hum * 100.0f) / 65535.0f);

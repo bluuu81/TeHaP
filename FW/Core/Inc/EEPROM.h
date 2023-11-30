@@ -26,8 +26,6 @@ uint8_t EEPROM_Load_config(void);
 
 
 typedef struct {
-
-
   uint16_t version;
   float	bat_scale;
   uint16_t	batt_alarm;
@@ -47,7 +45,6 @@ typedef struct {
   uint8_t DPS368_config;
   uint8_t MS8607_config;
   uint16_t checksum;
-
 } __attribute__((packed))  Config_TypeDef;
 
 extern Config_TypeDef config;

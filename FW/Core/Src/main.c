@@ -67,11 +67,8 @@ BMP280_HandleTypedef bmp280;
 Config_TypeDef config;
 
 uint8_t meas_start = 0;
-uint8_t meas_press_start = 0;
-uint8_t meas_hum_start = 0;
-uint8_t meas_temp_ready = 0;
-uint8_t meas_press_ready = 0;
-uint8_t meas_hum_ready = 0;
+uint8_t meas_ready = 0;
+
 
 
 
@@ -84,7 +81,6 @@ static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_I2C2_Init(void);
-static void MX_I2C2_Init_STR(void);
 static void MX_I2C3_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
@@ -271,9 +267,7 @@ int main(void)
 				  }
 			  }
 		  }
-		  meas_temp_ready = 1;
-		  meas_press_ready = 1;
-		  meas_hum_ready = 1;
+		  meas_ready = 1;
           ticks_meas = HAL_GetTick();
           dps_ticks_meas = HAL_GetTick();
           meas_start = 0;
@@ -283,62 +277,60 @@ int main(void)
 
 
 
-      if ((meas_temp_ready || meas_press_ready || meas_hum_ready) && ((HAL_GetTick() - ticks_meas) >= meas_time)) {
-    	  if(TMP117.present){
-    		  if(TMP117.sensor_use && TMP117.temp.use_meas) {
-    			  TMP117.temp.temperature = TMP117_get_temp();
-    			  printf("Temperatura TMP117: %.2f\r\n", TMP117.temp.temperature);
+      if ((meas_ready) && ((HAL_GetTick() - ticks_meas) >= meas_time)) {
+    	  if(TMP117.present && TMP117.sensor_use){
+    		  if(TMP117.temp.use_meas) {
+    			  TMP117.temp.value = TMP117_get_temp();
+    			  printf("Temperatura TMP117: %.2f\r\n", TMP117.temp.value);
     		  }
     	  }
-    	  if(BME280.present){
-    		  if(BME280.sensor_use && BME280.temp.use_meas) {
-    			  BME280.temp.temperature = BME280_get_temp();
-    			  printf("Temperatura BME280: %.2f\r\n", BME280.temp.temperature);
+    	  if(BME280.present && BME280.sensor_use){
+    		  if(BME280.temp.use_meas) {
+    			  BME280.temp.value = BME280_get_temp();
+    			  printf("Temperatura BME280: %.2f\r\n", BME280.temp.value);
     		  }
-    		  if(BME280.sensor_use && BME280.press.use_meas) {
-    		      			  BME280.press.pressure = BME280_get_press();
-    		      			  printf("Cisnienie BME280: %.2f\r\n", BME280.press.pressure);
+    		  if(BME280.press.use_meas) {
+    			  BME280.press.value = BME280_get_press();
+    			  printf("Cisnienie BME280: %.2f\r\n", BME280.press.value);
     		  }
-    		  if(BME280.sensor_use && BME280.hum.use_meas) {
-    		      			  BME280.hum.humidity = BME280_get_hum();
-    		      			  printf("Wilgotnosc BME280: %.2f\r\n", BME280.hum.humidity);
+    		  if(BME280.hum.use_meas) {
+    		      BME280.hum.value = BME280_get_hum();
+    		      printf("Wilgotnosc BME280: %.2f\r\n", BME280.hum.value);
     		  }
     	  }
     	  if(SHT3.present && SHT3.sensor_use){
     		  SHTC3_read_values(shtc3_values);
     		  if(SHT3.temp.use_meas) {
-    			  SHT3.temp.temperature = SHTC3_get_temp(shtc3_values);
-    			  printf("Temperatura SHT3: %.2f\r\n", SHT3.temp.temperature);
+    			  SHT3.temp.value = SHTC3_get_temp(shtc3_values);
+    			  printf("Temperatura SHT3: %.2f\r\n", SHT3.temp.value);
     		  }
     		  if(SHT3.hum.use_meas) {
-    			  SHT3.hum.humidity = SHTC3_get_hum(shtc3_values);
-    			  printf("Wilgotnosc SHT3: %.2f\r\n", SHT3.hum.humidity);
+    			  SHT3.hum.value = SHTC3_get_hum(shtc3_values);
+    			  printf("Wilgotnosc SHT3: %.2f\r\n", SHT3.hum.value);
     		  }
     	  }
-    	  if(MS8607.present){
-    		  if(MS8607.sensor_use && MS8607.temp.use_meas) {
-    			  MS8607.temp.temperature = MS8607_get_temp();
-    			  printf("Temperatura MS8607: %.2f\r\n", MS8607.temp.temperature);
+    	  if(MS8607.present && MS8607.sensor_use){
+    		  if(MS8607.temp.use_meas) {
+    			  MS8607.temp.value = MS8607_get_temp();
+    			  printf("Temperatura MS8607: %.2f\r\n", MS8607.temp.value);
     		  }
-    		  if(MS8607.sensor_use && MS8607.press.use_meas) {
-    			  MS8607.press.pressure = MS8607_get_press();
-    			  printf("Cisnienie MS8607: %.2f\r\n", MS8607.press.pressure);
+    		  if(MS8607.press.use_meas) {
+    			  MS8607.press.value = MS8607_get_press();
+    			  printf("Cisnienie MS8607: %.2f\r\n", MS8607.press.value);
     		  }
-    		  if(MS8607.sensor_use && MS8607.hum.use_meas) {
-    			  MS8607.hum.humidity = MS8607_get_hum();
-    			  printf("Wilgotnosc MS8607: %.2f\r\n", MS8607.hum.humidity);
+    		  if(MS8607.hum.use_meas) {
+    			  MS8607.hum.value = MS8607_get_hum();
+    			  printf("Wilgotnosc MS8607: %.2f\r\n", MS8607.hum.value);
     		  }
     	  }
     	  if(DPS368.present && DPS368.sensor_use){
     		  dps_scaled_temp = DPS368_get_scaled_temp();
     		  if(DPS368.temp.use_meas) {
-    			  DPS368.temp.temperature = DPS368_calc_temp(dps_scaled_temp);
-    			  printf("Temperatura DPS368: %.2f\r\n", DPS368.temp.temperature);
+    			  DPS368.temp.value = DPS368_calc_temp(dps_scaled_temp);
+    			  printf("Temperatura DPS368: %.2f\r\n", DPS368.temp.value);
     		  }
     	  }
-          meas_temp_ready = 0;
-          meas_press_ready = 0;
-          meas_hum_ready = 0;
+          meas_ready = 0;
 	      meas_time = 200;
 
 
@@ -348,14 +340,12 @@ int main(void)
 			  dps368_press = 0;
 			  dps368_press_ready = 1;
 		  }
-
-
       }
 
       if (dps368_press_ready && ((HAL_GetTick() - dps_ticks_meas) >= dps_meas_time)) {
    		  if(DPS368.sensor_use && DPS368.press.use_meas) {
-   			  DPS368.press.pressure = DPS368_get_press(dps_scaled_temp);
-    		  printf("Cisnienie DPS368: %.2f\r\n", DPS368.press.pressure);
+   			  DPS368.press.value = DPS368_get_press(dps_scaled_temp);
+    		  printf("Cisnienie DPS368: %.2f\r\n", DPS368.press.value);
     		  dps368_press_ready = 0;
    		  }
       }
@@ -623,50 +613,6 @@ static void MX_I2C2_Init(void)
 
 }
 
-static void MX_I2C2_Init_STR(void)
-{
-
-  /* USER CODE BEGIN I2C2_Init 0 */
-
-  /* USER CODE END I2C2_Init 0 */
-
-  /* USER CODE BEGIN I2C2_Init 1 */
-
-  /* USER CODE END I2C2_Init 1 */
-  hi2c2.Instance = I2C2;
-  hi2c2.Init.Timing = 0x00301347;
-  hi2c2.Init.OwnAddress1 = 0;
-  hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c2.Init.OwnAddress2 = 0;
-  hi2c2.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
-  hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_ENABLE;
-  if (HAL_I2C_Init(&hi2c2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-
-
-  /** Configure Analogue filter
-  */
-  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c2, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
-  /** Configure Digital filter
-  */
-  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c2, 0) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN I2C2_Init 2 */
-
-  /* USER CODE END I2C2_Init 2 */
-
-}
 
 
 /**
@@ -964,19 +910,6 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void I2C_Reinit_STR()
-{
-	HAL_I2C_DeInit(&hi2c2);
-	MX_I2C2_Init();
-	HAL_Delay(1);
-}
-
-void I2C_Reinit()
-{
-	HAL_I2C_DeInit(&hi2c2);
-	MX_I2C2_Init_STR();
-	HAL_Delay(1);
-}
 
 /* USER CODE END 4 */
 
