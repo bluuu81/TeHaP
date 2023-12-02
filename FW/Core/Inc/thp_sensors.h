@@ -70,7 +70,7 @@ typedef struct {
 	uint8_t present			:1;
 	uint8_t sensor_use		:1;
 	MEAS_struct_t	temp;
-	uint32_t maes_timestamp;
+	uint32_t meas_timestamp;
 	uint8_t uu				:2;
 } __attribute__((packed)) TMP117_struct_t;
 
@@ -79,7 +79,7 @@ typedef struct {
 	uint8_t sensor_use		:1;
 	MEAS_struct_t	temp;
 	MEAS_struct_t	hum;
-	uint32_t maes_timestamp;
+	uint32_t meas_timestamp;
 	uint8_t uu				:2;
 } __attribute__((packed)) SHT3_struct_t;
 
@@ -89,7 +89,7 @@ typedef struct {
 	MEAS_struct_t	temp;
 	MEAS_struct_t	hum;
 	MEAS_struct_t	press;
-	uint32_t maes_timestamp;
+	uint32_t meas_timestamp;
 	uint8_t uu				:2;
 } __attribute__((packed)) MS8607_struct_t;
 
@@ -99,7 +99,7 @@ typedef struct {
 	MEAS_struct_t	temp;
 	MEAS_struct_t	hum;
 	MEAS_struct_t	press;
-	uint32_t maes_timestamp;
+	uint32_t meas_timestamp;
 	uint8_t uu				:2;
 } __attribute__((packed)) BME280_struct_t;
 
@@ -108,7 +108,7 @@ typedef struct {
 	uint8_t sensor_use		:1;
 	MEAS_struct_t	temp;
 	MEAS_struct_t	press;
-	uint32_t maes_timestamp;
+	uint32_t meas_timestamp;
 	uint8_t uu				:2;
 } __attribute__((packed)) DPS368_struct_t;
 

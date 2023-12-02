@@ -122,26 +122,46 @@ void EEPROM_Load_defaults(void)
 	config.version = CONFIG_VERSION;
 	config.bat_scale = 0.0505f;
 	config.batt_alarm = BATT_ALARM_VOLTAGE;  // definicja w main.h
-	config.TMP117_t_offset=0;
-	config.SHT3_t_offset=0;
-	config.SHT3_h_offset=0;
-	config.MS8607_t_offset=0;
-	config.MS8607_h_offset=0;
-	config.MS8607_p_offset=0;
-	config.BME280_t_offset=0;
-	config.BME280_h_offset=0;
-	config.BME280_p_offset=0;
-	config.DPS368_t_offset=0;
-	config.DPS368_p_offset=0;
-
-	config.TMP117_config=0;
-	config.SHT3_config=0;
-	config.DPS368_config=0;
-	config.MS8607_config=0;
-
-
+	config.reset_state = 0;
+	config.TMP117_use = 1;
+	config.TMP117_t_use = 1;
+	config.TMP117_t_conf = 0;
+	config.TMP117_t_offset = 0.0f;
+	config.SHT3_use = 1;
+	config.SHT3_t_use = 1;
+	config.SHT3_t_conf = 0;
+	config.SHT3_h_use = 1;
+	config.SHT3_h_conf = 0;
+	config.SHT3_t_offset = 0.0f;
+	config.SHT3_h_offset = 0.0f;
+	config.MS8607_use = 1;
+	config.MS8607_t_use = 1;
+	config.MS8607_t_conf = 0;
+	config.MS8607_h_use = 1;
+	config.MS8607_h_conf = 0;
+	config.MS8607_p_use = 1;
+	config.MS8607_p_conf = 0;
+	config.MS8607_t_offset = 0.0f;
+	config.MS8607_h_offset = 0.0f;
+	config.MS8607_p_offset = 0.0f;
+	config.BME280_use = 1;
+	config.BME280_t_use = 1;
+	config.MS8607_t_conf = 0;
+	config.BME280_h_use = 1;
+	config.MS8607_t_conf = 0;
+	config.BME280_p_use = 1;
+	config.MS8607_t_conf = 0;
+	config.BME280_t_offset = 0.0f;
+	config.BME280_h_offset = 0.0f;
+	config.BME280_p_offset = 0.0f;
+	config.DPS368_use = 1;
+	config.DPS368_t_use = 1;
+	config.DPS368_t_conf = 0;
+	config.DPS368_p_use = 1;
+	config.DPS368_t_conf = 0;
+	config.DPS368_t_offset = 0.0f;
+	config.DPS368_p_offset = 0.0f;
 	Calc_config_crc();
-
 }
 
 uint8_t EEPROM_Load_config(void)
@@ -210,10 +230,10 @@ void EEPROM_Print_config(void)
 	printf("DPS368 temp offset: %f \r\n", config.DPS368_t_offset);
 	printf("DPS368 press ofset: %f \r\n \r\n", config.DPS368_p_offset);
 
-	printf("TMP117 config data: %i \r\n", 	config.TMP117_config);
-	printf("SHT3 config data: %i \r\n", config.SHT3_config);
-	printf("DPS368 config data: %i \r\n", config.DPS368_config);
-	printf("MS8607 config data: %i \r\n", config.MS8607_config);
+//	printf("TMP117 config data: %i \r\n", 	config.TMP117_config);
+//	printf("SHT3 config data: %i \r\n", config.SHT3_config);
+//	printf("DPS368 config data: %i \r\n", config.DPS368_config);
+//	printf("MS8607 config data: %i \r\n", config.MS8607_config);
 	printf("CHECKSUM: 0x%4X \r\n", config.checksum);
 	printf("================================= \r\n");
 
