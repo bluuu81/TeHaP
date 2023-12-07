@@ -173,9 +173,9 @@ void TMP117_RST_Conf_Reg()
 
 float TMP117_get_temp()
 {
-	uint16_t value;
+	int16_t value;
     i2c_read16(&hi2c2, TMP117_TEMP_REG, &value, TMP117_ADDR << 1);
-    return (float)byteswap16(value) * TMP117_RESOLUTION;
+    return (int16_t)byteswap16(value) * TMP117_RESOLUTION;
 }
 
 void TMP117_start_meas(uint8_t avg_mode)
