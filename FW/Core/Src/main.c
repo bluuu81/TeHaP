@@ -48,6 +48,7 @@ I2C_HandleTypeDef hi2c1;
 I2C_HandleTypeDef hi2c2;
 I2C_HandleTypeDef hi2c3;
 
+TIM_HandleTypeDef htim6;
 TIM_HandleTypeDef htim16;
 
 UART_HandleTypeDef huart1;
@@ -66,9 +67,10 @@ BMP280_HandleTypedef bmp280;
 
 Config_TypeDef config;
 
-uint8_t meas_start = 0;
+volatile uint8_t meas_start = 0;
 uint8_t meas_ready = 0;
-
+volatile uint16_t tim_interval = 5; //w sekundach
+volatile uint16_t new_tim_interval = 5; //w sekundach
 
 
 
@@ -86,6 +88,7 @@ static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_CRC_Init(void);
 static void MX_TIM16_Init(void);
+void MX_TIM6_Init(uint16_t tim_int);
 static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
 
@@ -133,11 +136,13 @@ int main(void)
   MX_USART2_UART_Init();
   MX_CRC_Init();
   MX_TIM16_Init();
+  MX_TIM6_Init(tim_interval);
 
   /* Initialize interrupts */
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_PWM_Start(&htim16, TIM_CHANNEL_1);	// LED2 na PWM
+  HAL_TIM_Base_Start_IT(&htim6);
   HAL_UART_RxCpltCallback(&huart1); //CLI
   HAL_UART_RxCpltCallback(&huart2); //SIM
   check_powerOn();
@@ -195,9 +200,7 @@ int main(void)
 
   DPS368.press.use_meas = 1;
 
-  uint16_t meas_interval = 4000; // default 10s  //TODO: do eepromu
 
-  uint32_t ticks10s = HAL_GetTick();
   uint32_t ticks30ms = HAL_GetTick();
   uint32_t ticks_meas = HAL_GetTick();
   uint32_t dps_ticks_meas = HAL_GetTick();
@@ -205,7 +208,7 @@ int main(void)
   uint16_t meas_time = 100;
   uint16_t dps_meas_time = 200;
 
-   uint8_t dps368_press = 0;
+  uint8_t dps368_press = 0;
   uint8_t dps368_press_ready = 0;
   float dps_scaled_temp;
   uint8_t shtc3_values[6];
@@ -217,6 +220,11 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  if (new_tim_interval != tim_interval) {
+		  tim_interval = new_tim_interval;
+	      ReinitTimer(tim_interval);
+	  }
+
 	  thp_loop();
 
 	  if(HAL_GetTick()-ticks30ms >= 30)
@@ -232,12 +240,6 @@ int main(void)
 		  BQ25798_WD_RST();
 	  }
 
-	  if(HAL_GetTick()-ticks10s >= meas_interval)
-	  {
-		  ticks10s = HAL_GetTick();
-		  meas_start = 1;
-		  printf("Czas na pomiary !\r\n");
-	  }
 
 	  if(meas_start) {
 		  if(TMP117.present){
@@ -395,11 +397,11 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV2;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
   {
     Error_Handler();
   }
@@ -592,8 +594,6 @@ static void MX_I2C2_Init(void)
     Error_Handler();
   }
 
-
-
   /** Configure Analogue filter
   */
   if (HAL_I2CEx_ConfigAnalogFilter(&hi2c2, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
@@ -612,8 +612,6 @@ static void MX_I2C2_Init(void)
   /* USER CODE END I2C2_Init 2 */
 
 }
-
-
 
 /**
   * @brief I2C3 Initialization Function
@@ -660,6 +658,44 @@ static void MX_I2C3_Init(void)
   /* USER CODE BEGIN I2C3_Init 2 */
 
   /* USER CODE END I2C3_Init 2 */
+
+}
+
+/**
+  * @brief TIM6 Initialization Function
+  * @param None
+  * @retval None
+  */
+void MX_TIM6_Init(uint16_t tim_int)
+{
+
+  /* USER CODE BEGIN TIM6_Init 0 */
+
+  /* USER CODE END TIM6_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM6_Init 1 */
+
+  /* USER CODE END TIM6_Init 1 */
+  htim6.Instance = TIM6;
+  htim6.Init.Prescaler = (SystemCoreClock / 1000) - 1;
+  htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim6.Init.Period = (tim_int * 1000) - 1;
+  htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim6, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM6_Init 2 */
+
+  /* USER CODE END TIM6_Init 2 */
 
 }
 
@@ -911,6 +947,18 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
+    if (htim->Instance == TIM6) {
+        // Zmienna start ustawiona na 1 co określony okres czasu
+        meas_start = 1;
+    }
+}
+
+void ReinitTimer(uint16_t period) {
+    HAL_TIM_Base_DeInit(&htim6);
+    MX_TIM6_Init(period);
+    HAL_TIM_Base_Start_IT(&htim6);
+}
 /* USER CODE END 4 */
 
 /**

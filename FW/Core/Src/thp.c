@@ -20,6 +20,7 @@ volatile uint8_t device_state = 0;
 volatile uint32_t offTim;
 
 
+
 void HAL_SYSTICK_Callback(void)
 {
 	static uint32_t led2swp, led2lev;

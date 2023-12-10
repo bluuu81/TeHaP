@@ -30,6 +30,14 @@ uint8_t i2c_read16(I2C_HandleTypeDef * i2c, uint16_t offset, uint16_t *value, ui
     return res;
 }
 
+uint8_t i2c_read16_int(I2C_HandleTypeDef * i2c, uint16_t offset, int16_t *value, uint8_t addr)
+{
+	uint16_t tmp;
+    uint8_t res = HAL_I2C_Mem_Read(i2c, addr, offset, I2C_MEMADD_SIZE_8BIT, (uint8_t*)&tmp, 2, 8);
+    *value = tmp;
+    return res;
+}
+
 uint8_t i2c_read24(I2C_HandleTypeDef * i2c, uint16_t offset, uint32_t *value, uint8_t addr)
 {
 	uint32_t tmp;
@@ -174,8 +182,8 @@ void TMP117_RST_Conf_Reg()
 float TMP117_get_temp()
 {
 	int16_t value;
-    i2c_read16(&hi2c2, TMP117_TEMP_REG, &value, TMP117_ADDR << 1);
-    return (int16_t)byteswap16(value) * TMP117_RESOLUTION;
+    i2c_read16_int(&hi2c2, TMP117_TEMP_REG, &value, TMP117_ADDR << 1);
+    return (float)byteswap16(value) * TMP117_RESOLUTION;
 }
 
 void TMP117_start_meas(uint8_t avg_mode)
@@ -263,7 +271,8 @@ uint8_t SHTC3_check()
 			  uint16_t code = id & SHTC3_PRODUCT_CODE_MASK;
 			  if (code == 0x807) {
 				  printf("SHTC3 OK\r\n");
-				  SHTC3_sleep();
+//				  SHTC3_start_meas(0);
+//				  SHTC3_sleep();
 				  return 1;
 			  }
 		  } else {printf("NO SHTC3\r\n"); return 0;}
