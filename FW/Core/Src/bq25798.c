@@ -185,6 +185,17 @@ uint8_t BQ25798_WD_RST()
     return res;
 }
 
+uint8_t BQ25798_MPPT_CTRL(uint8_t set)
+{
+	uint8_t res, value;
+	i2c_read8(&hi2c1, REG15_MPPT_Control, &value, BQ25798_ADDR);
+//	printf("Reset REG (read): %x\r\n", value);
+	setBit(&value,0,set);
+//	printf("Reset REG (reset): %x\r\n", value);
+    res = i2c_write8(&hi2c1, REG15_MPPT_Control, value, BQ25798_ADDR);
+    return res;
+}
+
 uint8_t BQ25798_Chrg_CTRL3_read()
 {
 	uint8_t res,value;

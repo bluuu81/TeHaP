@@ -68,12 +68,12 @@ BMP280_HandleTypedef bmp280;
 Config_TypeDef config;
 
 volatile uint8_t meas_start = 0;
-bool meas_ready = 0;
+uint8_t meas_ready = 0;
 //TODO: zapis do eepromu i sterowanie z CLI
 volatile uint16_t tim_interval = 5; //w sekundach
 volatile uint16_t new_tim_interval = 5; //w sekundach
 uint16_t meas_count = 10;
-bool meas_cont_mode = 1;
+uint8_t meas_cont_mode = 1;
 
 
 
@@ -163,6 +163,7 @@ int main(void)
 	  BQ25798_Chrg_CTRL1_write(0x95);
 	  BQ25798_Chrg_NTC_CTRL1_write(1);
 	  CE_EN();
+	  BQ25798_MPPT_CTRL(1); //MPPT ON
 
   }
   LED1_ON();

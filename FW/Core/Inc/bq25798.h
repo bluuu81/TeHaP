@@ -100,6 +100,7 @@ uint8_t BQ25798_Chrg_CTRL1_write(uint8_t hex_val);
 uint8_t BQ25798_Chrg_NTC_CTRL1_write(uint8_t hex_val);
 
 uint8_t BQ25798_WD_RST();
+uint8_t BQ25798_MPPT_CTRL(uint8_t set);
 
 uint8_t BQ25798_Chrg_CTRL3_read();
 uint8_t BQ25798_Chrg_CTRL4_read();
