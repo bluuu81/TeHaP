@@ -40,6 +40,7 @@ extern "C" {
 #include "adc.h"
 #include "cli.h"
 #include "EEPROM.h"
+#include "stdbool.h"
 
 
 /* USER CODE END Includes */

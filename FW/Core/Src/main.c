@@ -68,9 +68,12 @@ BMP280_HandleTypedef bmp280;
 Config_TypeDef config;
 
 volatile uint8_t meas_start = 0;
-uint8_t meas_ready = 0;
+bool meas_ready = 0;
+//TODO: zapis do eepromu i sterowanie z CLI
 volatile uint16_t tim_interval = 5; //w sekundach
 volatile uint16_t new_tim_interval = 5; //w sekundach
+uint16_t meas_count = 10;
+bool meas_cont_mode = 1;
 
 
 
@@ -242,39 +245,44 @@ int main(void)
 
 
 	  if(meas_start) {
-		  if(TMP117.present){
-			  if(TMP117.sensor_use && TMP117.temp.use_meas) {
-				  TMP117_start_meas(avg8);
-				  meas_time += 200;
-			  }
-		  }
-		  if(BME280.present){
-			  if(BME280.sensor_use && (BME280.temp.use_meas || BME280.press.use_meas || BME280.hum.use_meas) ) {
-				  BME280_start_meas();
-				  meas_time += 500;
-			  }
-		  }
-		  if(SHT3.present){
-			  if(SHT3.sensor_use && (SHT3.temp.use_meas || SHT3.hum.use_meas)) {
-				  SHTC3_start_meas(normal);
-				  meas_time += 100;
-			  }
-		  }
-		  if(DPS368.present){
-			  if(DPS368.sensor_use && (DPS368.temp.use_meas || DPS368.press.use_meas)) {
-				  DPS368_start_meas_temp(0);
-				  meas_time += calcBusyTime(0);
-				  if (DPS368.press.use_meas) {
-					  dps368_press = 1;
+		  if (meas_count > 0 || meas_cont_mode) {
+			  if(meas_cont_mode == 0) meas_count--;
+			  if(TMP117.present){
+				  if(TMP117.sensor_use && TMP117.temp.use_meas) {
+					  TMP117_start_meas(avg8);
+					  meas_time += 200;
 				  }
 			  }
+			  if(BME280.present){
+				  if(BME280.sensor_use && (BME280.temp.use_meas || BME280.press.use_meas || BME280.hum.use_meas) ) {
+					  BME280_start_meas();
+					  meas_time += 500;
+				  }
+			  }
+			  if(SHT3.present){
+				  if(SHT3.sensor_use && (SHT3.temp.use_meas || SHT3.hum.use_meas)) {
+					  SHTC3_start_meas(normal);
+					  meas_time += 100;
+				  }
+			  }
+			  if(DPS368.present){
+				  if(DPS368.sensor_use && (DPS368.temp.use_meas || DPS368.press.use_meas)) {
+					  DPS368_start_meas_temp(0);
+					  meas_time += calcBusyTime(0);
+					  if (DPS368.press.use_meas) {
+						  dps368_press = 1;
+					  }
+				  }
+			  }
+			  meas_ready = 1;
+			  ticks_meas = HAL_GetTick();
+			  dps_ticks_meas = HAL_GetTick();
+			  meas_start = 0;
+			  printf("Komenda startu pomiaru temperatury wyslana\r\n");
+			  if (meas_count == 0 && meas_cont_mode == 0) {
+				  HAL_TIM_Base_Stop_IT(&htim6);
+			  }
 		  }
-		  meas_ready = 1;
-          ticks_meas = HAL_GetTick();
-          dps_ticks_meas = HAL_GetTick();
-          meas_start = 0;
-          printf("Komenda startu pomiaru temperatury wyslana\r\n");
-
 	  }
 
 
