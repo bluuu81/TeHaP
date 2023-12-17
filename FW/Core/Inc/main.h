@@ -146,6 +146,12 @@ void ReinitTimer(uint16_t period);
 
 #define WDR() if(hiwdg.Instance == IWDG) {HAL_IWDG_Refresh(&hiwdg);}
 
+enum disp_type {
+	NONE = 0,
+	TXT,
+	CSV,
+};
+
 
 /* USER CODE END Private defines */
 

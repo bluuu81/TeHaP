@@ -133,4 +133,36 @@ uint8_t calculateCRC(uint8_t data[], uint8_t len)
     return crc;
 }
 
+void display_values (uint8_t format)
+{
+	switch (format)
+	{
+	case 1:
+		printf("-----------------------\r\n");
+		printf("Temperature:\r\n");
+		if(TMP117.present && TMP117.sensor_use && TMP117.temp.use_meas) printf("TMP117: %.2f   ", TMP117.temp.value);
+		if(BME280.present && BME280.sensor_use && BME280.temp.use_meas) printf("BME280: %.2f   ", BME280.temp.value);
+		if(SHT3.present && SHT3.sensor_use && SHT3.temp.use_meas) printf("SHTC3: %.2f   ", SHT3.temp.value);
+		if(MS8607.present && MS8607.sensor_use && MS8607.temp.use_meas) printf("MS8607: %.2f   ", MS8607.temp.value);
+		if(DPS368.present && DPS368.sensor_use && DPS368.temp.use_meas) printf("DPS368: %.2f   ", DPS368.temp.value);
+		printf("\r\n-----------------------\r\n");
+		printf("Press:\r\n");
+		if(BME280.present && BME280.sensor_use && BME280.press.use_meas) printf("BME280: %.2f   ", BME280.press.value);
+		if(MS8607.present && MS8607.sensor_use && MS8607.press.use_meas) printf("MS8607: %.2f   ", MS8607.press.value);
+		if(DPS368.present && DPS368.sensor_use && DPS368.press.use_meas) printf("DPS368: %.2f   ", DPS368.press.value);
+		printf("\r\n-----------------------\r\n");
+		printf("Hum:\r\n");
+		if(BME280.present && BME280.sensor_use && BME280.hum.use_meas) printf("BME280: %.2f   ", BME280.hum.value);
+		if(SHT3.present && SHT3.sensor_use && SHT3.hum.use_meas) printf("SHTC3: %.2f   ", SHT3.hum.value);
+		if(MS8607.present && MS8607.sensor_use && MS8607.hum.use_meas) printf("MS8607: %.2f   ", MS8607.hum.value);
+		printf("\r\n-----------------------\r\n");
+		break;
 
+	case 2:
+		break;
+
+	default:
+		break;
+	}
+
+}

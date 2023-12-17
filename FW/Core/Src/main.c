@@ -204,6 +204,9 @@ int main(void)
 
   DPS368.press.use_meas = 1;
 
+  uint8_t disp_type = TXT;
+  uint8_t meas2disp = 0;
+  uint8_t meas2disp_dps = 0;
 
   uint32_t ticks30ms = HAL_GetTick();
   uint32_t ticks_meas = HAL_GetTick();
@@ -292,57 +295,58 @@ int main(void)
     	  if(TMP117.present && TMP117.sensor_use){
     		  if(TMP117.temp.use_meas) {
     			  TMP117.temp.value = TMP117_get_temp();
-    			  printf("Temperatura TMP117: %.2f\r\n", TMP117.temp.value);
+//    			  printf("Temperatura TMP117: %.2f\r\n", TMP117.temp.value);
     		  }
     	  }
     	  if(BME280.present && BME280.sensor_use){
     		  if(BME280.temp.use_meas) {
     			  BME280.temp.value = BME280_get_temp();
-    			  printf("Temperatura BME280: %.2f\r\n", BME280.temp.value);
+//    			  printf("Temperatura BME280: %.2f\r\n", BME280.temp.value);
     		  }
     		  if(BME280.press.use_meas) {
     			  BME280.press.value = BME280_get_press();
-    			  printf("Cisnienie BME280: %.2f\r\n", BME280.press.value);
+//    			  printf("Cisnienie BME280: %.2f\r\n", BME280.press.value);
     		  }
     		  if(BME280.hum.use_meas) {
     		      BME280.hum.value = BME280_get_hum();
-    		      printf("Wilgotnosc BME280: %.2f\r\n", BME280.hum.value);
+//    		      printf("Wilgotnosc BME280: %.2f\r\n", BME280.hum.value);
     		  }
     	  }
     	  if(SHT3.present && SHT3.sensor_use){
     		  SHTC3_read_values(shtc3_values);
     		  if(SHT3.temp.use_meas) {
     			  SHT3.temp.value = SHTC3_get_temp(shtc3_values);
-    			  printf("Temperatura SHT3: %.2f\r\n", SHT3.temp.value);
+//    			  printf("Temperatura SHT3: %.2f\r\n", SHT3.temp.value);
     		  }
     		  if(SHT3.hum.use_meas) {
     			  SHT3.hum.value = SHTC3_get_hum(shtc3_values);
-    			  printf("Wilgotnosc SHT3: %.2f\r\n", SHT3.hum.value);
+//    			  printf("Wilgotnosc SHT3: %.2f\r\n", SHT3.hum.value);
     		  }
     	  }
     	  if(MS8607.present && MS8607.sensor_use){
     		  if(MS8607.temp.use_meas) {
     			  MS8607.temp.value = MS8607_get_temp();
-    			  printf("Temperatura MS8607: %.2f\r\n", MS8607.temp.value);
+//    			  printf("Temperatura MS8607: %.2f\r\n", MS8607.temp.value);
     		  }
     		  if(MS8607.press.use_meas) {
     			  MS8607.press.value = MS8607_get_press();
-    			  printf("Cisnienie MS8607: %.2f\r\n", MS8607.press.value);
+//    			  printf("Cisnienie MS8607: %.2f\r\n", MS8607.press.value);
     		  }
     		  if(MS8607.hum.use_meas) {
     			  MS8607.hum.value = MS8607_get_hum();
-    			  printf("Wilgotnosc MS8607: %.2f\r\n", MS8607.hum.value);
+//    			  printf("Wilgotnosc MS8607: %.2f\r\n", MS8607.hum.value);
     		  }
     	  }
     	  if(DPS368.present && DPS368.sensor_use){
     		  dps_scaled_temp = DPS368_get_scaled_temp();
     		  if(DPS368.temp.use_meas) {
     			  DPS368.temp.value = DPS368_calc_temp(dps_scaled_temp);
-    			  printf("Temperatura DPS368: %.2f\r\n", DPS368.temp.value);
+//    			  printf("Temperatura DPS368: %.2f\r\n", DPS368.temp.value);
     		  }
     	  }
           meas_ready = 0;
 	      meas_time = 200;
+	      meas2disp = 1;
 
 
 		  if(dps368_press) {
@@ -356,9 +360,22 @@ int main(void)
       if (dps368_press_ready && ((HAL_GetTick() - dps_ticks_meas) >= dps_meas_time)) {
    		  if(DPS368.sensor_use && DPS368.press.use_meas) {
    			  DPS368.press.value = DPS368_get_press(dps_scaled_temp);
-    		  printf("Cisnienie DPS368: %.2f\r\n", DPS368.press.value);
+//    		  printf("Cisnienie DPS368: %.2f\r\n", DPS368.press.value);
     		  dps368_press_ready = 0;
+    		  meas2disp_dps = 1;
    		  }
+      }
+
+      if(disp_type > 0) {
+    	  if(DPS368.sensor_use && DPS368.press.use_meas) {
+    		  if(meas2disp_dps) {
+    			  display_values(disp_type);
+    			  meas2disp_dps = 0;
+    		  }
+    	  } else if(meas2disp) {
+			  display_values(disp_type);
+			  meas2disp = 0;
+    	  }
       }
 
     /* USER CODE END WHILE */

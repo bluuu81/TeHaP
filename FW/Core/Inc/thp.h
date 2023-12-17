@@ -10,6 +10,7 @@
 
 #include "main.h"
 #include "cli.h"
+#include "thp_sensors.h"
 #include "ctype.h"
 #include <stdio.h>
 #include <string.h>
@@ -34,6 +35,12 @@ extern TIM_HandleTypeDef htim16;
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
 
+extern TMP117_struct_t TMP117;
+extern SHT3_struct_t SHT3;
+extern MS8607_struct_t MS8607;
+extern BME280_struct_t BME280;
+extern DPS368_struct_t DPS368;
+
 enum device_state
 {
 	INIT = 0,
@@ -53,5 +60,6 @@ void thp_loop();
 uint8_t HALcalculateCRC(uint8_t data[], uint8_t len);
 uint8_t calculateCRC(uint8_t data[], uint8_t len);
 
+void display_values (uint8_t format);
 
 #endif /* INC_THP_H_ */
