@@ -24,6 +24,9 @@
 extern uint8_t charger_state;
 extern Config_TypeDef config;
 
+extern uint16_t tim_interval;
+extern uint16_t new_tim_interval;
+
 uint8_t  debug_rx_buf[DEBUG_BUF_SIZE];
 uint16_t debug_rxtail;
 
@@ -154,17 +157,31 @@ void CLI_proc(char ch)
 // Main commands ------------------------------------------------------------------------------
 		if(find("?")==clibuf+1 || find("help")==clibuf+4)	{help(); return;}
 		if(find("i2cscan")==clibuf+7) {i2c_scan(&hi2c2, 0x38, 0xA0); return;}
-		if(find("clearconfig")==clibuf+11) {printf("config reset to defaults"); EEPROM_Load_defaults(); return;}
+		if(find("clearconfig")==clibuf+11) {printf("config reset to defaults"); Load_defaults(); return;}
 		if(find("printconfig")==clibuf+11) {EEPROM_Print_config(); return;}
-		if(find("loadconfig")==clibuf+10) {printf("LOADING CONFIG. Status: %i (0==OK)\r\n",EEPROM_Load_config()); return;}
-		if(find("saveconfig")==clibuf+10) {printf("SAVING CONFIG. Status: %i (0==NO CHANGES; 1==SAVE OK, 2==ERR)\r\n",EEPROM_Save_config()); return;}
+		if(find("loadconfig")==clibuf+10) {printf("LOADING CONFIG. Status: %i (0==OK)\r\n",Load_config()); return;}
+		if(find("saveconfig")==clibuf+10) {printf("SAVING CONFIG. Status: %i (0==NO CHANGES; 1==SAVE OK, 2==ERR)\r\n",Save_config()); return;}
 		if(find("setbattalarm")==clibuf+12){getval(clibuf+13, &temp, 0, 15000); config.batt_alarm=temp; printf("Batt alarm:%i",config.batt_alarm); return;};
 		if(find("setbatscale")==clibuf+11){getFloat(clibuf+12, &tempfloat, -10.0, 10.0); config.bat_scale=tempfloat; printf("Batt scale:%f \r\n",config.bat_scale); return;};
-		if(find("setoffset")==clibuf+9){setOffset();return;}
+//		if(find("setoffset")==clibuf+9){setOffset();return;}
 		if(find("temp2calib")==clibuf+10){temp2calib();return;}
 
-
-//	}
+		p = find("set ");
+		if(p == clibuf+4)
+		{
+			if(p = find("interval "))
+			{
+				int32_t tmp = -1;
+	            getval(p, &tmp, 4, 3600);
+		            if(tmp >= 4)
+		            {
+		                new_tim_interval = tmp;
+		                printf("New meas interval: %u\r\n", new_tim_interval);
+		            }
+		            return;
+			}
+		}
+	}
 //		if(find("load defaults")==clibuf+13)
 //		{
 //			Load_defaults();
@@ -202,11 +219,11 @@ void CLI_proc(char ch)
 //            }
 //
 //        }
-	}
+//	}
 }
 
 
-void setOffset(void)
+/*void setOffset(void)
 { float valtostore;
 
 switch (clibuf[10])
@@ -321,7 +338,7 @@ default:
 
 printf("bad parameters. usage: setoffset X YYYY ff.fff | x:t/p/h | Y:sensor name | ff.fff: offset\r\n");
 return;
-}
+}*/
 
 
 

@@ -66,12 +66,10 @@ DPS368_struct_t DPS368;
 BMP280_HandleTypedef bmp280;
 
 Config_TypeDef config;
-
+volatile uint16_t new_tim_interval; //w sekundach
+volatile uint16_t tim_interval = 0;
 volatile uint8_t meas_start = 0;
 uint8_t meas_ready = 0;
-//TODO: zapis do eepromu i sterowanie z CLI
-volatile uint16_t tim_interval = 5; //w sekundach
-volatile uint16_t new_tim_interval = 5; //w sekundach
 uint16_t meas_count = 10;
 uint8_t meas_cont_mode = 1;
 
@@ -139,7 +137,6 @@ int main(void)
   MX_USART2_UART_Init();
   MX_CRC_Init();
   MX_TIM16_Init();
-  MX_TIM6_Init(tim_interval);
 
   /* Initialize interrupts */
   MX_NVIC_Init();
@@ -150,7 +147,7 @@ int main(void)
   HAL_UART_RxCpltCallback(&huart2); //SIM
   check_powerOn();
   printf("\r\n\r\n\r\nInitializing ...\r\n");
-  if (EEPROM_Load_config()==0) {printf("Config loaded OK \r\n");};
+  if (Load_config()==0) {printf("Config loaded OK \r\n");};
   charger_state = BQ25798_check();
   if (charger_state) {
 	  printf("Configure charger \r\n");
@@ -204,7 +201,11 @@ int main(void)
 
   DPS368.press.use_meas = 1;
 
-  uint8_t disp_type = TXT;
+  uint8_t disp_type = config.disp_type;
+
+  new_tim_interval = config.tim_interval; //w sekundach
+
+  MX_TIM6_Init(tim_interval);
   uint8_t meas2disp = 0;
   uint8_t meas2disp_dps = 0;
 
@@ -229,6 +230,7 @@ int main(void)
   {
 	  if (new_tim_interval != tim_interval) {
 		  tim_interval = new_tim_interval;
+		  config.tim_interval = tim_interval;
 	      ReinitTimer(tim_interval);
 	  }
 
@@ -282,7 +284,8 @@ int main(void)
 			  ticks_meas = HAL_GetTick();
 			  dps_ticks_meas = HAL_GetTick();
 			  meas_start = 0;
-			  printf("Komenda startu pomiaru temperatury wyslana\r\n");
+			  printf("Komenda startu pomiarow wyslana\r\n");
+			  printf("Meas interval: %u\r\n", tim_interval);
 			  if (meas_count == 0 && meas_cont_mode == 0) {
 				  HAL_TIM_Base_Stop_IT(&htim6);
 			  }

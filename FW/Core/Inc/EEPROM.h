@@ -18,7 +18,9 @@
 
 uint16_t Crc16_up(uint16_t crc, uint8_t data);
 void Calc_config_crc(void);
-uint8_t EEPROM_Load_config(void);
+uint8_t Load_config(void);
+void Load_defaults();
+uint8_t Save_config(void);
 
 
 #define BATT_ALARM_VOLTAGE	3300
@@ -30,11 +32,13 @@ typedef struct {
   float		bat_scale;
   uint16_t	batt_alarm;
   uint16_t	reset_state		:1;
+  uint16_t	disp_type		:3;
+  uint16_t	tim_interval;
   uint16_t	TMP117_use		:1;
   uint16_t	TMP117_t_use	:1;
   uint16_t	TMP117_t_conf	:4;
   float		TMP117_t_offset;
-  uint16_t	SHT3_use		:1;
+ /* uint16_t	SHT3_use		:1;
   uint16_t	SHT3_t_use		:1;
   uint16_t	SHT3_t_conf		:4;
   uint16_t	SHT3_h_use		:1;
@@ -67,7 +71,7 @@ typedef struct {
   uint16_t	DPS368_p_use	:1;
   uint16_t	DPS368_p_conf	:4;
   float		DPS368_t_offset;
-  float		DPS368_p_offset;
+  float		DPS368_p_offset;*/
   uint16_t 	checksum;
 } __attribute__((packed))  Config_TypeDef;
 

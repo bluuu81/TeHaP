@@ -10,7 +10,7 @@
 
 #include "stm32l4xx_hal.h"
 #include "thp_sensors.h"
-
+#include "main.h"
 
 #define MIN_OFFSET -10.0
 #define MAX_OFFSET +10.0
