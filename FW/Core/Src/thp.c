@@ -133,8 +133,31 @@ uint8_t calculateCRC(uint8_t data[], uint8_t len)
     return crc;
 }
 
+void printCSVheader()
+{
+	printf("\r\n");
+	printf("CNT;");
+	if(TMP117.present && TMP117.sensor_use && TMP117.temp.use_meas) printf("TEMP_TMP117;");
+	if(BME280.present && BME280.sensor_use && BME280.temp.use_meas) printf("TEMP_BME280;");
+	if(SHT3.present && SHT3.sensor_use && SHT3.temp.use_meas) printf("TEMP_SHTC3;");
+	if(MS8607.present && MS8607.sensor_use && MS8607.temp.use_meas) printf("TEMP_MS8607;");
+	if(DPS368.present && DPS368.sensor_use && DPS368.temp.use_meas) printf("TEMP_DPS368;");
+
+	if(BME280.present && BME280.sensor_use && BME280.press.use_meas) printf("PRESS_BME280;");
+	if(MS8607.present && MS8607.sensor_use && MS8607.press.use_meas) printf("PRESS_MS8607;");
+	if(DPS368.present && DPS368.sensor_use && DPS368.press.use_meas) printf("PRESS_DPS368;");
+
+	if(BME280.present && BME280.sensor_use && BME280.hum.use_meas) printf("HUM_BME280;");
+	if(SHT3.present && SHT3.sensor_use && SHT3.hum.use_meas) printf("HUM_SHTC3;");
+	if(MS8607.present && MS8607.sensor_use && MS8607.hum.use_meas) printf("HUM_MS8607;");
+	printf("\r\n");
+
+}
+
 void display_values (uint8_t format)
 {
+	if(format==2) printCSVheader();
+	uint16_t cnt = 0;
 	switch (format)
 	{
 	case 1:
@@ -159,6 +182,22 @@ void display_values (uint8_t format)
 		break;
 
 	case 2:
+		printf("%u",cnt++);
+		if(TMP117.present && TMP117.sensor_use && TMP117.temp.use_meas) printf("%.2f;",TMP117.temp.value);
+		if(BME280.present && BME280.sensor_use && BME280.temp.use_meas) printf("%.2f;",BME280.temp.value);
+		if(SHT3.present && SHT3.sensor_use && SHT3.temp.use_meas) printf("%.2f;",SHT3.temp.value);
+		if(MS8607.present && MS8607.sensor_use && MS8607.temp.use_meas) printf("%.2f;",MS8607.temp.value);
+		if(DPS368.present && DPS368.sensor_use && DPS368.temp.use_meas) printf("%.2f;",DPS368.temp.value);
+
+		if(BME280.present && BME280.sensor_use && BME280.press.use_meas) printf("%.2f;",BME280.press.value);
+		if(MS8607.present && MS8607.sensor_use && MS8607.press.use_meas) printf("%.2f;",MS8607.press.value);
+		if(DPS368.present && DPS368.sensor_use && DPS368.press.use_meas) printf("%.2f;",DPS368.press.value);
+
+		if(BME280.present && BME280.sensor_use && BME280.hum.use_meas) printf("%.2f;",BME280.hum.value);
+		if(SHT3.present && SHT3.sensor_use && SHT3.hum.use_meas) printf("%.2f;",SHT3.hum.value);
+		if(MS8607.present && MS8607.sensor_use && MS8607.hum.use_meas) printf("%.2f;",MS8607.hum.value);
+		printf("\r\n");
+
 		break;
 
 	default:
