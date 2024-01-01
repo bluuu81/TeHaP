@@ -203,6 +203,8 @@ void EEPROM_Print_config(void)
 	printf("Battery scale: %f \r\n", config.bat_scale);
 	printf("Low Batt alarm: %i \r\n", config.batt_alarm);
 	printf("Meas interval: %i \r\n", config.tim_interval);
+	printf("TMP117 sensor use %i %i \r\n", config.TMP117_use, TMP117.sensor_use);
+
 	printf("TMP117 temp offset: %f \r\n", config.TMP117_t_offset);
 /*
 	printf("SHT3 temp offset: %f \r\n", config.SHT3_t_offset);

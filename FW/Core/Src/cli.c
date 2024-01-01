@@ -168,7 +168,7 @@ void CLI_proc(char ch)
 		p = find("set ");
 		if(p == clibuf+4)
 		{
-			if(p = find("interval "))
+			if((p = find("interval ")))
 			{
 				int32_t tmp = -1;
 	            getval(p, &tmp, 4, 3600);
@@ -179,7 +179,40 @@ void CLI_proc(char ch)
 		            }
 		            return;
 			}
+			if((p = find("tmp117 ")))
+			{
+				if(p == clibuf+11)
+				{
+					if((p = find("enable")))
+					{
+						config.TMP117_use = 1;
+						TMP117.sensor_use = 1;
+						Save_config();
+					}
+					if((p = find("disable")))
+					{
+						config.TMP117_use = 0;
+						TMP117.sensor_use = 0;
+						Save_config();
+					}
+					if((p = find("temperature enable")))
+					{
+						config.TMP117_t_use = 1;
+						TMP117.temp.use_meas = 1;
+						Save_config();
+					}
+					if((p = find("temperature disable")))
+					{
+						config.TMP117_t_use = 0;
+						TMP117.temp.use_meas = 0;
+						Save_config();
+					}
+
+				}
+			}
+
 		}
+
 	}
 //		if(find("load defaults")==clibuf+13)
 //		{

@@ -178,28 +178,27 @@ int main(void)
 
 
   //TODO: konfiguracja w eepromie użycia czujników (całościowo)
-  TMP117.sensor_use = 1;
+  TMP117.sensor_use = config.TMP117_use;
   SHT3.sensor_use = 1;
   MS8607.sensor_use = 1;
   BME280.sensor_use = 1;
   DPS368.sensor_use = 1;
 
   //TODO: konfiguracja w eepromie użycia czujników szczegółowo
-  TMP117.temp.use_meas = 1;
+  TMP117.temp.use_meas = config.TMP117_t_use;
   BME280.temp.use_meas = 1;
   SHT3.temp.use_meas = 1;
   MS8607.temp.use_meas = 1;
   DPS368.temp.use_meas = 1;
 
   BME280.press.use_meas = 1;
-  BME280.hum.use_meas = 1;
-
-  SHT3.hum.use_meas = 1;
-
   MS8607.press.use_meas = 1;
+  DPS368.press.use_meas = 1;
+
+  BME280.hum.use_meas = 1;
+  SHT3.hum.use_meas = 1;
   MS8607.hum.use_meas = 1;
 
-  DPS368.press.use_meas = 1;
 
   uint8_t disp_type = config.disp_type;
 
