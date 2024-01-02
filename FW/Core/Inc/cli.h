@@ -12,8 +12,8 @@
 #include "thp_sensors.h"
 #include "main.h"
 
-#define MIN_OFFSET -10.0
-#define MAX_OFFSET +10.0
+#define MIN_OFFSET -10.0f
+#define MAX_OFFSET +10.0f
 
 void help();
 void CLI();

@@ -38,7 +38,7 @@ typedef struct {
   uint16_t	TMP117_t_use	:1;
   uint16_t	TMP117_t_conf	:4;
   float		TMP117_t_offset;
- /* uint16_t	SHT3_use		:1;
+  uint16_t	SHT3_use		:1;
   uint16_t	SHT3_t_use		:1;
   uint16_t	SHT3_t_conf		:4;
   uint16_t	SHT3_h_use		:1;
@@ -71,7 +71,7 @@ typedef struct {
   uint16_t	DPS368_p_use	:1;
   uint16_t	DPS368_p_conf	:4;
   float		DPS368_t_offset;
-  float		DPS368_p_offset;*/
+  float		DPS368_p_offset;
   uint16_t 	checksum;
 } __attribute__((packed))  Config_TypeDef;
 

@@ -160,7 +160,7 @@ void Load_defaults()
 	config.TMP117_t_use = 1;
 	config.TMP117_t_conf = 0;
 	config.TMP117_t_offset = 0.0f;
-/*	config.SHT3_use = 1;
+	config.SHT3_use = 1;
 	config.SHT3_t_use = 1;
 	config.SHT3_t_conf = 0;
 	config.SHT3_h_use = 1;
@@ -179,11 +179,11 @@ void Load_defaults()
 	config.MS8607_p_offset = 0.0f;
 	config.BME280_use = 1;
 	config.BME280_t_use = 1;
-	config.MS8607_t_conf = 0;
+	config.BME280_t_conf = 0;
 	config.BME280_h_use = 1;
-	config.MS8607_t_conf = 0;
+	config.BME280_h_conf = 0;
 	config.BME280_p_use = 1;
-	config.MS8607_t_conf = 0;
+	config.BME280_p_conf = 0;
 	config.BME280_t_offset = 0.0f;
 	config.BME280_h_offset = 0.0f;
 	config.BME280_p_offset = 0.0f;
@@ -193,7 +193,7 @@ void Load_defaults()
 	config.DPS368_p_use = 1;
 	config.DPS368_t_conf = 0;
 	config.DPS368_t_offset = 0.0f;
-	config.DPS368_p_offset = 0.0f;*/
+	config.DPS368_p_offset = 0.0f;
 }
 
 void EEPROM_Print_config(void)
@@ -204,25 +204,39 @@ void EEPROM_Print_config(void)
 	printf("Low Batt alarm: %i \r\n", config.batt_alarm);
 	printf("Meas interval: %i \r\n", config.tim_interval);
 	printf("TMP117 sensor use %i %i \r\n", config.TMP117_use, TMP117.sensor_use);
-
+	printf("TMP117 temp meas %i %i \r\n", config.TMP117_t_use, TMP117.temp.use_meas);
 	printf("TMP117 temp offset: %f \r\n", config.TMP117_t_offset);
-/*
-	printf("SHT3 temp offset: %f \r\n", config.SHT3_t_offset);
-	printf("SHT3 hum offset: %f \r\n", config.SHT3_h_offset);
-	printf("MS8607 temp offset: %f \r\n", config.MS8607_t_offset);
-	printf("MS8607 hum offset: %f  \r\n", config.MS8607_h_offset);
-	printf("MS8607 press ofset: %f \r\n", config.MS8607_p_offset);
-	printf("BME280 temp offset: %f \r\n", config.BME280_t_offset);
-	printf("BME280 hum offset: %f \r\n", config.BME280_h_offset);
-	printf("BME280 press ofset: %f \r\n", config.BME280_p_offset);
-	printf("DPS368 temp offset: %f \r\n", config.DPS368_t_offset);
-	printf("DPS368 press ofset: %f \r\n \r\n", config.DPS368_p_offset);
-*/
 
-//	printf("TMP117 config data: %i \r\n", 	config.TMP117_config);
-//	printf("SHT3 config data: %i \r\n", config.SHT3_config);
-//	printf("DPS368 config data: %i \r\n", config.DPS368_config);
-//	printf("MS8607 config data: %i \r\n", config.MS8607_config);
+	printf("SHTC3 sensor use %i %i \r\n", config.SHT3_use, SHT3.sensor_use);
+	printf("SHTC3 temp meas %i %i \r\n", config.SHT3_t_use, SHT3.temp.use_meas);
+	printf("SHTC3 hum meas %i %i \r\n", config.SHT3_h_use, SHT3.hum.use_meas);
+	printf("SHTC3 temp offset: %f \r\n", config.SHT3_t_offset);
+	printf("SHTC3 hum offset: %f \r\n", config.SHT3_h_offset);
+
+	printf("MS8607 sensor use %i %i \r\n", config.MS8607_use, MS8607.sensor_use);
+	printf("MS8607 temp meas %i %i \r\n", config.MS8607_t_use, MS8607.temp.use_meas);
+	printf("MS8607 press meas %i %i \r\n", config.MS8607_p_use, MS8607.press.use_meas);
+	printf("MS8607 hum meas %i %i \r\n", config.MS8607_h_use, MS8607.hum.use_meas);
+
+	printf("MS8607 temp offset: %f \r\n", config.MS8607_t_offset);
+	printf("MS8607 press ofset: %f \r\n", config.MS8607_p_offset);
+	printf("MS8607 hum offset: %f  \r\n", config.MS8607_h_offset);
+
+	printf("BME280 sensor use %i %i \r\n", config.BME280_use, BME280.sensor_use);
+	printf("BME280 temp meas %i %i \r\n", config.BME280_t_use, BME280.temp.use_meas);
+	printf("BME280 press meas %i %i \r\n", config.BME280_p_use, BME280.press.use_meas);
+	printf("BME280 hum meas %i %i \r\n", config.BME280_h_use, BME280.hum.use_meas);
+
+	printf("BME280 temp offset: %f \r\n", config.BME280_t_offset);
+	printf("BME280 press ofset: %f \r\n", config.BME280_p_offset);
+	printf("BME280 hum offset: %f  \r\n", config.BME280_h_offset);
+
+	printf("DPS368 sensor use %i %i \r\n", config.DPS368_use, DPS368.sensor_use);
+	printf("DPS368 temp meas %i %i \r\n", config.DPS368_t_use, DPS368.temp.use_meas);
+	printf("DPS368 press meas %i %i \r\n", config.DPS368_p_use, DPS368.press.use_meas);
+	printf("DPS368 temp offset: %f \r\n", config.DPS368_t_offset);
+	printf("DPS368 press offset: %f \r\n", config.DPS368_p_offset);
+
 	printf("CHECKSUM: 0x%4X \r\n", config.checksum);
 	printf("================================= \r\n");
 

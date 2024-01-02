@@ -1,17 +1,8 @@
 TODO:
 
-Sprawdzenie wyświetlania w CSV szczegolnie dla ustalonej ilości pomiarów (licznik pomiarów i nagłówek)
-
-1. zapis/odczyt eepromu i ustawianie właściwych zmiennych odpowiednimi wartościami
-w main.c - aktualnie zrobione przepisywanie wartości dla TMP117 (sensor use i temp use)
-
-w następnej kolejności offsety i konfiguracja (to na końcu)
-
-dodanie offsetów do wyników
+1. dodanie offsetów do wyników (właściwie do wyświetlania wyników bo w zmiennych przechowujemy wynik pomiaru i offset czyli prawidłową wartość mamy z czego policzyć
 
 2. CLI - komendy:
-- na wzór TMP117 włączanie/wyłączanie sensora/ rodzaju pomiaru dla reszty
-- w podobny sposób wpisywanie offsetów (w tym samym drzewku)
 
 Teraz sterowanie pomiarem na wzór tego co robiłeś, ale po nowemu czyli :
 - start meas XX FORMAT - XX to ilość pomiarów, format to format TXT/CSV
@@ -19,3 +10,10 @@ Teraz sterowanie pomiarem na wzór tego co robiłeś, ale po nowemu czyli :
 - meas silent 1/0 (wypisuje, nie wypisuje pomiarów)
 - dodatkowo status, status ładowarki
 - no i help 🙂
+
+3. Wdrożenie zmiany konfiguracji a właściwie predefiniowanych konfigów
+Czyli na podstawie 4 bitów w XXX_t_conf	:4; robimy predefinicje.
+
+Dla TMP117 sprawa jest prosta, 0 = bez uśredniania, 1 = avg8 - innych opcji nie ma
+
+Dla pozostałych czujników opiszę co będzie potrzebne

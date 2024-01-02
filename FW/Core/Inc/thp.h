@@ -40,6 +40,7 @@ extern SHT3_struct_t SHT3;
 extern MS8607_struct_t MS8607;
 extern BME280_struct_t BME280;
 extern DPS368_struct_t DPS368;
+extern uint16_t csvcnt;
 
 enum device_state
 {
@@ -61,5 +62,6 @@ uint8_t HALcalculateCRC(uint8_t data[], uint8_t len);
 uint8_t calculateCRC(uint8_t data[], uint8_t len);
 
 void display_values (uint8_t format);
+void printCSVheader();
 
 #endif /* INC_THP_H_ */

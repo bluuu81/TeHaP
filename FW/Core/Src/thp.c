@@ -156,8 +156,6 @@ void printCSVheader()
 
 void display_values (uint8_t format)
 {
-	if(format==2) printCSVheader();
-	uint16_t cnt = 0;
 	switch (format)
 	{
 	case 1:
@@ -182,7 +180,7 @@ void display_values (uint8_t format)
 		break;
 
 	case 2:
-		printf("%u",cnt++);
+		printf("%u;",++csvcnt);
 		if(TMP117.present && TMP117.sensor_use && TMP117.temp.use_meas) printf("%.2f;",TMP117.temp.value);
 		if(BME280.present && BME280.sensor_use && BME280.temp.use_meas) printf("%.2f;",BME280.temp.value);
 		if(SHT3.present && SHT3.sensor_use && SHT3.temp.use_meas) printf("%.2f;",SHT3.temp.value);

@@ -26,6 +26,8 @@ extern Config_TypeDef config;
 
 extern uint16_t tim_interval;
 extern uint16_t new_tim_interval;
+extern uint8_t disp_type;
+uint16_t csvcnt;
 
 uint8_t  debug_rx_buf[DEBUG_BUF_SIZE];
 uint16_t debug_rxtail;
@@ -36,7 +38,7 @@ uint16_t sim_rxtail;
 uint32_t temp;
 
 
-static char clibuf[32];
+static char clibuf[64];
 static int cliptr;
 
 int _write(int file, char *ptr, int len)
@@ -157,7 +159,7 @@ void CLI_proc(char ch)
 // Main commands ------------------------------------------------------------------------------
 		if(find("?")==clibuf+1 || find("help")==clibuf+4)	{help(); return;}
 		if(find("i2cscan")==clibuf+7) {i2c_scan(&hi2c2, 0x38, 0xA0); return;}
-		if(find("clearconfig")==clibuf+11) {printf("config reset to defaults"); Load_defaults(); return;}
+		if(find("clearconfig")==clibuf+11) {printf("config reset to defaults\r\n"); Load_defaults(); return;}
 		if(find("printconfig")==clibuf+11) {EEPROM_Print_config(); return;}
 		if(find("loadconfig")==clibuf+10) {printf("LOADING CONFIG. Status: %i (0==OK)\r\n",Load_config()); return;}
 		if(find("saveconfig")==clibuf+10) {printf("SAVING CONFIG. Status: %i (0==NO CHANGES; 1==SAVE OK, 2==ERR)\r\n",Save_config()); return;}
@@ -179,6 +181,18 @@ void CLI_proc(char ch)
 		            }
 		            return;
 			}
+			if((p = find("disptype ")))
+			{
+				int32_t tmp = -1;
+	            getval(p, &tmp, 1, 2);
+		            if(tmp >= 1)
+		            {
+		            	if(tmp==1) printf("Display type TXT\r\n"); else if(tmp==2) { printf("Display type CSV"); printCSVheader();}
+		            	csvcnt = 0;
+		            	disp_type = tmp;
+		            }
+		            return;
+			}
 			if((p = find("tmp117 ")))
 			{
 				if(p == clibuf+11)
@@ -187,33 +201,424 @@ void CLI_proc(char ch)
 					{
 						config.TMP117_use = 1;
 						TMP117.sensor_use = 1;
+						printf("TMP117 sensor enabled\r\n");
 						Save_config();
 					}
 					if((p = find("disable")))
 					{
 						config.TMP117_use = 0;
 						TMP117.sensor_use = 0;
+						printf("TMP117 sensor disabled\r\n");
 						Save_config();
 					}
-					if((p = find("temperature enable")))
+					if((p = find("temperature ")))
 					{
-						config.TMP117_t_use = 1;
-						TMP117.temp.use_meas = 1;
-						Save_config();
+						if(p == clibuf+23)
+						{
+							if((strstr(clibuf+23, "offset ")))
+							{
+								float tmp;
+					            getFloat(clibuf+30, &tmp, MIN_OFFSET, MAX_OFFSET);
+					            config.TMP117_t_offset = tmp;
+					            TMP117.temp.offset = tmp;
+					            printf("TMP117 temperature offset %.6f\r\n",tmp);
+								Save_config();
+							}
+							if((strstr(clibuf+23, "en")))
+							{
+								config.TMP117_t_use = 1;
+								TMP117.temp.use_meas = 1;
+								printf("TMP117 temperature measure enabled\r\n");
+								Save_config();
+							}
+							if((strstr(clibuf+23, "dis")))
+							{
+								config.TMP117_t_use = 0;
+								TMP117.temp.use_meas = 0;
+								printf("TMP117 temperature measure disable\r\n");
+								Save_config();
+							}
+						return;
+						}
 					}
-					if((p = find("temperature disable")))
-					{
-						config.TMP117_t_use = 0;
-						TMP117.temp.use_meas = 0;
-						Save_config();
-					}
-
 				}
 			}
-
+			if((p = find("shtc3 ")))
+			{
+				if(p == clibuf+10)
+				{
+					if((p = find("enable")))
+					{
+						config.SHT3_use = 1;
+						SHT3.sensor_use = 1;
+						printf("SHTC3 sensor enabled\r\n");
+						Save_config();
+					}
+					if((p = find("disable")))
+					{
+						config.SHT3_use = 0;
+						SHT3.sensor_use = 0;
+						printf("SHTC3 sensor disabled\r\n");
+						Save_config();
+					}
+					if((p = find("temperature ")))
+					{
+						if(p == clibuf+22)
+						{
+							if((strstr(clibuf+22, "offset ")))
+							{
+								float tmp;
+					            getFloat(clibuf+29, &tmp, MIN_OFFSET, MAX_OFFSET);
+					            config.SHT3_t_offset = tmp;
+					            SHT3.temp.offset = tmp;
+					            printf("SHTC3 temperature offset %.6f\r\n",tmp);
+								Save_config();
+							}
+							if((strstr(clibuf+22, "en")))
+							{
+								config.SHT3_t_use = 1;
+								SHT3.temp.use_meas = 1;
+								printf("SHTC3 temperature measure enabled\r\n");
+								Save_config();
+							}
+							if((strstr(clibuf+22, "dis")))
+							{
+								config.SHT3_t_use = 0;
+								SHT3.temp.use_meas = 0;
+								printf("SHTC3 temperature measure disable\r\n");
+								Save_config();
+							}
+						}
+					}
+					if((p = find("hum ")))
+					{
+						if(p == clibuf+14)
+						{
+							if((strstr(clibuf+14, "offset ")))
+							{
+								float tmp;
+						        getFloat(clibuf+21, &tmp, MIN_OFFSET, MAX_OFFSET);
+						        config.SHT3_h_offset = tmp;
+						        SHT3.hum.offset = tmp;
+						        printf("SHTC3 humidity offset %.6f\r\n",tmp);
+						        Save_config();
+							}
+							if((strstr(clibuf+14, "en")))
+							{
+								config.SHT3_h_use = 1;
+								SHT3.hum.use_meas = 1;
+								printf("SHTC3 humidity measure enabled\r\n");
+								Save_config();
+							}
+							if((strstr(clibuf+14, "dis")))
+							{
+								config.SHT3_h_use = 0;
+								SHT3.hum.use_meas = 0;
+								printf("SHTC3 humidity measure disable\r\n");
+								Save_config();
+							}
+						return;
+						}
+					}
+				}
+			}
+			if((p = find("ms8607 ")))
+			{
+				if(p == clibuf+11)
+				{
+					if((p = find("enable")))
+					{
+						config.MS8607_use = 1;
+						MS8607.sensor_use = 1;
+						printf("MS8607 sensor enabled\r\n");
+						Save_config();
+					}
+					if((p = find("disable")))
+					{
+						config.MS8607_use = 0;
+						MS8607.sensor_use = 0;
+						printf("MS8607 sensor disabled\r\n");
+						Save_config();
+					}
+					if((p = find("temperature ")))
+					{
+						if(p == clibuf+23)
+						{
+							if((strstr(clibuf+23, "offset ")))
+							{
+								float tmp;
+					            getFloat(clibuf+30, &tmp, MIN_OFFSET, MAX_OFFSET);
+					            config.MS8607_t_offset = tmp;
+					            MS8607.temp.offset = tmp;
+					            printf("MS8607 temperature offset %.6f\r\n",tmp);
+								Save_config();
+							}
+							if((strstr(clibuf+23, "en")))
+							{
+								config.MS8607_t_use = 1;
+								MS8607.temp.use_meas = 1;
+								printf("MS8607 temperature measure enabled\r\n");
+								Save_config();
+							}
+							if((strstr(clibuf+23, "dis")))
+							{
+								config.MS8607_t_use = 0;
+								MS8607.temp.use_meas = 0;
+								printf("MS8607 temperature measure disable\r\n");
+								Save_config();
+							}
+						}
+					}
+					if((p = find("press ")))
+					{
+						if(p == clibuf+17)
+						{
+							if((strstr(clibuf+17, "offset ")))
+							{
+								float tmp;
+					            getFloat(clibuf+24, &tmp, MIN_OFFSET, MAX_OFFSET);
+					            config.MS8607_p_offset = tmp;
+					            MS8607.press.offset = tmp;
+					            printf("MS8607 pressure offset %.6f\r\n",tmp);
+								Save_config();
+							}
+							if((strstr(clibuf+17, "en")))
+							{
+								config.MS8607_p_use = 1;
+								MS8607.press.use_meas = 1;
+								printf("MS8607 pressure measure enabled\r\n");
+								Save_config();
+							}
+							if((strstr(clibuf+17, "dis")))
+							{
+								config.MS8607_p_use = 0;
+								MS8607.press.use_meas = 0;
+								printf("MS8607 pressure measure disable\r\n");
+								Save_config();
+							}
+						}
+					}
+					if((p = find("hum ")))
+					{
+						if(p == clibuf+15)
+						{
+							if((strstr(clibuf+15, "offset ")))
+							{
+								float tmp;
+						        getFloat(clibuf+22, &tmp, MIN_OFFSET, MAX_OFFSET);
+						        config.MS8607_h_offset = tmp;
+						        MS8607.hum.offset = tmp;
+						        printf("MS8607 humidity offset %.6f\r\n",tmp);
+						        Save_config();
+							}
+							if((strstr(clibuf+15, "en")))
+							{
+								config.MS8607_h_use = 1;
+								MS8607.hum.use_meas = 1;
+								printf("MS8607 humidity measure enabled\r\n");
+								Save_config();
+							}
+							if((strstr(clibuf+15, "dis")))
+							{
+								config.MS8607_h_use = 0;
+								MS8607.hum.use_meas = 0;
+								printf("MS8607 humidity measure disable\r\n");
+								Save_config();
+							}
+						return;
+						}
+					}
+				}
+			}
+			if((p = find("bme280 ")))
+			{
+				if(p == clibuf+11)
+				{
+					if((p = find("enable")))
+					{
+						config.BME280_use = 1;
+						BME280.sensor_use = 1;
+						printf("BME280 sensor enabled\r\n");
+						Save_config();
+					}
+					if((p = find("disable")))
+					{
+						config.BME280_use = 0;
+						BME280.sensor_use = 0;
+						printf("BME280 sensor disabled\r\n");
+						Save_config();
+					}
+					if((p = find("temperature ")))
+					{
+						if(p == clibuf+23)
+						{
+							if((strstr(clibuf+23, "offset ")))
+							{
+								float tmp;
+					            getFloat(clibuf+30, &tmp, MIN_OFFSET, MAX_OFFSET);
+					            config.BME280_t_offset = tmp;
+					            BME280.temp.offset = tmp;
+					            printf("BME280 temperature offset %.6f\r\n",tmp);
+								Save_config();
+							}
+							if((strstr(clibuf+23, "en")))
+							{
+								config.BME280_t_use = 1;
+								BME280.temp.use_meas = 1;
+								printf("BME280 temperature measure enabled\r\n");
+								Save_config();
+							}
+							if((strstr(clibuf+23, "dis")))
+							{
+								config.BME280_t_use = 0;
+								BME280.temp.use_meas = 0;
+								printf("BME280 temperature measure disable\r\n");
+								Save_config();
+							}
+						}
+					}
+					if((p = find("press ")))
+					{
+						if(p == clibuf+17)
+						{
+							if((strstr(clibuf+17, "offset ")))
+							{
+								float tmp;
+					            getFloat(clibuf+24, &tmp, MIN_OFFSET, MAX_OFFSET);
+					            config.BME280_p_offset = tmp;
+					            BME280.press.offset = tmp;
+					            printf("BME280 pressure offset %.6f\r\n",tmp);
+								Save_config();
+							}
+							if((strstr(clibuf+17, "en")))
+							{
+								config.BME280_p_use = 1;
+								BME280.press.use_meas = 1;
+								printf("BME280 pressure measure enabled\r\n");
+								Save_config();
+							}
+							if((strstr(clibuf+17, "dis")))
+							{
+								config.BME280_p_use = 0;
+								BME280.press.use_meas = 0;
+								printf("BME280 pressure measure disable\r\n");
+								Save_config();
+							}
+						}
+					}
+					if((p = find("hum ")))
+					{
+						if(p == clibuf+15)
+						{
+							if((strstr(clibuf+15, "offset ")))
+							{
+								float tmp;
+						        getFloat(clibuf+22, &tmp, MIN_OFFSET, MAX_OFFSET);
+						        config.BME280_h_offset = tmp;
+						        BME280.hum.offset = tmp;
+						        printf("BME280 humidity offset %.6f\r\n",tmp);
+						        Save_config();
+							}
+							if((strstr(clibuf+15, "en")))
+							{
+								config.BME280_h_use = 1;
+								BME280.hum.use_meas = 1;
+								printf("BME280 humidity measure enabled\r\n");
+								Save_config();
+							}
+							if((strstr(clibuf+15, "dis")))
+							{
+								config.BME280_h_use = 0;
+								BME280.hum.use_meas = 0;
+								printf("BME280 humidity measure disable\r\n");
+								Save_config();
+							}
+						return;
+						}
+					}
+				}
+			}
+			if((p = find("dps368 ")))
+			{
+				if(p == clibuf+11)
+				{
+					if((p = find("enable")))
+					{
+						config.DPS368_use = 1;
+						DPS368.sensor_use = 1;
+						printf("DPS368 sensor enabled\r\n");
+						Save_config();
+					}
+					if((p = find("disable")))
+					{
+						config.DPS368_use = 0;
+						DPS368.sensor_use = 0;
+						printf("DPS368 sensor disabled\r\n");
+						Save_config();
+					}
+					if((p = find("temperature ")))
+					{
+						if(p == clibuf+23)
+						{
+							if((strstr(clibuf+23, "offset ")))
+							{
+								float tmp;
+					            getFloat(clibuf+30, &tmp, MIN_OFFSET, MAX_OFFSET);
+					            config.DPS368_t_offset = tmp;
+					            DPS368.temp.offset = tmp;
+					            printf("DPS368 temperature offset %.6f\r\n",tmp);
+								Save_config();
+							}
+							if((strstr(clibuf+23, "en")))
+							{
+								config.DPS368_t_use = 1;
+								DPS368.temp.use_meas = 1;
+								printf("DPS368 temperature measure enabled\r\n");
+								Save_config();
+							}
+							if((strstr(clibuf+23, "dis")))
+							{
+								config.DPS368_t_use = 0;
+								DPS368.temp.use_meas = 0;
+								printf("DPS368 temperature measure disable\r\n");
+								Save_config();
+							}
+						}
+					}
+					if((p = find("press ")))
+					{
+						if(p == clibuf+17)
+						{
+							if((strstr(clibuf+17, "offset ")))
+							{
+								float tmp;
+					            getFloat(clibuf+24, &tmp, MIN_OFFSET, MAX_OFFSET);
+					            config.DPS368_p_offset = tmp;
+					            DPS368.press.offset = tmp;
+					            printf("DPS368 pressure offset %.6f\r\n",tmp);
+								Save_config();
+							}
+							if((strstr(clibuf+17, "en")))
+							{
+								config.DPS368_p_use = 1;
+								DPS368.press.use_meas = 1;
+								printf("DPS368 pressure measure enabled\r\n");
+								Save_config();
+							}
+							if((strstr(clibuf+17, "dis")))
+							{
+								config.DPS368_p_use = 0;
+								DPS368.press.use_meas = 0;
+								printf("DPS368 pressure measure disable\r\n");
+								Save_config();
+							}
+						return;
+						}
+					}
+				}
+			}
 		}
-
-	}
+}
 //		if(find("load defaults")==clibuf+13)
 //		{
 //			Load_defaults();
@@ -415,4 +820,3 @@ void help()
 	printf("-----------------\r\n");
 
 }
-;
