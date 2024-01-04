@@ -1,19 +1,11 @@
 TODO:
 
-1. dodanie offsetów do wyników (właściwie do wyświetlania wyników bo w zmiennych przechowujemy wynik pomiaru i offset czyli prawidłową wartość mamy z czego policzyć - DONE
-
-2. CLI - komendy:
-
-Teraz sterowanie pomiarem na wzór tego co robiłeś, ale po nowemu czyli :
-- start meas XX FORMAT - XX to ilość pomiarów, format to format TXT/CSV - DONE
-- start meas continue (z defaulta wypisuje pomiary) - DONE
-- meas silent 1/0 (wypisuje, nie wypisuje pomiarów) - załatwione przez disptype 0 - DONE
-- dodatkowo status, status ładowarki - DONE
-- no i help 🙂 - DONE
-
 3. Wdrożenie zmiany konfiguracji a właściwie predefiniowanych konfigów
 Czyli na podstawie 4 bitów w XXX_t_conf	:4; robimy predefinicje.
+4 bity czyli mamy 16 możliwych ustawień 0..15
 
-Dla TMP117 sprawa jest prosta, 0 = bez uśredniania, 1 = avg8 - innych opcji nie ma
+Dla TMP117 są 4 ustawienia
 
-Dla pozostałych czujników opiszę co będzie potrzebne
+Wdrożone :) w CLI też i jest w helpie.
+
+Dla SHTC3 przyjmujemy:

@@ -213,6 +213,8 @@ void getConfVars()
 
 	  TMP117.temp.use_meas = config.TMP117_t_use;
 	  TMP117.temp.offset = config.TMP117_t_offset;
+	  TMP117.temp.sensor_conf = config.TMP117_t_conf;
+
 	  BME280.temp.use_meas = config.BME280_t_use;
 	  BME280.temp.offset = config.BME280_t_offset;
 	  SHT3.temp.use_meas = config.SHT3_t_use;

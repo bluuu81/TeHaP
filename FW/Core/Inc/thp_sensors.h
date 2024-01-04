@@ -129,10 +129,12 @@ uint8_t i2c_read16(I2C_HandleTypeDef * i2c, uint16_t offset, uint16_t *value, ui
 uint8_t i2c_read24(I2C_HandleTypeDef * i2c, uint16_t offset, uint32_t *value, uint8_t addr);
 uint8_t i2c_write8(I2C_HandleTypeDef * i2c, uint16_t offset, uint8_t value, uint8_t addr);
 uint8_t i2c_write16(I2C_HandleTypeDef * i2c, uint16_t offset, uint16_t value, uint8_t addr);
+
 uint8_t TMP117_check();
 void TMP117_RST_Conf_Reg();
 float TMP117_get_temp();
 void TMP117_start_meas(uint8_t avg_mode);
+uint16_t tmp117_avr_conf(uint8_t sensor_conf);
 
 uint8_t MS8607_check();
 float MS8607_get_temp();

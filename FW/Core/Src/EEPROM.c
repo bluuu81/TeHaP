@@ -158,7 +158,7 @@ void Load_defaults()
 	config.tim_interval = 5;
 	config.TMP117_use = 1;
 	config.TMP117_t_use = 1;
-	config.TMP117_t_conf = 0;
+	config.TMP117_t_conf = 1;
 	config.TMP117_t_offset = 0.0f;
 	config.SHT3_use = 1;
 	config.SHT3_t_use = 1;
@@ -205,6 +205,7 @@ void EEPROM_Print_config(void)
 	printf("Meas interval: %i \r\n", config.tim_interval);
 	printf("TMP117 sensor use %i %i \r\n", config.TMP117_use, TMP117.sensor_use);
 	printf("TMP117 temp meas %i %i \r\n", config.TMP117_t_use, TMP117.temp.use_meas);
+	printf("TMP117 temp config %i %i \r\n", config.TMP117_t_conf, TMP117.temp.sensor_conf);
 	printf("TMP117 temp offset: %f \r\n", config.TMP117_t_offset);
 
 	printf("SHTC3 sensor use %i %i \r\n", config.SHT3_use, SHT3.sensor_use);

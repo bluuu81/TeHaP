@@ -16,7 +16,7 @@
 #include <string.h>
 
 #define HW_VER 10
-#define FW_VER 2
+#define FW_VER 4
 
 extern ADC_HandleTypeDef hadc1;
 
@@ -41,6 +41,8 @@ extern MS8607_struct_t MS8607;
 extern BME280_struct_t BME280;
 extern DPS368_struct_t DPS368;
 extern uint16_t csvcnt;
+
+
 
 enum device_state
 {

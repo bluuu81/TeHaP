@@ -74,6 +74,8 @@ uint8_t meas_ready = 0;
 uint16_t meas_count = 10;
 uint8_t meas_cont_mode = 1;
 
+uint16_t tmp117_avr;
+
 
 
 /* USER CODE END PV */
@@ -180,6 +182,9 @@ int main(void)
 
   getConfVars();
 
+  tmp117_avr=tmp117_avr_conf(TMP117.temp.sensor_conf);
+//  printf("TMP117 conf var %x\r\n", tmp117_avr);
+
   disp_type = config.disp_type;
 
   new_tim_interval = config.tim_interval; //w sekundach
@@ -234,7 +239,7 @@ int main(void)
 			  if(meas_cont_mode == 0) meas_count--;
 			  if(TMP117.present){
 				  if(TMP117.sensor_use && TMP117.temp.use_meas) {
-					  TMP117_start_meas(avg8);
+					  TMP117_start_meas(tmp117_avr);
 					  meas_time += 200;
 				  }
 			  }

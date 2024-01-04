@@ -29,6 +29,7 @@ extern uint16_t new_tim_interval;
 extern uint8_t disp_type;
 extern uint16_t meas_count;
 extern uint8_t meas_cont_mode;
+extern uint16_t tmp117_avr;
 
 uint16_t csvcnt;
 
@@ -37,9 +38,6 @@ uint16_t debug_rxtail;
 
 uint8_t sim_rx_buf[32];    // 32 bytes buffer
 uint16_t sim_rxtail;
-
-uint32_t temp;
-
 
 static char clibuf[64];
 static int cliptr;
@@ -151,7 +149,7 @@ void CLI() {
 void CLI_proc(char ch)
 {
 	char *p;
-
+	int32_t temp;
 	float tempfloat;
 	if(cliptr < sizeof(clibuf)) clibuf[cliptr++] = ch;
 	if(ch == 10)	// LF
@@ -225,6 +223,16 @@ void CLI_proc(char ch)
 					            config.TMP117_t_offset = tmp;
 					            TMP117.temp.offset = tmp;
 					            printf("TMP117 temperature offset %.6f\r\n",tmp);
+								Save_config();
+							}
+							if((strstr(clibuf+23, "conf ")))
+							{
+								int32_t tmp = -1;
+					            getval(clibuf+28, &tmp, 0, 3);
+					            config.TMP117_t_conf = tmp;
+					            TMP117.temp.sensor_conf = tmp;
+					            tmp117_avr=tmp117_avr_conf(TMP117.temp.sensor_conf);
+					            printf("TMP117 temperature config %li\r\n",tmp);
 								Save_config();
 							}
 							if((strstr(clibuf+23, "en")))
@@ -896,6 +904,7 @@ void print_help()
 	printf("set [sensor] [type] en - type=[temperature;press;hum] - enable sensor type\r\n");
 	printf("set [sensor] [type] dis - type=[temperature;press;hum] - disable sensor type\r\n");
 	printf("set [sensor] [type] offset X.X - set offset [X.X float]\r\n");
+	printf("set [sensor] [type] conf Y - set sensor config [Y - 0..15]\r\n");
 	printf("-----------------\r\n");
 
 	printf("CONFIG COMMANDS:\r\n");

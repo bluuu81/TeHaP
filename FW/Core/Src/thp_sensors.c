@@ -200,6 +200,27 @@ void TMP117_start_meas(uint8_t avg_mode)
 	HAL_Delay(2);
 }
 
+uint16_t tmp117_avr_conf(uint8_t sensor_conf)
+{
+    switch (sensor_conf) {
+        case 0:
+        	printf("TMP117 set no_avg\r\n");
+            return no_avg;
+        case 1:
+        	printf("TMP117 set avg8\r\n");
+            return avg8;
+        case 2:
+        	printf("TMP117 set avg32\r\n");
+            return avg32;
+        case 3:
+        	printf("TMP117 set avg64\r\n");
+            return avg64;
+        default:
+        	printf("TMP117 set no_avg\r\n");
+            return no_avg;
+    }
+}
+
 uint8_t MS8607_check()
 {
 	ms8607_init();
