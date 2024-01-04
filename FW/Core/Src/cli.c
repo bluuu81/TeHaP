@@ -27,6 +27,9 @@ extern Config_TypeDef config;
 extern uint16_t tim_interval;
 extern uint16_t new_tim_interval;
 extern uint8_t disp_type;
+extern uint16_t meas_count;
+extern uint8_t meas_cont_mode;
+
 uint16_t csvcnt;
 
 uint8_t  debug_rx_buf[DEBUG_BUF_SIZE];
@@ -119,8 +122,8 @@ char * getFloat (char *p, float *val, float min, float max)
 	float tmp = 0;
 		while(*p == ' ') p++;
 		tmp = strtof(p, &pend);
-		if(tmp >= min && tmp <= max) {*val = tmp; return 1;} else { printf("Bad value\r\n"); return 0;}
-
+		if(tmp >= min && tmp <= max) {*val = tmp; } else { printf("Bad value\r\n"); }
+		return p;
 }
 char * get_hex(char *p, uint8_t chars, uint16_t *val)
 {
@@ -157,7 +160,7 @@ void CLI_proc(char ch)
 		memset(clibuf+cliptr, 0, sizeof(clibuf)-cliptr);
 		cliptr = 0;
 // Main commands ------------------------------------------------------------------------------
-		if(find("?")==clibuf+1 || find("help")==clibuf+4)	{help(); return;}
+		if(find("?")==clibuf+1 || find("help")==clibuf+4)	{print_help(); return;}
 		if(find("i2cscan")==clibuf+7) {i2c_scan(&hi2c2, 0x38, 0xA0); return;}
 		if(find("clearconfig")==clibuf+11) {printf("config reset to defaults\r\n"); Load_defaults(); return;}
 		if(find("printconfig")==clibuf+11) {EEPROM_Print_config(); return;}
@@ -165,7 +168,6 @@ void CLI_proc(char ch)
 		if(find("saveconfig")==clibuf+10) {printf("SAVING CONFIG. Status: %i (0==NO CHANGES; 1==SAVE OK, 2==ERR)\r\n",Save_config()); return;}
 		if(find("setbattalarm")==clibuf+12){getval(clibuf+13, &temp, 0, 15000); config.batt_alarm=temp; printf("Batt alarm:%i",config.batt_alarm); return;};
 		if(find("setbatscale")==clibuf+11){getFloat(clibuf+12, &tempfloat, -10.0, 10.0); config.bat_scale=tempfloat; printf("Batt scale:%f \r\n",config.bat_scale); return;};
-//		if(find("setoffset")==clibuf+9){setOffset();return;}
 
 		p = find("set ");
 		if(p == clibuf+4)
@@ -184,13 +186,14 @@ void CLI_proc(char ch)
 			if((p = find("disptype ")))
 			{
 				int32_t tmp = -1;
-	            getval(p, &tmp, 1, 2);
+	            getval(p, &tmp, 0, 2);
 		            if(tmp >= 1)
 		            {
 		            	if(tmp==1) printf("Display type TXT\r\n"); else if(tmp==2) { printf("Display type CSV"); printCSVheader();}
 		            	csvcnt = 0;
 		            	disp_type = tmp;
 		            }
+		            else {disp_type = tmp; printf("Silent mode\r\n");}
 		            return;
 			}
 			if((p = find("tmp117 ")))
@@ -429,6 +432,7 @@ void CLI_proc(char ch)
 						}
 					}
 				}
+				return;
 			}
 			if((p = find("bme280 ")))
 			{
@@ -618,6 +622,66 @@ void CLI_proc(char ch)
 				}
 			}
 		}
+		p = find("meas ");
+		if(p == clibuf+5)
+		{
+			if((p = find("start ")))
+			{
+				if(p == clibuf+11)
+				{
+					if((strstr(clibuf+11, "txt ")))
+					{
+						int32_t tmp = -1;
+						getval(clibuf+15, &tmp, 1, 500);
+						meas_count = tmp;
+						meas_cont_mode = 0;
+						disp_type = 1;
+						printf("Start %i measures, TXT output\r\n", meas_count);
+						ReinitTimer(tim_interval);
+						return;
+					}
+					if((strstr(clibuf+11, "csv ")))
+					{
+						int32_t tmp = -1;
+						getval(clibuf+15, &tmp, 1, 500);
+						meas_count = tmp;
+						meas_cont_mode = 0;
+						disp_type = 2;
+						printf("Start %i measures, CSV output\r\n", meas_count);
+						csvcnt = 0;
+						printCSVheader();
+						ReinitTimer(tim_interval);
+						return;
+					}
+					if(p == clibuf+11)
+					{
+						if((strstr(clibuf+11, "cont ")))
+						{
+							if((strstr(clibuf+16, "txt")))
+							{
+								meas_cont_mode = 1;
+								disp_type = 1;
+								printf("Start continuous measurement, TXT format\r\n");
+								ReinitTimer(tim_interval);
+								return;
+							}
+							if((strstr(clibuf+16, "csv")))
+							{
+								meas_cont_mode = 1;
+								disp_type = 2;
+								printf("Start continuous measurement, TXT format\r\n");
+								csvcnt = 0;
+								printCSVheader();
+								ReinitTimer(tim_interval);
+								return;
+							}
+
+						}
+					}
+				}
+				return;
+			}
+		}
 }
 //		if(find("load defaults")==clibuf+13)
 //		{
@@ -779,7 +843,7 @@ return;
 
 
 
-void help()
+void print_status()
 {
 	printf("--- THP HW v%1.1f  FW v%1.1f --- \r\n", HW_VER*0.1f,FW_VER*0.1f );
 	printf("Charger state : ");
@@ -808,15 +872,45 @@ void help()
 	printf("Minimal SYS Voltage: %u [mV]  \r\n", BQ25798_Sys_Min_Voltage_read());
 	printf("Charge Voltage Limit: %u [mV]  \r\n",BQ25798_Chr_Volt_Limit_read());
 	printf("Charge Current Limit: %u [mA]  \r\n",BQ25798_Chr_Curr_Limit_read());
-	BQ25798_Chrg_CTRL3_read();
-	BQ25798_Chrg_CTRL4_read();
-	BQ25798_Chrg_FAULT1_read();
-	BQ25798_Chrg_FAULT2_read();
-	BQ25798_Chrg_STAT0_read();
-	BQ25798_Chrg_STAT1_read();
-	BQ25798_Chrg_STAT2_read();
-	BQ25798_Chrg_STAT3_read();
-	BQ25798_Chrg_STAT4_read();
+//	BQ25798_Chrg_CTRL3_read();
+//	BQ25798_Chrg_CTRL4_read();
+//	BQ25798_Chrg_FAULT1_read();
+//	BQ25798_Chrg_FAULT2_read();
+//	BQ25798_Chrg_STAT0_read();
+//	BQ25798_Chrg_STAT1_read();
+//	BQ25798_Chrg_STAT2_read();
+//	BQ25798_Chrg_STAT3_read();
+//	BQ25798_Chrg_STAT4_read();
+	printf("-----------------\r\n");
+
+}
+
+void print_help()
+{
+	printf("--- THP HW v%1.1f  FW v%1.1f --- \r\n", HW_VER*0.1f,FW_VER*0.1f );
+	printf("SET COMMANDS:\r\n");
+	printf("set interval X - X=4..3600[s] - measurement interval\r\n");
+	printf("set disptype X - 0 - NONE(silent), 1 - TXT, 2 - CSV - measurement format\r\n");
+	printf("set [sensor] enable - sensor=[tmp117;bme280;shtc3;ms8607;dps368] - enable sensor\r\n");
+	printf("set [sensor] disable - sensor=[tmp117;bme280;shtc3;ms8607;dps368] - disable sensor\r\n");
+	printf("set [sensor] [type] en - type=[temperature;press;hum] - enable sensor type\r\n");
+	printf("set [sensor] [type] dis - type=[temperature;press;hum] - disable sensor type\r\n");
+	printf("set [sensor] [type] offset X.X - set offset [X.X float]\r\n");
+	printf("-----------------\r\n");
+
+	printf("CONFIG COMMANDS:\r\n");
+	printf("printconfig - Print config values\r\n");
+	printf("clearconfig - load default config values\r\n");
+	printf("loadconfig - load config values\r\n");
+	printf("saveconfig - save config values\r\n");
+	printf("-----------------\r\n");
+
+	printf("MEAS COMMANDS:\r\n");
+	printf("meas start cont [disp] - Start continuos measurement disp=[txt;csv]\r\n");
+	printf("meas start [disp] X - Start X measures disp=[txt;csv], X=1..500 \r\n");
+
+	printf("-----------------\r\n");
+	printf("? or help - help\r\n");
 	printf("-----------------\r\n");
 
 }

@@ -15,7 +15,8 @@
 #define MIN_OFFSET -10.0f
 #define MAX_OFFSET +10.0f
 
-void help();
+void print_status();
+void print_help();
 void CLI();
 void CLI_proc(char ch);
 

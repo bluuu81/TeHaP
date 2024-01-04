@@ -161,45 +161,78 @@ void display_values (uint8_t format)
 	case 1:
 		printf("-----------------------\r\n");
 		printf("Temperature:\r\n");
-		if(TMP117.present && TMP117.sensor_use && TMP117.temp.use_meas) printf("TMP117: %.2f   ", TMP117.temp.value);
-		if(BME280.present && BME280.sensor_use && BME280.temp.use_meas) printf("BME280: %.2f   ", BME280.temp.value);
-		if(SHT3.present && SHT3.sensor_use && SHT3.temp.use_meas) printf("SHTC3: %.2f   ", SHT3.temp.value);
-		if(MS8607.present && MS8607.sensor_use && MS8607.temp.use_meas) printf("MS8607: %.2f   ", MS8607.temp.value);
-		if(DPS368.present && DPS368.sensor_use && DPS368.temp.use_meas) printf("DPS368: %.2f   ", DPS368.temp.value);
+		if(TMP117.present && TMP117.sensor_use && TMP117.temp.use_meas) printf("TMP117: %.2f   ", TMP117.temp.value+TMP117.temp.offset);
+		if(BME280.present && BME280.sensor_use && BME280.temp.use_meas) printf("BME280: %.2f   ", BME280.temp.value+BME280.temp.offset);
+		if(SHT3.present && SHT3.sensor_use && SHT3.temp.use_meas) printf("SHTC3: %.2f   ", SHT3.temp.value+SHT3.temp.offset);
+		if(MS8607.present && MS8607.sensor_use && MS8607.temp.use_meas) printf("MS8607: %.2f   ", MS8607.temp.value+MS8607.temp.offset);
+		if(DPS368.present && DPS368.sensor_use && DPS368.temp.use_meas) printf("DPS368: %.2f   ", DPS368.temp.value+DPS368.temp.offset);
 		printf("\r\n-----------------------\r\n");
 		printf("Press:\r\n");
-		if(BME280.present && BME280.sensor_use && BME280.press.use_meas) printf("BME280: %.2f   ", BME280.press.value);
-		if(MS8607.present && MS8607.sensor_use && MS8607.press.use_meas) printf("MS8607: %.2f   ", MS8607.press.value);
-		if(DPS368.present && DPS368.sensor_use && DPS368.press.use_meas) printf("DPS368: %.2f   ", DPS368.press.value);
+		if(BME280.present && BME280.sensor_use && BME280.press.use_meas) printf("BME280: %.2f   ", BME280.press.value+BME280.press.offset);
+		if(MS8607.present && MS8607.sensor_use && MS8607.press.use_meas) printf("MS8607: %.2f   ", MS8607.press.value+MS8607.press.offset);
+		if(DPS368.present && DPS368.sensor_use && DPS368.press.use_meas) printf("DPS368: %.2f   ", DPS368.press.value+DPS368.press.offset);
 		printf("\r\n-----------------------\r\n");
 		printf("Hum:\r\n");
-		if(BME280.present && BME280.sensor_use && BME280.hum.use_meas) printf("BME280: %.2f   ", BME280.hum.value);
-		if(SHT3.present && SHT3.sensor_use && SHT3.hum.use_meas) printf("SHTC3: %.2f   ", SHT3.hum.value);
-		if(MS8607.present && MS8607.sensor_use && MS8607.hum.use_meas) printf("MS8607: %.2f   ", MS8607.hum.value);
+		if(BME280.present && BME280.sensor_use && BME280.hum.use_meas) printf("BME280: %.2f   ", BME280.hum.value+BME280.hum.offset);
+		if(SHT3.present && SHT3.sensor_use && SHT3.hum.use_meas) printf("SHTC3: %.2f   ", SHT3.hum.value+SHT3.hum.offset);
+		if(MS8607.present && MS8607.sensor_use && MS8607.hum.use_meas) printf("MS8607: %.2f   ", MS8607.hum.value+MS8607.hum.offset);
 		printf("\r\n-----------------------\r\n");
 		break;
 
 	case 2:
 		printf("%u;",++csvcnt);
-		if(TMP117.present && TMP117.sensor_use && TMP117.temp.use_meas) printf("%.2f;",TMP117.temp.value);
-		if(BME280.present && BME280.sensor_use && BME280.temp.use_meas) printf("%.2f;",BME280.temp.value);
-		if(SHT3.present && SHT3.sensor_use && SHT3.temp.use_meas) printf("%.2f;",SHT3.temp.value);
-		if(MS8607.present && MS8607.sensor_use && MS8607.temp.use_meas) printf("%.2f;",MS8607.temp.value);
-		if(DPS368.present && DPS368.sensor_use && DPS368.temp.use_meas) printf("%.2f;",DPS368.temp.value);
+		if(TMP117.present && TMP117.sensor_use && TMP117.temp.use_meas) printf("%.2f;",TMP117.temp.value+TMP117.temp.offset);
+		if(BME280.present && BME280.sensor_use && BME280.temp.use_meas) printf("%.2f;",BME280.temp.value+BME280.temp.offset);
+		if(SHT3.present && SHT3.sensor_use && SHT3.temp.use_meas) printf("%.2f;",SHT3.temp.value+SHT3.temp.offset);
+		if(MS8607.present && MS8607.sensor_use && MS8607.temp.use_meas) printf("%.2f;",MS8607.temp.value+MS8607.temp.offset);
+		if(DPS368.present && DPS368.sensor_use && DPS368.temp.use_meas) printf("%.2f;",DPS368.temp.value+DPS368.temp.offset);
 
-		if(BME280.present && BME280.sensor_use && BME280.press.use_meas) printf("%.2f;",BME280.press.value);
-		if(MS8607.present && MS8607.sensor_use && MS8607.press.use_meas) printf("%.2f;",MS8607.press.value);
-		if(DPS368.present && DPS368.sensor_use && DPS368.press.use_meas) printf("%.2f;",DPS368.press.value);
+		if(BME280.present && BME280.sensor_use && BME280.press.use_meas) printf("%.2f;",BME280.press.value+BME280.press.offset);
+		if(MS8607.present && MS8607.sensor_use && MS8607.press.use_meas) printf("%.2f;",MS8607.press.value+MS8607.press.offset);
+		if(DPS368.present && DPS368.sensor_use && DPS368.press.use_meas) printf("%.2f;",DPS368.press.value+DPS368.press.offset);
 
-		if(BME280.present && BME280.sensor_use && BME280.hum.use_meas) printf("%.2f;",BME280.hum.value);
-		if(SHT3.present && SHT3.sensor_use && SHT3.hum.use_meas) printf("%.2f;",SHT3.hum.value);
-		if(MS8607.present && MS8607.sensor_use && MS8607.hum.use_meas) printf("%.2f;",MS8607.hum.value);
+		if(BME280.present && BME280.sensor_use && BME280.hum.use_meas) printf("%.2f;",BME280.hum.value+BME280.hum.offset);
+		if(SHT3.present && SHT3.sensor_use && SHT3.hum.use_meas) printf("%.2f;",SHT3.hum.value+SHT3.hum.offset);
+		if(MS8607.present && MS8607.sensor_use && MS8607.hum.use_meas) printf("%.2f;",MS8607.hum.value+MS8607.hum.offset);
 		printf("\r\n");
-
 		break;
 
 	default:
 		break;
 	}
 
+}
+
+void getConfVars()
+{
+	  TMP117.sensor_use = config.TMP117_use;
+	  SHT3.sensor_use = config.SHT3_use;
+	  MS8607.sensor_use = config.MS8607_use;
+	  BME280.sensor_use = config.BME280_use;
+	  DPS368.sensor_use = config.DPS368_use;
+
+	  TMP117.temp.use_meas = config.TMP117_t_use;
+	  TMP117.temp.offset = config.TMP117_t_offset;
+	  BME280.temp.use_meas = config.BME280_t_use;
+	  BME280.temp.offset = config.BME280_t_offset;
+	  SHT3.temp.use_meas = config.SHT3_t_use;
+	  SHT3.temp.offset = config.SHT3_t_offset;
+	  MS8607.temp.use_meas = config.MS8607_t_use;
+	  MS8607.temp.offset = config.MS8607_t_offset;
+	  DPS368.temp.use_meas = config.DPS368_t_use;
+	  DPS368.temp.offset = config.DPS368_t_offset;
+
+	  BME280.press.use_meas = config.BME280_p_use;
+	  BME280.press.offset = config.BME280_p_offset;
+	  MS8607.press.use_meas = config.MS8607_p_use;
+	  MS8607.press.offset = config.MS8607_p_offset;
+	  DPS368.press.use_meas = config.DPS368_p_use;
+	  DPS368.press.offset = config.DPS368_p_offset;
+
+	  BME280.hum.use_meas = config.BME280_h_use;
+	  BME280.hum.offset = config.BME280_h_offset;
+	  SHT3.hum.use_meas = config.SHT3_h_use;
+	  SHT3.hum.offset = config.SHT3_h_offset;
+	  MS8607.hum.use_meas = config.MS8607_h_use;
+	  MS8607.hum.offset = config.MS8607_h_offset;
 }

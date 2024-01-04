@@ -1,15 +1,15 @@
 TODO:
 
-1. dodanie offsetów do wyników (właściwie do wyświetlania wyników bo w zmiennych przechowujemy wynik pomiaru i offset czyli prawidłową wartość mamy z czego policzyć
+1. dodanie offsetów do wyników (właściwie do wyświetlania wyników bo w zmiennych przechowujemy wynik pomiaru i offset czyli prawidłową wartość mamy z czego policzyć - DONE
 
 2. CLI - komendy:
 
 Teraz sterowanie pomiarem na wzór tego co robiłeś, ale po nowemu czyli :
-- start meas XX FORMAT - XX to ilość pomiarów, format to format TXT/CSV
-- start meas continue (z defaulta wypisuje pomiary)
-- meas silent 1/0 (wypisuje, nie wypisuje pomiarów)
-- dodatkowo status, status ładowarki
-- no i help 🙂
+- start meas XX FORMAT - XX to ilość pomiarów, format to format TXT/CSV - DONE
+- start meas continue (z defaulta wypisuje pomiary) - DONE
+- meas silent 1/0 (wypisuje, nie wypisuje pomiarów) - załatwione przez disptype 0 - DONE
+- dodatkowo status, status ładowarki - DONE
+- no i help 🙂 - DONE
 
 3. Wdrożenie zmiany konfiguracji a właściwie predefiniowanych konfigów
 Czyli na podstawie 4 bitów w XXX_t_conf	:4; robimy predefinicje.

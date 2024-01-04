@@ -178,37 +178,7 @@ int main(void)
   DPS368_init(FIFO_DIS, INT_NONE);
 
 
-  TMP117.sensor_use = config.TMP117_use;
-  SHT3.sensor_use = config.SHT3_use;
-  MS8607.sensor_use = config.MS8607_use;
-  BME280.sensor_use = config.BME280_use;
-  DPS368.sensor_use = config.DPS368_use;
-
-  TMP117.temp.use_meas = config.TMP117_t_use;
-  TMP117.temp.offset = config.TMP117_t_offset;
-  BME280.temp.use_meas = config.BME280_t_use;
-  BME280.temp.offset = config.BME280_t_offset;
-  SHT3.temp.use_meas = config.SHT3_t_use;
-  SHT3.temp.offset = config.SHT3_t_offset;
-  MS8607.temp.use_meas = config.MS8607_t_use;
-  MS8607.temp.offset = config.MS8607_t_offset;
-  DPS368.temp.use_meas = config.DPS368_t_use;
-  DPS368.temp.offset = config.DPS368_t_offset;
-
-  BME280.press.use_meas = config.BME280_p_use;
-  BME280.press.offset = config.BME280_p_offset;
-  MS8607.press.use_meas = config.MS8607_p_use;
-  MS8607.press.offset = config.MS8607_p_offset;
-  DPS368.press.use_meas = config.DPS368_p_use;
-  DPS368.press.offset = config.DPS368_p_offset;
-
-  BME280.hum.use_meas = config.BME280_h_use;
-  BME280.hum.offset = config.BME280_h_offset;
-  SHT3.hum.use_meas = config.SHT3_h_use;
-  SHT3.hum.offset = config.SHT3_h_offset;
-  MS8607.hum.use_meas = config.MS8607_h_use;
-  MS8607.hum.offset = config.MS8607_h_offset;
-
+  getConfVars();
 
   disp_type = config.disp_type;
 
@@ -293,7 +263,7 @@ int main(void)
 			  ticks_meas = HAL_GetTick();
 			  dps_ticks_meas = HAL_GetTick();
 			  meas_start = 0;
-			  if(disp_type != 2) {
+			  if(disp_type == 1) {
 				  printf("Komenda startu pomiarow wyslana\r\n");
 				  printf("Meas interval: %u\r\n", tim_interval);
 			  }

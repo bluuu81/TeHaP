@@ -20,6 +20,7 @@ uint16_t Crc16_up(uint16_t crc, uint8_t data);
 void Calc_config_crc(void);
 uint8_t Load_config(void);
 void Load_defaults();
+void EEPROM_Print_config();
 uint8_t Save_config(void);
 
 
