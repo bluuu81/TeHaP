@@ -9,3 +9,51 @@ Dla TMP117 są 4 ustawienia
 Wdrożone :) w CLI też i jest w helpie.
 
 Dla SHTC3 przyjmujemy:
+0 - normalny pomiar
+1 - low power
+
+w przypadku SHTC3 różnica jest w w komendach, trzeba zatem zrobić translator :)
+
+Dla BME280 przyjmujemy:
+Przyjmujemy ten sam oversampling dla temperatury, ciśnienia i wilgotności, do zmiennych dochodzi jeszcze IIR ale tylko parę ustawień damy:
+0 - oversampling x1, IIR 0
+1 - oversampling x2, IIR 0
+2 - oversampling x4, IIR 0
+3 - oversampling x8, IIR 0
+4 - oversampling x16, IIR 0
+
+5 - oversampling x1, IIR 2
+6 - oversampling x2, IIR 2
+7 - oversampling x4, IIR 2
+8 - oversampling x8, IIR 2
+9 - oversampling x16, IIR 2
+
+10 - oversampling x1, IIR 4
+11 - oversampling x2, IIR 4
+12 - oversampling x4, IIR 4
+13 - oversampling x8, IIR 4
+14 - oversampling x16, IIR 4
+
+Dla MS8607 przyjmujemy:
+Podobnie jak wcześniej przyjmujemy ten sam oversampling dla temperatury i ciśnienia, wilgotnosci sie nie ustawia:
+
+0 - OSR 256
+1 - OSR 512
+2 - OSR 1024
+3 - OSR 2048
+4 - OSR 4096
+5 - OSR 8192
+
+Dla wilgotności jest tylko ilość bitów ... przy czym jeszcze nie bardzo wiem gdzie i jak ....
+
+Dla DPS368 przyjmujemy podobnie, czyli na raz temperatura i cisnienie:
+0 - OVR 1
+1 - OVR 2
+2 - OVR 4
+3 - OVR 8
+4 - OVR 16
+5 - OVR 32
+6 - OVR 64
+7 - OVR 128
+
+
