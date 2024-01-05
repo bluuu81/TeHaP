@@ -75,6 +75,8 @@ uint16_t meas_count = 10;
 uint8_t meas_cont_mode = 1;
 
 uint16_t tmp117_avr;
+uint8_t dps368_ovr;
+uint8_t sht3_mode;
 
 
 
@@ -177,13 +179,20 @@ int main(void)
   DPS368.present = DPS368_check();
 
   BME280_init_config(1, BMP280_STANDARD, BMP280_STANDARD, BMP280_STANDARD, BMP280_FILTER_OFF);
-  DPS368_init(FIFO_DIS, INT_NONE);
 
 
   getConfVars();
 
   tmp117_avr=tmp117_avr_conf(TMP117.temp.sensor_conf);
 //  printf("TMP117 conf var %x\r\n", tmp117_avr);
+  dps368_ovr=dps368_ovr_conf(DPS368.temp.sensor_conf);
+  printf("DPS368 conf var %x\r\n", dps368_ovr);
+  DPS368_init(FIFO_DIS, INT_NONE);
+  DPS368_temp_correct(dps368_ovr);
+
+  sht3_mode=SHT3.temp.sensor_conf;
+  if(sht3_mode==normal) printf("SHTC3 normal mode\r\n");
+  else printf("SHTC3 low power mode\r\n");
 
   disp_type = config.disp_type;
 
@@ -251,14 +260,14 @@ int main(void)
 			  }
 			  if(SHT3.present){
 				  if(SHT3.sensor_use && (SHT3.temp.use_meas || SHT3.hum.use_meas)) {
-					  SHTC3_start_meas(normal);
+					  SHTC3_start_meas(sht3_mode);
 					  meas_time += 100;
 				  }
 			  }
 			  if(DPS368.present){
 				  if(DPS368.sensor_use && (DPS368.temp.use_meas || DPS368.press.use_meas)) {
-					  DPS368_start_meas_temp(0);
-					  meas_time += calcBusyTime(0);
+					  DPS368_start_meas_temp(dps368_ovr);
+					  meas_time += calcBusyTime(dps368_ovr);
 					  if (DPS368.press.use_meas) {
 						  dps368_press = 1;
 					  }
@@ -339,8 +348,8 @@ int main(void)
 
 
 		  if(dps368_press) {
-			  DPS368_start_meas_press(0);
-			  dps_meas_time = calcBusyTime(0);
+			  DPS368_start_meas_press(dps368_ovr);
+			  dps_meas_time = calcBusyTime(dps368_ovr);
 			  dps368_press = 0;
 			  dps368_press_ready = 1;
 		  }

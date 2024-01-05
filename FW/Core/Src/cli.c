@@ -29,7 +29,10 @@ extern uint16_t new_tim_interval;
 extern uint8_t disp_type;
 extern uint16_t meas_count;
 extern uint8_t meas_cont_mode;
+
 extern uint16_t tmp117_avr;
+extern uint8_t dps368_ovr;
+extern uint8_t sht3_mode;
 
 uint16_t csvcnt;
 
@@ -283,6 +286,16 @@ void CLI_proc(char ch)
 					            config.SHT3_t_offset = tmp;
 					            SHT3.temp.offset = tmp;
 					            printf("SHTC3 temperature offset %.6f\r\n",tmp);
+								Save_config();
+							}
+							if((strstr(clibuf+22, "conf ")))
+							{
+								int32_t tmp = -1;
+					            getval(clibuf+27, &tmp, 0, 1);
+					            config.SHT3_t_conf = tmp;
+					            SHT3.temp.sensor_conf = tmp;
+					            sht3_mode=tmp;
+					            printf("SHT3 temperature config %li\r\n",tmp);
 								Save_config();
 							}
 							if((strstr(clibuf+22, "en")))
@@ -579,6 +592,17 @@ void CLI_proc(char ch)
 					            config.DPS368_t_offset = tmp;
 					            DPS368.temp.offset = tmp;
 					            printf("DPS368 temperature offset %.6f\r\n",tmp);
+								Save_config();
+							}
+							if((strstr(clibuf+23, "conf ")))
+							{
+								int32_t tmp = -1;
+					            getval(clibuf+28, &tmp, 0, 7);
+					            config.DPS368_t_conf = tmp;
+					            DPS368.temp.sensor_conf = tmp;
+					            dps368_ovr=dps368_ovr_conf(DPS368.temp.sensor_conf);
+					            DPS368_temp_correct(dps368_ovr);
+					            printf("DPS368 temperature config %li\r\n",tmp);
 								Save_config();
 							}
 							if((strstr(clibuf+23, "en")))

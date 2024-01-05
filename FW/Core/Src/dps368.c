@@ -181,7 +181,7 @@ void DPS368_conf_temp(uint8_t ovr, uint8_t rate)
 //    printf("Kt_coef set: %lu\r\n",Kt_coef);
 
    	HAL_I2C_Mem_Read(&hi2c2, DPS368_ADDR, DPS368_CFG, I2C_MEMADD_SIZE_8BIT, &reg, 1, 250);
-    if(ovr > DPS_OSR_SF_8) setBit(&reg, 3, 1);
+    if(ovr > DPS_OVERSAMPLE_8) setBit(&reg, 3, 1);
     else setBit(&reg, 3, 0);
    	HAL_I2C_Mem_Write(&hi2c2, DPS368_ADDR, DPS368_CFG, I2C_MEMADD_SIZE_8BIT, &reg, 1, 250);
 
@@ -233,7 +233,7 @@ void DPS368_conf_press(uint8_t ovr, uint8_t rate)
 //    printf("Kp_coef set: %lu\r\n",Kp_coef);
 
    	HAL_I2C_Mem_Read(&hi2c2, DPS368_ADDR, DPS368_CFG, I2C_MEMADD_SIZE_8BIT, &reg, 1, 250);
-    if(ovr > DPS_OSR_SF_8) setBit(&reg, 2, 1);
+    if(ovr > DPS_OVERSAMPLE_8) setBit(&reg, 2, 1);
     else setBit(&reg, 2, 0);
    	HAL_I2C_Mem_Write(&hi2c2, DPS368_ADDR, DPS368_CFG, I2C_MEMADD_SIZE_8BIT, &reg, 1, 250);
 
@@ -250,7 +250,7 @@ void DPS368_clearFIFO(uint8_t mode)
 
 }
 
-void DPS368_temp_correct()
+void DPS368_temp_correct(uint8_t ovr)
 {
 	SET_DPS368();
 	HAL_StatusTypeDef status;
@@ -272,7 +272,7 @@ void DPS368_temp_correct()
         write_data = 0x00;
     	status = HAL_I2C_Mem_Write(&hi2c2, DPS368_ADDR, 0x0F, I2C_MEMADD_SIZE_8BIT, &write_data, 1, 250);
 	}
-	DPS368_conf_temp(DPS_OVERSAMPLE_1, DPS_RATE_1);
+	DPS368_conf_temp(ovr, DPS_RATE_1);
 	DPS368_run_mode(MODE_CMD_TEMP);
 
 }
@@ -386,7 +386,6 @@ void DPS368_init(uint8_t fifo, uint8_t int_m)
 	DPS368_conf_int(int_m);
 	DPS368_fifo(fifo);
 	DPS368_run_mode(MODE_IDLE);
-	DPS368_temp_correct();
 }
 
 void DPS368_start_meas_temp(uint8_t ovr)
@@ -461,4 +460,38 @@ float DPS368_get_press(float temp_scaled)
 	pressure += (temp_scaled * press_scaled * (DPS_coef.C11 + press_scaled * DPS_coef.C21));
 //	return pressure *0.01f;
 	return pressure;
+}
+
+uint16_t dps368_ovr_conf(uint8_t sensor_conf)
+{
+    switch (sensor_conf) {
+        case 0:
+        	printf("DPS368 set Oversample x1\r\n");
+            return DPS_OVERSAMPLE_1;
+        case 1:
+        	printf("DPS368 set Oversample x2\r\n");
+            return DPS_OVERSAMPLE_2;
+        case 2:
+        	printf("DPS368 set Oversample x4\r\n");
+            return DPS_OVERSAMPLE_4;
+        case 3:
+        	printf("DPS368 set Oversample x8\r\n");
+            return DPS_OVERSAMPLE_8;
+        case 4:
+        	printf("DPS368 set Oversample x16\r\n");
+            return DPS_OVERSAMPLE_16;
+        case 5:
+        	printf("DPS368 set Oversample x32\r\n");
+            return DPS_OVERSAMPLE_32;
+        case 6:
+        	printf("DPS368 set Oversample x64\r\n");
+            return DPS_OVERSAMPLE_64;
+        case 7:
+        	printf("DPS368 set Oversample x128\r\n");
+            return DPS_OVERSAMPLE_128;
+
+        default:
+        	printf("DPS368 set Oversample x1\r\n");
+            return DPS_OVERSAMPLE_1;
+    }
 }

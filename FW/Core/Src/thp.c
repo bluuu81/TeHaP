@@ -219,10 +219,14 @@ void getConfVars()
 	  BME280.temp.offset = config.BME280_t_offset;
 	  SHT3.temp.use_meas = config.SHT3_t_use;
 	  SHT3.temp.offset = config.SHT3_t_offset;
+	  SHT3.temp.sensor_conf = config.SHT3_t_conf;
+
 	  MS8607.temp.use_meas = config.MS8607_t_use;
 	  MS8607.temp.offset = config.MS8607_t_offset;
+
 	  DPS368.temp.use_meas = config.DPS368_t_use;
 	  DPS368.temp.offset = config.DPS368_t_offset;
+	  DPS368.temp.sensor_conf = config.DPS368_t_conf;
 
 	  BME280.press.use_meas = config.BME280_p_use;
 	  BME280.press.offset = config.BME280_p_offset;

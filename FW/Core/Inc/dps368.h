@@ -123,7 +123,7 @@ void DPS368_conf_int(uint8_t ints);
 void DPS368_temp_source();
 void DPS368_conf_temp(uint8_t ovr, uint8_t rate);
 void DPS368_conf_press(uint8_t ovr, uint8_t rate);
-void DPS368_temp_correct();
+void DPS368_temp_correct(uint8_t ovr);
 void DPS368_run_mode(uint8_t mode);
 uint8_t DPS368_temp_rdy();
 uint8_t DPS368_press_rdy();
@@ -137,4 +137,5 @@ float DPS368_calc_temp(float temp_scaled);
 float DPS368_get_temp();
 float DPS368_get_press(float temp_scaled);
 uint32_t calcBusyTime(uint8_t ovr);
+uint16_t dps368_ovr_conf(uint8_t sensor_conf);
 #endif /* INC_DPS368_H_ */

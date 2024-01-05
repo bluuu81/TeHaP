@@ -4,15 +4,6 @@ TODO:
 Czyli na podstawie 4 bitów w XXX_t_conf	:4; robimy predefinicje.
 4 bity czyli mamy 16 możliwych ustawień 0..15
 
-Dla TMP117 są 4 ustawienia
-
-Wdrożone :) w CLI też i jest w helpie.
-
-Dla SHTC3 przyjmujemy:
-0 - normalny pomiar
-1 - low power
-
-w przypadku SHTC3 różnica jest w w komendach, trzeba zatem zrobić translator :)
 
 Dla BME280 przyjmujemy:
 Przyjmujemy ten sam oversampling dla temperatury, ciśnienia i wilgotności, do zmiennych dochodzi jeszcze IIR ale tylko parę ustawień damy:
@@ -46,14 +37,5 @@ Podobnie jak wcześniej przyjmujemy ten sam oversampling dla temperatury i ciśn
 
 Dla wilgotności jest tylko ilość bitów ... przy czym jeszcze nie bardzo wiem gdzie i jak ....
 
-Dla DPS368 przyjmujemy podobnie, czyli na raz temperatura i cisnienie:
-0 - OVR 1
-1 - OVR 2
-2 - OVR 4
-3 - OVR 8
-4 - OVR 16
-5 - OVR 32
-6 - OVR 64
-7 - OVR 128
 
 
