@@ -153,5 +153,6 @@ float BME280_get_temp();
 float BME280_get_press();
 float BME280_get_hum();
 void BME280_start_meas();
+void bme280_conf_change(uint8_t conf);
 
 #endif /* INC_THP_SENSORS_H_ */

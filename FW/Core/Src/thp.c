@@ -217,6 +217,8 @@ void getConfVars()
 
 	  BME280.temp.use_meas = config.BME280_t_use;
 	  BME280.temp.offset = config.BME280_t_offset;
+	  BME280.temp.sensor_conf = config.BME280_t_conf;
+
 	  SHT3.temp.use_meas = config.SHT3_t_use;
 	  SHT3.temp.offset = config.SHT3_t_offset;
 	  SHT3.temp.sensor_conf = config.SHT3_t_conf;

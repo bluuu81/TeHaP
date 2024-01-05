@@ -5,26 +5,6 @@ Czyli na podstawie 4 bitów w XXX_t_conf	:4; robimy predefinicje.
 4 bity czyli mamy 16 możliwych ustawień 0..15
 
 
-Dla BME280 przyjmujemy:
-Przyjmujemy ten sam oversampling dla temperatury, ciśnienia i wilgotności, do zmiennych dochodzi jeszcze IIR ale tylko parę ustawień damy:
-0 - oversampling x1, IIR 0
-1 - oversampling x2, IIR 0
-2 - oversampling x4, IIR 0
-3 - oversampling x8, IIR 0
-4 - oversampling x16, IIR 0
-
-5 - oversampling x1, IIR 2
-6 - oversampling x2, IIR 2
-7 - oversampling x4, IIR 2
-8 - oversampling x8, IIR 2
-9 - oversampling x16, IIR 2
-
-10 - oversampling x1, IIR 4
-11 - oversampling x2, IIR 4
-12 - oversampling x4, IIR 4
-13 - oversampling x8, IIR 4
-14 - oversampling x16, IIR 4
-
 Dla MS8607 przyjmujemy:
 Podobnie jak wcześniej przyjmujemy ten sam oversampling dla temperatury i ciśnienia, wilgotnosci sie nie ustawia:
 
@@ -37,5 +17,9 @@ Podobnie jak wcześniej przyjmujemy ten sam oversampling dla temperatury i ciśn
 
 Dla wilgotności jest tylko ilość bitów ... przy czym jeszcze nie bardzo wiem gdzie i jak ....
 
+
+4. ZMiana w strukturach (dla uproszczenia), zamiast kolejnych XXX.[temp/press/hum].sensor_conf robimy jedną zmienną dla całego czujnika
+czyli coś XXX.sensor_conf :4
+Do zmiany struktury czujników, eepromu i do zmiany ta pozycja w CLI
 
 

@@ -422,3 +422,55 @@ void BME280_start_meas()
 	SET_BME280();
 	if(!bmp280_force_measurement(&bmp280)) printf("Komenda w BME280 niewykonana\r\n");
 }
+
+void bme280_conf_change(uint8_t sensor_conf)
+{
+    switch (sensor_conf) {
+        case 0:
+        	BME280_init_config(1, BMP280_ULTRA_LOW_POWER, BMP280_ULTRA_LOW_POWER, BMP280_ULTRA_LOW_POWER, BMP280_FILTER_OFF);
+        	printf("BME280 set x1, no IIR\r\n");
+            return;
+        case 1:
+        	BME280_init_config(1, BMP280_LOW_POWER, BMP280_LOW_POWER, BMP280_LOW_POWER, BMP280_FILTER_OFF);
+        	printf("BME280 set x2, no IIR\r\n");
+            return;
+        case 2:
+        	BME280_init_config(1, BMP280_STANDARD, BMP280_STANDARD, BMP280_STANDARD, BMP280_FILTER_OFF);
+        	printf("BME280 set x4, no IIR\r\n");
+            return;
+        case 3:
+        	BME280_init_config(1, BMP280_HIGH_RES, BMP280_HIGH_RES, BMP280_HIGH_RES, BMP280_FILTER_OFF);
+        	printf("BME280 set x8, no IIR\r\n");
+            return;
+        case 4:
+        	BME280_init_config(1, BMP280_ULTRA_HIGH_RES, BMP280_ULTRA_HIGH_RES, BMP280_ULTRA_HIGH_RES, BMP280_FILTER_OFF);
+        	printf("BME280 set x16, no IIR\r\n");
+            return;
+        case 5:
+        	BME280_init_config(1, BMP280_ULTRA_LOW_POWER, BMP280_ULTRA_LOW_POWER, BMP280_ULTRA_LOW_POWER, BMP280_FILTER_2);
+        	printf("BME280 set x1, no IIR\r\n");
+            return;
+        case 6:
+        	BME280_init_config(1, BMP280_LOW_POWER, BMP280_LOW_POWER, BMP280_LOW_POWER, BMP280_FILTER_2);
+        	printf("BME280 set x2, no IIR\r\n");
+            return;
+        case 7:
+        	BME280_init_config(1, BMP280_STANDARD, BMP280_STANDARD, BMP280_STANDARD, BMP280_FILTER_2);
+        	printf("BME280 set x4, no IIR\r\n");
+            return;
+        case 8:
+        	BME280_init_config(1, BMP280_HIGH_RES, BMP280_HIGH_RES, BMP280_HIGH_RES, BMP280_FILTER_2);
+        	printf("BME280 set x8, no IIR\r\n");
+            return;
+        case 9:
+        	BME280_init_config(1, BMP280_ULTRA_HIGH_RES, BMP280_ULTRA_HIGH_RES, BMP280_ULTRA_HIGH_RES, BMP280_FILTER_2);
+        	printf("BME280 set x16, no IIR\r\n");
+            return;
+
+        default:
+        	BME280_init_config(1, BMP280_STANDARD, BMP280_STANDARD, BMP280_STANDARD, BMP280_FILTER_OFF);
+        	printf("TMP117 set no_avg\r\n");
+            return ;
+    }
+
+}

@@ -486,6 +486,15 @@ void CLI_proc(char ch)
 					            printf("BME280 temperature offset %.6f\r\n",tmp);
 								Save_config();
 							}
+							if((strstr(clibuf+23, "conf ")))
+							{
+								int32_t tmp = -1;
+					            getval(clibuf+28, &tmp, 0, 9);
+					            config.BME280_t_conf = tmp;
+					            BME280.temp.sensor_conf = tmp;
+					            bme280_conf_change(tmp);
+								Save_config();
+							}
 							if((strstr(clibuf+23, "en")))
 							{
 								config.BME280_t_use = 1;
