@@ -215,6 +215,16 @@ void CLI_proc(char ch)
 						printf("TMP117 sensor disabled\r\n");
 						Save_config();
 					}
+					if((p = find("conf ")))
+					{
+						int32_t tmp = -1;
+						getval(clibuf+16, &tmp, 0, 3);
+						config.TMP117_conf = tmp;
+						TMP117.sensor_conf = tmp;
+						tmp117_avr=tmp117_avr_conf(TMP117.sensor_conf);
+						printf("TMP117 temperature config %li\r\n",tmp);
+						Save_config();
+					}
 					if((p = find("temperature ")))
 					{
 						if(p == clibuf+23)
@@ -226,16 +236,6 @@ void CLI_proc(char ch)
 					            config.TMP117_t_offset = tmp;
 					            TMP117.temp.offset = tmp;
 					            printf("TMP117 temperature offset %.6f\r\n",tmp);
-								Save_config();
-							}
-							if((strstr(clibuf+23, "conf ")))
-							{
-								int32_t tmp = -1;
-					            getval(clibuf+28, &tmp, 0, 3);
-					            config.TMP117_t_conf = tmp;
-					            TMP117.temp.sensor_conf = tmp;
-					            tmp117_avr=tmp117_avr_conf(TMP117.temp.sensor_conf);
-					            printf("TMP117 temperature config %li\r\n",tmp);
 								Save_config();
 							}
 							if((strstr(clibuf+23, "en")))
@@ -275,6 +275,16 @@ void CLI_proc(char ch)
 						printf("SHTC3 sensor disabled\r\n");
 						Save_config();
 					}
+					if((p = find("conf ")))
+					{
+						int32_t tmp = -1;
+			            getval(clibuf+15, &tmp, 0, 1);
+			            config.SHT3_conf = tmp;
+			            SHT3.sensor_conf = tmp;
+			            sht3_mode=tmp;
+			            printf("SHT3 temperature config %li\r\n",tmp);
+						Save_config();
+					}
 					if((p = find("temperature ")))
 					{
 						if(p == clibuf+22)
@@ -286,16 +296,6 @@ void CLI_proc(char ch)
 					            config.SHT3_t_offset = tmp;
 					            SHT3.temp.offset = tmp;
 					            printf("SHTC3 temperature offset %.6f\r\n",tmp);
-								Save_config();
-							}
-							if((strstr(clibuf+22, "conf ")))
-							{
-								int32_t tmp = -1;
-					            getval(clibuf+27, &tmp, 0, 1);
-					            config.SHT3_t_conf = tmp;
-					            SHT3.temp.sensor_conf = tmp;
-					            sht3_mode=tmp;
-					            printf("SHT3 temperature config %li\r\n",tmp);
 								Save_config();
 							}
 							if((strstr(clibuf+22, "en")))
@@ -473,6 +473,15 @@ void CLI_proc(char ch)
 						printf("BME280 sensor disabled\r\n");
 						Save_config();
 					}
+					if((p = find("conf ")))
+					{
+						int32_t tmp = -1;
+			            getval(clibuf+16, &tmp, 0, 9);
+			            config.BME280_conf = tmp;
+			            BME280.sensor_conf = tmp;
+			            bme280_conf_change(tmp);
+						Save_config();
+					}
 					if((p = find("temperature ")))
 					{
 						if(p == clibuf+23)
@@ -484,15 +493,6 @@ void CLI_proc(char ch)
 					            config.BME280_t_offset = tmp;
 					            BME280.temp.offset = tmp;
 					            printf("BME280 temperature offset %.6f\r\n",tmp);
-								Save_config();
-							}
-							if((strstr(clibuf+23, "conf ")))
-							{
-								int32_t tmp = -1;
-					            getval(clibuf+28, &tmp, 0, 9);
-					            config.BME280_t_conf = tmp;
-					            BME280.temp.sensor_conf = tmp;
-					            bme280_conf_change(tmp);
 								Save_config();
 							}
 							if((strstr(clibuf+23, "en")))
@@ -590,6 +590,17 @@ void CLI_proc(char ch)
 						printf("DPS368 sensor disabled\r\n");
 						Save_config();
 					}
+					if((p = find("conf ")))
+					{
+						int32_t tmp = -1;
+			            getval(clibuf+16, &tmp, 0, 7);
+			            config.DPS368_conf = tmp;
+			            DPS368.sensor_conf = tmp;
+			            dps368_ovr=dps368_ovr_conf(DPS368.sensor_conf);
+			            DPS368_temp_correct(dps368_ovr);
+			            printf("DPS368 temperature config %li\r\n",tmp);
+						Save_config();
+					}
 					if((p = find("temperature ")))
 					{
 						if(p == clibuf+23)
@@ -601,17 +612,6 @@ void CLI_proc(char ch)
 					            config.DPS368_t_offset = tmp;
 					            DPS368.temp.offset = tmp;
 					            printf("DPS368 temperature offset %.6f\r\n",tmp);
-								Save_config();
-							}
-							if((strstr(clibuf+23, "conf ")))
-							{
-								int32_t tmp = -1;
-					            getval(clibuf+28, &tmp, 0, 7);
-					            config.DPS368_t_conf = tmp;
-					            DPS368.temp.sensor_conf = tmp;
-					            dps368_ovr=dps368_ovr_conf(DPS368.temp.sensor_conf);
-					            DPS368_temp_correct(dps368_ovr);
-					            printf("DPS368 temperature config %li\r\n",tmp);
 								Save_config();
 							}
 							if((strstr(clibuf+23, "en")))
@@ -937,7 +937,7 @@ void print_help()
 	printf("set [sensor] [type] en - type=[temperature;press;hum] - enable sensor type\r\n");
 	printf("set [sensor] [type] dis - type=[temperature;press;hum] - disable sensor type\r\n");
 	printf("set [sensor] [type] offset X.X - set offset [X.X float]\r\n");
-	printf("set [sensor] [type] conf Y - set sensor config [Y - 0..15]\r\n");
+	printf("set [sensor] conf Y - set sensor config [Y - 0..15]\r\n");
 	printf("-----------------\r\n");
 
 	printf("CONFIG COMMANDS:\r\n");

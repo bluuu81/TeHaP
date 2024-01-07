@@ -180,18 +180,18 @@ int main(void)
 
   getConfVars();
 
-  tmp117_avr=tmp117_avr_conf(TMP117.temp.sensor_conf);
+  tmp117_avr=tmp117_avr_conf(TMP117.sensor_conf);
 //  printf("TMP117 conf var %x\r\n", tmp117_avr);
-  dps368_ovr=dps368_ovr_conf(DPS368.temp.sensor_conf);
+  dps368_ovr=dps368_ovr_conf(DPS368.sensor_conf);
   printf("DPS368 conf var %x\r\n", dps368_ovr);
   DPS368_init(FIFO_DIS, INT_NONE);
   DPS368_temp_correct(dps368_ovr);
 
-  sht3_mode=SHT3.temp.sensor_conf;
+  sht3_mode=SHT3.sensor_conf;
   if(sht3_mode==normal) printf("SHTC3 normal mode\r\n");
   else printf("SHTC3 low power mode\r\n");
 
-  bme280_conf_change(BME280.temp.sensor_conf);
+  bme280_conf_change(BME280.sensor_conf);
 
   disp_type = config.disp_type;
 

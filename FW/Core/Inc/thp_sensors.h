@@ -59,7 +59,6 @@ enum SHTC3_mod	{normal = 0, lp = 1 };
 typedef struct {
 	uint8_t use_meas		:1;
 	uint8_t anomaly			:1;
-	uint8_t sensor_conf		:4;
 	uint8_t uu				:2;
 	float	value;
 	float	offset;
@@ -69,6 +68,7 @@ typedef struct {
 typedef struct {
 	uint8_t present			:1;
 	uint8_t sensor_use		:1;
+	uint8_t sensor_conf		:4;
 	MEAS_struct_t	temp;
 	uint32_t meas_timestamp;
 	uint8_t uu				:2;
@@ -77,6 +77,7 @@ typedef struct {
 typedef struct {
 	uint8_t present			:1;
 	uint8_t sensor_use		:1;
+	uint8_t sensor_conf		:4;
 	MEAS_struct_t	temp;
 	MEAS_struct_t	hum;
 	uint32_t meas_timestamp;
@@ -86,6 +87,7 @@ typedef struct {
 typedef struct {
 	uint8_t present			:1;
 	uint8_t sensor_use		:1;
+	uint8_t sensor_conf		:4;
 	MEAS_struct_t	temp;
 	MEAS_struct_t	hum;
 	MEAS_struct_t	press;
@@ -96,6 +98,7 @@ typedef struct {
 typedef struct {
 	uint8_t present			:1;
 	uint8_t sensor_use		:1;
+	uint8_t sensor_conf		:4;
 	MEAS_struct_t	temp;
 	MEAS_struct_t	hum;
 	MEAS_struct_t	press;
@@ -106,6 +109,7 @@ typedef struct {
 typedef struct {
 	uint8_t present			:1;
 	uint8_t sensor_use		:1;
+	uint8_t sensor_conf		:4;
 	MEAS_struct_t	temp;
 	MEAS_struct_t	press;
 	uint32_t meas_timestamp;

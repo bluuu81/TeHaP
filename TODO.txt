@@ -17,9 +17,8 @@ Podobnie jak wcześniej przyjmujemy ten sam oversampling dla temperatury i ciśn
 
 Dla wilgotności jest tylko ilość bitów ... przy czym jeszcze nie bardzo wiem gdzie i jak ....
 
-
-4. ZMiana w strukturach (dla uproszczenia), zamiast kolejnych XXX.[temp/press/hum].sensor_conf robimy jedną zmienną dla całego czujnika
-czyli coś XXX.sensor_conf :4
-Do zmiany struktury czujników, eepromu i do zmiany ta pozycja w CLI
+Moduł GSM i GPS
+1. Inicjalizacja SIM868
+2. Uruchomienie GPS
 
 
