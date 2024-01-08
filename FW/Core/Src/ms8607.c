@@ -176,6 +176,12 @@ void ms8607_init(void)
  *       - true : Device is present
  *       - false : Device is not acknowledging I2C address
   */
+void MS8607_osr(uint8_t osr)
+{
+	psensor_resolution_osr = osr;
+	i2c_master_init();
+}
+
 bool ms8607_is_connected(void)
 {
 	return (hsensor_is_connected() && psensor_is_connected());

@@ -1,24 +1,15 @@
 TODO:
 
-3. Wdrożenie zmiany konfiguracji a właściwie predefiniowanych konfigów
-Czyli na podstawie 4 bitów w XXX_t_conf	:4; robimy predefinicje.
-4 bity czyli mamy 16 możliwych ustawień 0..15
-
-
-Dla MS8607 przyjmujemy:
-Podobnie jak wcześniej przyjmujemy ten sam oversampling dla temperatury i ciśnienia, wilgotnosci sie nie ustawia:
-
-0 - OSR 256
-1 - OSR 512
-2 - OSR 1024
-3 - OSR 2048
-4 - OSR 4096
-5 - OSR 8192
-
-Dla wilgotności jest tylko ilość bitów ... przy czym jeszcze nie bardzo wiem gdzie i jak ....
 
 Moduł GSM i GPS
 1. Inicjalizacja SIM868
 2. Uruchomienie GPS
+
+3. Nawiązywanie połączenia GPRS
+4. Sprawdzenie działania MQTT
+5. Struktury danych (Dane pomiarowe, konfig etc.)
+6. Komendy sterujące
+7. Zabezpieczenia
+
 
 

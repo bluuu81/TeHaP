@@ -36,6 +36,7 @@ extern "C" {
 #include "thp_sensors.h"
 #include "bq25798.h"
 #include "bmp280.h"
+#include "ms8607.h"
 #include "dps368.h"
 #include "adc.h"
 #include "cli.h"

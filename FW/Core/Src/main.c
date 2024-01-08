@@ -193,6 +193,31 @@ int main(void)
 
   bme280_conf_change(BME280.sensor_conf);
 
+  MS8607_osr(MS8607.sensor_conf);
+  switch (MS8607.sensor_conf)
+  {
+  	  case 0:
+  		printf("MS8607 OSR 256\r\n");
+  		break;
+  	  case 1:
+  		printf("MS8607 OSR 512\r\n");
+  		break;
+  	  case 2:
+  		printf("MS8607 OSR 1024\r\n");
+  		break;
+  	  case 3:
+  		printf("MS8607 OSR 2048\r\n");
+  		break;
+  	  case 4:
+  		printf("MS8607 OSR 4096\r\n");
+  		break;
+  	  case 5:
+  		printf("MS8607 OSR 8192\r\n");
+  		break;
+  	  default:
+  		break;
+  }
+
   disp_type = config.disp_type;
 
   new_tim_interval = config.tim_interval; //w sekundach

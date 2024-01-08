@@ -72,6 +72,9 @@ void ms8607_init(void);
  *       - true : Device is present
  *       - false : Device is not acknowledging I2C address
   */
+
+void MS8607_osr(uint8_t osr);
+
 bool ms8607_is_connected(void);
 
 /**

@@ -364,6 +364,16 @@ void CLI_proc(char ch)
 						printf("MS8607 sensor disabled\r\n");
 						Save_config();
 					}
+					if((p = find("conf ")))
+					{
+						int32_t tmp = -1;
+			            getval(clibuf+16, &tmp, 0, 5);
+			            config.MS8607_conf = tmp;
+			            MS8607.sensor_conf = tmp;
+			            MS8607_osr(tmp);
+			            printf("MS8607 config %li\r\n",tmp);
+						Save_config();
+					}
 					if((p = find("temperature ")))
 					{
 						if(p == clibuf+23)
