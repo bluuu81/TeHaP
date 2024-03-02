@@ -135,10 +135,6 @@ void ReinitTimer(uint16_t period);
 #define Tamp_READ()		HAL_GPIO_ReadPin(Tamp_GPIO_Port, Tamp_Pin)
 
 #define BQ_INT_READ()	HAL_GPIO_ReadPin(BQ_INT_GPIO_Port, BQ_INT_Pin)
-#define SIM_WDT_READ()	HAL_GPIO_ReadPin(SIM_WDT_GPIO_Port, SIM_WDT_Pin)
-
-#define GPS_ON()		HAL_GPIO_WritePin(SIM_GPS_GPIO_Port, SIM_GPS_Pin, GPIO_PIN_SET)
-#define GPS_OFF()		HAL_GPIO_WritePin(SIM_GPS_GPIO_Port, SIM_GPS_Pin, GPIO_PIN_RESET)
 
 #define I2C2TCA_RST()	HAL_GPIO_WritePin(RST2_GPIO_Port, RST2_Pin, GPIO_PIN_RESET)
 #define I2C2TCA_NRST()	HAL_GPIO_WritePin(RST2_GPIO_Port, RST2_Pin, GPIO_PIN_SET)

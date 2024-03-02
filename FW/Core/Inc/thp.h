@@ -16,7 +16,7 @@
 #include <string.h>
 
 #define HW_VER 10
-#define FW_VER 4
+#define FW_VER 5
 
 extern ADC_HandleTypeDef hadc1;
 

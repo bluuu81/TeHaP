@@ -137,5 +137,5 @@ float DPS368_calc_temp(float temp_scaled);
 float DPS368_get_temp();
 float DPS368_get_press(float temp_scaled);
 uint32_t calcBusyTime(uint8_t ovr);
-uint16_t dps368_ovr_conf(uint8_t sensor_conf);
+uint16_t dps368_ovr_config(uint8_t sensor_conf);
 #endif /* INC_DPS368_H_ */

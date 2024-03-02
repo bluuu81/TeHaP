@@ -126,6 +126,7 @@ void printbinary(uint16_t value);
 void printbinaryMSB(uint8_t value);
 void setBit(uint8_t* reg, int bitNumber, int value);
 void modifyRegister(unsigned char* reg, unsigned char mask, unsigned char value);
+uint16_t combine_uint8(uint8_t high, uint8_t low);
 
 void i2c_scan(I2C_HandleTypeDef * i2c, uint8_t addr_min, uint8_t addr_max);
 uint8_t i2c_read8(I2C_HandleTypeDef * i2c, uint16_t offset, uint8_t *value, uint8_t addr);

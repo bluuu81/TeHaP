@@ -30,13 +30,6 @@ uint8_t i2c_read16(I2C_HandleTypeDef * i2c, uint16_t offset, uint16_t *value, ui
     return res;
 }
 
-uint8_t i2c_read16_int(I2C_HandleTypeDef * i2c, uint16_t offset, int16_t *value, uint8_t addr)
-{
-	uint16_t tmp;
-    uint8_t res = HAL_I2C_Mem_Read(i2c, addr, offset, I2C_MEMADD_SIZE_8BIT, (uint8_t*)&tmp, 2, 8);
-    *value = tmp;
-    return res;
-}
 
 uint8_t i2c_read24(I2C_HandleTypeDef * i2c, uint16_t offset, uint32_t *value, uint8_t addr)
 {
@@ -81,6 +74,10 @@ void setBit(uint8_t* reg, int bitNumber, int value) {
     } else if (value == 1) {
         *reg |= (1 << bitNumber);   // Ustawienie bitu na 1
     }
+}
+
+uint16_t combine_uint8(uint8_t high, uint8_t low) {
+    return ((uint16_t)high << 8) | low;
 }
 
 void modifyRegister(unsigned char* reg, unsigned char mask, unsigned char value) {
@@ -181,9 +178,11 @@ void TMP117_RST_Conf_Reg()
 
 float TMP117_get_temp()
 {
-	int16_t value;
-    i2c_read16_int(&hi2c2, TMP117_TEMP_REG, &value, TMP117_ADDR << 1);
-    return (float)byteswap16(value) * TMP117_RESOLUTION;
+	uint16_t value;
+	int16_t raw;
+    i2c_read16(&hi2c2, TMP117_TEMP_REG, &value, TMP117_ADDR << 1);
+    raw = byteswap16(value);
+    return (float)(raw * TMP117_RESOLUTION);
 }
 
 void TMP117_start_meas(uint8_t avg_mode)
@@ -450,28 +449,32 @@ void bme280_conf_change(uint8_t sensor_conf)
             return;
         case 5:
         	BME280_init_config(1, BMP280_ULTRA_LOW_POWER, BMP280_ULTRA_LOW_POWER, BMP280_ULTRA_LOW_POWER, BMP280_FILTER_2);
-        	printf("BME280 set x1, no IIR\r\n");
+        	printf("BME280 set x1, 2 IIR\r\n");
             return;
         case 6:
         	BME280_init_config(1, BMP280_LOW_POWER, BMP280_LOW_POWER, BMP280_LOW_POWER, BMP280_FILTER_2);
-        	printf("BME280 set x2, no IIR\r\n");
+        	printf("BME280 set x2, 2 IIR\r\n");
             return;
         case 7:
         	BME280_init_config(1, BMP280_STANDARD, BMP280_STANDARD, BMP280_STANDARD, BMP280_FILTER_2);
-        	printf("BME280 set x4, no IIR\r\n");
+        	printf("BME280 set x4, 2 IIR\r\n");
             return;
         case 8:
         	BME280_init_config(1, BMP280_HIGH_RES, BMP280_HIGH_RES, BMP280_HIGH_RES, BMP280_FILTER_2);
-        	printf("BME280 set x8, no IIR\r\n");
+        	printf("BME280 set x8, 2 IIR\r\n");
             return;
         case 9:
         	BME280_init_config(1, BMP280_ULTRA_HIGH_RES, BMP280_ULTRA_HIGH_RES, BMP280_ULTRA_HIGH_RES, BMP280_FILTER_2);
-        	printf("BME280 set x16, no IIR\r\n");
+        	printf("BME280 set x16, 2 IIR\r\n");
+            return;
+        case 10:
+        	BME280_init_config(1, BMP280_LOW_POWER, BMP280_HIGH_RES, BMP280_ULTRA_HIGH_RES, BMP280_FILTER_2);
+        	printf("BME280 set TEMP x4, PRESS x8, HUM x16, 2 IIR\r\n");
             return;
 
         default:
-        	BME280_init_config(1, BMP280_STANDARD, BMP280_STANDARD, BMP280_STANDARD, BMP280_FILTER_OFF);
-        	printf("TMP117 set no_avg\r\n");
+        	BME280_init_config(1, BMP280_LOW_POWER, BMP280_HIGH_RES, BMP280_ULTRA_HIGH_RES, BMP280_FILTER_2);
+        	printf("BME280 set TEMP x4, PRESS x8, HUM x16, 2 IIR\r\n");
             return ;
     }
 

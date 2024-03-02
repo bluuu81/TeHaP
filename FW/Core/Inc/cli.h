@@ -11,6 +11,8 @@
 #include "stm32l4xx_hal.h"
 #include "thp_sensors.h"
 #include "main.h"
+#include "SIM868.h"
+
 
 #define MIN_OFFSET -10.0f
 #define MAX_OFFSET +10.0f

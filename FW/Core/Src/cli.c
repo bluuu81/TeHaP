@@ -31,7 +31,9 @@ extern uint16_t meas_count;
 extern uint8_t meas_cont_mode;
 
 extern uint16_t tmp117_avr;
-extern uint8_t dps368_ovr;
+extern uint8_t dps368_ovr_conf;
+extern uint8_t dps368_ovr_temp;
+extern uint8_t dps368_ovr_press;
 extern uint8_t sht3_mode;
 
 uint16_t csvcnt;
@@ -162,6 +164,7 @@ void CLI_proc(char ch)
 		cliptr = 0;
 // Main commands ------------------------------------------------------------------------------
 		if(find("?")==clibuf+1 || find("help")==clibuf+4)	{print_help(); return;}
+		if(find("status")==clibuf+6) {print_status(); return;}
 		if(find("i2cscan")==clibuf+7) {i2c_scan(&hi2c2, 0x38, 0xA0); return;}
 		if(find("clearconfig")==clibuf+11) {printf("config reset to defaults\r\n"); Load_defaults(); return;}
 		if(find("printconfig")==clibuf+11) {EEPROM_Print_config(); return;}
@@ -169,6 +172,13 @@ void CLI_proc(char ch)
 		if(find("saveconfig")==clibuf+10) {printf("SAVING CONFIG. Status: %i (0==NO CHANGES; 1==SAVE OK, 2==ERR)\r\n",Save_config()); return;}
 		if(find("setbattalarm")==clibuf+12){getval(clibuf+13, &temp, 0, 15000); config.batt_alarm=temp; printf("Batt alarm:%i",config.batt_alarm); return;};
 		if(find("setbatscale")==clibuf+11){getFloat(clibuf+12, &tempfloat, -10.0, 10.0); config.bat_scale=tempfloat; printf("Batt scale:%f \r\n",config.bat_scale); return;};
+
+		if(find("sim on")==clibuf+6) {SIM_ON(); return;}
+		if(find("sim off")==clibuf+7) {SIM_OFF(); return;}
+
+		if(find("gps on")==clibuf+6) {GPS_ON(); return;}
+		if(find("gps off")==clibuf+7) {GPS_OFF(); return;}
+
 
 		p = find("set ");
 		if(p == clibuf+4)
@@ -410,7 +420,7 @@ void CLI_proc(char ch)
 							if((strstr(clibuf+17, "offset ")))
 							{
 								float tmp;
-					            getFloat(clibuf+24, &tmp, MIN_OFFSET, MAX_OFFSET);
+					            getFloat(clibuf+24, &tmp, -500, 500);
 					            config.MS8607_p_offset = tmp;
 					            MS8607.press.offset = tmp;
 					            printf("MS8607 pressure offset %.6f\r\n",tmp);
@@ -486,7 +496,7 @@ void CLI_proc(char ch)
 					if((p = find("conf ")))
 					{
 						int32_t tmp = -1;
-			            getval(clibuf+16, &tmp, 0, 9);
+			            getval(clibuf+16, &tmp, 0, 10);
 			            config.BME280_conf = tmp;
 			            BME280.sensor_conf = tmp;
 			            bme280_conf_change(tmp);
@@ -528,7 +538,7 @@ void CLI_proc(char ch)
 							if((strstr(clibuf+17, "offset ")))
 							{
 								float tmp;
-					            getFloat(clibuf+24, &tmp, MIN_OFFSET, MAX_OFFSET);
+					            getFloat(clibuf+24, &tmp, -500, 500);
 					            config.BME280_p_offset = tmp;
 					            BME280.press.offset = tmp;
 					            printf("BME280 pressure offset %.6f\r\n",tmp);
@@ -603,11 +613,13 @@ void CLI_proc(char ch)
 					if((p = find("conf ")))
 					{
 						int32_t tmp = -1;
-			            getval(clibuf+16, &tmp, 0, 7);
+			            getval(clibuf+16, &tmp, 0, 8);
 			            config.DPS368_conf = tmp;
 			            DPS368.sensor_conf = tmp;
-			            dps368_ovr=dps368_ovr_conf(DPS368.sensor_conf);
-			            DPS368_temp_correct(dps368_ovr);
+			            dps368_ovr_conf=dps368_ovr_config(DPS368.sensor_conf);
+			            dps368_ovr_temp = (uint8_t)(dps368_ovr_conf >> 8);
+			            dps368_ovr_press = (uint8_t)dps368_ovr_conf;
+			            DPS368_temp_correct(dps368_ovr_temp);
 			            printf("DPS368 temperature config %li\r\n",tmp);
 						Save_config();
 					}
@@ -647,7 +659,7 @@ void CLI_proc(char ch)
 							if((strstr(clibuf+17, "offset ")))
 							{
 								float tmp;
-					            getFloat(clibuf+24, &tmp, MIN_OFFSET, MAX_OFFSET);
+					            getFloat(clibuf+24, &tmp, -500, 500);
 					            config.DPS368_p_offset = tmp;
 					            DPS368.press.offset = tmp;
 					            printf("DPS368 pressure offset %.6f\r\n",tmp);

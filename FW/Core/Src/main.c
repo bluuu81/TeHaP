@@ -75,7 +75,9 @@ uint16_t meas_count = 10;
 uint8_t meas_cont_mode = 1;
 
 uint16_t tmp117_avr;
-uint8_t dps368_ovr;
+volatile uint8_t dps368_ovr_temp;
+volatile uint8_t dps368_ovr_press;
+volatile uint16_t dps368_ovr_conf;
 uint8_t sht3_mode;
 
 
@@ -151,6 +153,7 @@ int main(void)
   HAL_UART_RxCpltCallback(&huart1); //CLI
   HAL_UART_RxCpltCallback(&huart2); //SIM
   check_powerOn();
+  SIM_HW_OFF();
   printf("\r\n\r\n\r\nInitializing ...\r\n");
   if (Load_config()==0) {printf("Config loaded OK \r\n");};
   charger_state = BQ25798_check();
@@ -182,10 +185,13 @@ int main(void)
 
   tmp117_avr=tmp117_avr_conf(TMP117.sensor_conf);
 //  printf("TMP117 conf var %x\r\n", tmp117_avr);
-  dps368_ovr=dps368_ovr_conf(DPS368.sensor_conf);
-  printf("DPS368 conf var %x\r\n", dps368_ovr);
+  dps368_ovr_conf=dps368_ovr_config(DPS368.sensor_conf);
+  printf("DPS368 conf var %x\r\n", dps368_ovr_conf);
+  dps368_ovr_temp = (uint8_t)(dps368_ovr_conf >> 8);
+  dps368_ovr_press = (uint8_t)dps368_ovr_conf;
+
   DPS368_init(FIFO_DIS, INT_NONE);
-  DPS368_temp_correct(dps368_ovr);
+  DPS368_temp_correct(dps368_ovr_temp);
 
   sht3_mode=SHT3.sensor_conf;
   if(sht3_mode==normal) printf("SHTC3 normal mode\r\n");
@@ -290,8 +296,8 @@ int main(void)
 			  }
 			  if(DPS368.present){
 				  if(DPS368.sensor_use && (DPS368.temp.use_meas || DPS368.press.use_meas)) {
-					  DPS368_start_meas_temp(dps368_ovr);
-					  meas_time += calcBusyTime(dps368_ovr);
+					  DPS368_start_meas_temp(dps368_ovr_temp);
+					  meas_time += calcBusyTime(dps368_ovr_temp);
 					  if (DPS368.press.use_meas) {
 						  dps368_press = 1;
 					  }
@@ -372,8 +378,8 @@ int main(void)
 
 
 		  if(dps368_press) {
-			  DPS368_start_meas_press(dps368_ovr);
-			  dps_meas_time = calcBusyTime(dps368_ovr);
+			  DPS368_start_meas_press(dps368_ovr_press);
+			  dps_meas_time = calcBusyTime(dps368_ovr_press);
 			  dps368_press = 0;
 			  dps368_press_ready = 1;
 		  }

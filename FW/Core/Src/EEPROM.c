@@ -155,19 +155,19 @@ void Load_defaults()
 	config.batt_alarm = BATT_ALARM_VOLTAGE;  // definicja w main.h
 	config.reset_state = 0;
 	config.disp_type = TXT;
-	config.tim_interval = 5;
+	config.tim_interval = 8;
 	config.TMP117_use = 1;
 	config.TMP117_conf = 1;
 	config.TMP117_t_use = 1;
 	config.TMP117_t_offset = 0.0f;
 	config.SHT3_use = 1;
 	config.SHT3_conf = 0;
-	config.SHT3_t_use = 1;
+	config.SHT3_t_use = 0;
 	config.SHT3_h_use = 1;
 	config.SHT3_t_offset = 0.0f;
 	config.SHT3_h_offset = 0.0f;
 	config.MS8607_use = 1;
-	config.MS8607_conf = 0;
+	config.MS8607_conf = 3;
 	config.MS8607_t_use = 1;
 	config.MS8607_h_use = 1;
 	config.MS8607_p_use = 1;
@@ -175,7 +175,7 @@ void Load_defaults()
 	config.MS8607_h_offset = 0.0f;
 	config.MS8607_p_offset = 0.0f;
 	config.BME280_use = 1;
-	config.BME280_conf = 0;
+	config.BME280_conf = 10;
 	config.BME280_t_use = 1;
 	config.BME280_h_use = 1;
 	config.BME280_p_use = 1;
@@ -183,7 +183,7 @@ void Load_defaults()
 	config.BME280_h_offset = 0.0f;
 	config.BME280_p_offset = 0.0f;
 	config.DPS368_use = 1;
-	config.DPS368_conf = 0;
+	config.DPS368_conf = 8;
 	config.DPS368_t_use = 1;
 	config.DPS368_p_use = 1;
 	config.DPS368_t_offset = 0.0f;
@@ -210,6 +210,7 @@ void EEPROM_Print_config(void)
 	printf("SHTC3 hum offset: %f \r\n", config.SHT3_h_offset);
 
 	printf("MS8607 sensor use %i %i \r\n", config.MS8607_use, MS8607.sensor_use);
+	printf("MS8607 config %i %i \r\n", config.MS8607_conf, MS8607.sensor_conf);
 	printf("MS8607 temp meas %i %i \r\n", config.MS8607_t_use, MS8607.temp.use_meas);
 	printf("MS8607 press meas %i %i \r\n", config.MS8607_p_use, MS8607.press.use_meas);
 	printf("MS8607 hum meas %i %i \r\n", config.MS8607_h_use, MS8607.hum.use_meas);

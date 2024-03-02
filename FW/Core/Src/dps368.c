@@ -462,36 +462,39 @@ float DPS368_get_press(float temp_scaled)
 	return pressure;
 }
 
-uint16_t dps368_ovr_conf(uint8_t sensor_conf)
+uint16_t dps368_ovr_config(uint8_t sensor_conf)
 {
     switch (sensor_conf) {
         case 0:
-        	printf("DPS368 set Oversample x1\r\n");
-            return DPS_OVERSAMPLE_1;
+        	printf("DPS368 set TEMP & PRESS Oversample x1\r\n");
+            return combine_uint8(DPS_OVERSAMPLE_1,DPS_OVERSAMPLE_1);
         case 1:
-        	printf("DPS368 set Oversample x2\r\n");
-            return DPS_OVERSAMPLE_2;
+        	printf("DPS368 set TEMP & PRESS Oversample x2\r\n");
+            return combine_uint8(DPS_OVERSAMPLE_2,DPS_OVERSAMPLE_2);
         case 2:
-        	printf("DPS368 set Oversample x4\r\n");
-            return DPS_OVERSAMPLE_4;
+        	printf("DPS368 set TEMP & PRESS Oversample x4\r\n");
+            return combine_uint8(DPS_OVERSAMPLE_4,DPS_OVERSAMPLE_4);
         case 3:
-        	printf("DPS368 set Oversample x8\r\n");
-            return DPS_OVERSAMPLE_8;
+        	printf("DPS368 set TEMP & PRESS Oversample x8\r\n");
+            return combine_uint8(DPS_OVERSAMPLE_8,DPS_OVERSAMPLE_8);
         case 4:
-        	printf("DPS368 set Oversample x16\r\n");
-            return DPS_OVERSAMPLE_16;
+        	printf("DPS368 set TEMP & PRESS Oversample x16\r\n");
+            return combine_uint8(DPS_OVERSAMPLE_16,DPS_OVERSAMPLE_16);
         case 5:
-        	printf("DPS368 set Oversample x32\r\n");
-            return DPS_OVERSAMPLE_32;
+        	printf("DPS368 set TEMP & PRESS Oversample x32\r\n");
+            return combine_uint8(DPS_OVERSAMPLE_32,DPS_OVERSAMPLE_32);
         case 6:
-        	printf("DPS368 set Oversample x64\r\n");
-            return DPS_OVERSAMPLE_64;
+        	printf("DPS368 set TEMP & PRESS Oversample x64\r\n");
+            return combine_uint8(DPS_OVERSAMPLE_64,DPS_OVERSAMPLE_64);
         case 7:
-        	printf("DPS368 set Oversample x128\r\n");
-            return DPS_OVERSAMPLE_128;
+        	printf("DPS368 set TEMP & PRESS Oversample x128\r\n");
+            return combine_uint8(DPS_OVERSAMPLE_128,DPS_OVERSAMPLE_128);
+        case 8:
+        	printf("DPS368 set TEMP Oversample x128, PRESS Oversample x4 \r\n");
+            return combine_uint8(DPS_OVERSAMPLE_128,DPS_OVERSAMPLE_4);
 
         default:
-        	printf("DPS368 set Oversample x1\r\n");
-            return DPS_OVERSAMPLE_1;
+        	printf("DPS368 set TEMP Oversample x128, PRESS Oversample x4 \r\n");
+            return combine_uint8(DPS_OVERSAMPLE_128,DPS_OVERSAMPLE_4);
     }
 }
