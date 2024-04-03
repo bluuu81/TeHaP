@@ -17,7 +17,7 @@ uint8_t DPS368_check()
 	SET_DPS368();
 	HAL_StatusTypeDef status;
 	status = HAL_I2C_IsDeviceReady(&hi2c2, DPS368_ADDR, 3, 150);
-	HAL_Delay(100);
+	osDelay(100);
 	if (status == HAL_OK) {
 		i2c_read8(&hi2c2, DPS368_REG_ID, &value, DPS368_ADDR);
 		if(value == DPS368_ID_CHK) {printf("DPS368 OK\r\n"); return 1;} else {printf("NOT DPS368\r\n"); return 0;}
@@ -94,7 +94,7 @@ void DPS368_fifo(uint8_t endis)
 //	printf("(fifo) CFG REG WRITE (hex): %#x\r\n",reg);
 //	printbinaryMSB(reg);
 	HAL_I2C_Mem_Write(&hi2c2, DPS368_ADDR, DPS368_CFG, I2C_MEMADD_SIZE_8BIT, &reg, 1, 250);
-	HAL_Delay(1);
+	osDelay(1);
 }
 
 void DPS368_conf_int(uint8_t ints)
@@ -109,7 +109,7 @@ void DPS368_conf_int(uint8_t ints)
 //	printf("CFG REG (hex): %#x\r\n",reg);
 //	printbinaryMSB(reg);
 	HAL_I2C_Mem_Write(&hi2c2, DPS368_ADDR, DPS368_CFG, I2C_MEMADD_SIZE_8BIT, &reg, 1, 250);
-	HAL_Delay(1);
+	osDelay(1);
 }
 
 void DPS368_temp_source()
@@ -286,7 +286,7 @@ void DPS368_run_mode(uint8_t mode)
 //	reg = (reg & 0x0E) | mode;
 	reg = mode;
 	HAL_I2C_Mem_Write(&hi2c2, DPS368_ADDR, DPS368_MEAS_CFG, I2C_MEMADD_SIZE_8BIT, &reg, 1, 250);
-	HAL_Delay(2);
+	osDelay(2);
 }
 
 uint8_t DPS368_temp_rdy()
@@ -312,8 +312,8 @@ float DPS368_get_temp_cmd(uint8_t ovr)
 {
 	DPS368_conf_temp(ovr, 0U);
 	DPS368_run_mode(MODE_CMD_TEMP);
-	HAL_Delay(calcBusyTime(ovr));
-	HAL_Delay(1);
+	osDelay(calcBusyTime(ovr));
+	osDelay(1);
 	SET_DPS368();
 	uint8_t value[3];
 	int32_t raw_temp;
@@ -337,8 +337,8 @@ float DPS368_get_press_cmd(uint8_t ovr)
 {
 	DPS368_conf_temp(ovr, 0U);
 	DPS368_run_mode(MODE_CMD_TEMP);
-	HAL_Delay(calcBusyTime(ovr));
-	HAL_Delay(1);
+	osDelay(calcBusyTime(ovr));
+	osDelay(1);
 	SET_DPS368();
 	uint8_t value[3];
 	int32_t raw_temp, raw_press;
@@ -354,8 +354,8 @@ float DPS368_get_press_cmd(uint8_t ovr)
 	float press_scaled, pressure;
 	DPS368_conf_press(ovr, 0U);
 	DPS368_run_mode(MODE_CMD_PRESS);
-	HAL_Delay(calcBusyTime(ovr));
-	HAL_Delay(1);
+	osDelay(calcBusyTime(ovr));
+	osDelay(1);
 	SET_DPS368();
 	HAL_I2C_Mem_Read(&hi2c2, DPS368_ADDR, DPS368_PRESS, I2C_MEMADD_SIZE_8BIT, value, 3, 250);
 	raw_press = (int32_t)(value[2]) + (value[1] << 8) + (value[0] << 16);

@@ -499,7 +499,7 @@ enum ms8607_status  hsensor_reset(void)
 		return status;
 	
 	hsensor_conversion_time = HSENSOR_CONVERSION_TIME_12b;
-	HAL_Delay(HSENSOR_RESET_TIME);
+	osDelay(HSENSOR_RESET_TIME);
 	
 	return ms8607_status_ok;
 }
@@ -726,7 +726,7 @@ enum ms8607_status hsensor_humidity_conversion_and_read_adc( uint16_t *adc)
 	else {
 		status = hsensor_write_command(HSENSOR_READ_HUMIDITY_WO_HOLD_COMMAND);
 		// delay depending on resolution
-		HAL_Delay(hsensor_conversion_time/1000);
+		osDelay(hsensor_conversion_time/1000);
 	}
 	if( status != ms8607_status_ok)
 		return status;
@@ -949,9 +949,9 @@ enum ms8607_status psensor_read_eeprom_coeff(uint8_t command, uint16_t *coeff)
 		
 	*coeff = (buffer[0] << 8) | buffer[1];
     
-    if (*coeff == 0)
+    if (*coeff == 0) {
         return ms8607_status_i2c_transfer_error;
-	
+    }
 	return ms8607_status_ok;	
 }
 
@@ -1014,7 +1014,7 @@ static enum ms8607_status psensor_conversion_and_read_adc(uint8_t cmd, uint32_t 
 
 	status = psensor_write_command(cmd);
 	// 20ms wait for conversion
-	HAL_Delay( psensor_conversion_time[ (cmd & PSENSOR_CONVERSION_OSR_MASK)/2 ]/1000 );
+	osDelay( psensor_conversion_time[ (cmd & PSENSOR_CONVERSION_OSR_MASK)/2 ]/1000 );
 	if( status != ms8607_status_ok)
 		return status;
 
@@ -1074,9 +1074,9 @@ enum ms8607_status psensor_read_pressure_and_temperature( float *temperature, fl
 	if( status != ms8607_status_ok)
 		return status;
     
-    if (adc_temperature == 0 || adc_pressure == 0)
+    if (adc_temperature == 0 || adc_pressure == 0) {
         return ms8607_status_i2c_transfer_error;
-
+    }
 	// Difference between actual and reference temperature = D2 - Tref
 	dT = (int32_t)adc_temperature - ( (int32_t)eeprom_coeff[REFERENCE_TEMPERATURE_INDEX] <<8 );
 	
@@ -1142,9 +1142,9 @@ enum ms8607_status psensor_read_temperature( float *temperature)
 	if( status != ms8607_status_ok)
 		return status;
 
-    if (adc_temperature == 0)
+    if (adc_temperature == 0) {
         return ms8607_status_i2c_transfer_error;
-
+    }
 	// Difference between actual and reference temperature = D2 - Tref
 	dT = (int32_t)adc_temperature - ( (int32_t)eeprom_coeff[REFERENCE_TEMPERATURE_INDEX] <<8 );
 
@@ -1181,7 +1181,7 @@ enum ms8607_status psensor_read_pressure( float *pressure)
 	enum ms8607_status status = ms8607_status_ok;
 	uint32_t adc_temperature, adc_pressure;
 	int32_t dT, TEMP;
-	int64_t OFF, SENS, P, T2, OFF2, SENS2;
+	int64_t OFF, SENS, P, OFF2, SENS2;
 	uint8_t cmd;
 
 	// If first time adc is requested, get EEPROM coefficients
@@ -1204,9 +1204,9 @@ enum ms8607_status psensor_read_pressure( float *pressure)
 	if( status != ms8607_status_ok)
 		return status;
 
-    if (adc_temperature == 0 || adc_pressure == 0)
+    if (adc_temperature == 0 || adc_pressure == 0) {
         return ms8607_status_i2c_transfer_error;
-
+    }
 	// Difference between actual and reference temperature = D2 - Tref
 	dT = (int32_t)adc_temperature - ( (int32_t)eeprom_coeff[REFERENCE_TEMPERATURE_INDEX] <<8 );
 
@@ -1216,7 +1216,7 @@ enum ms8607_status psensor_read_pressure( float *pressure)
 	// Second order temperature compensation
 	if( TEMP < 2000 )
 	{
-		T2 = ( 3 * ( (int64_t)dT  * (int64_t)dT  ) ) >> 33;
+//		T2 = ( 3 * ( (int64_t)dT  * (int64_t)dT  ) ) >> 33;
 		OFF2 = 61 * ((int64_t)TEMP - 2000) * ((int64_t)TEMP - 2000) / 16 ;
 		SENS2 = 29 * ((int64_t)TEMP - 2000) * ((int64_t)TEMP - 2000) / 16 ;
 
@@ -1228,7 +1228,7 @@ enum ms8607_status psensor_read_pressure( float *pressure)
 	}
 	else
 	{
-		T2 = ( 5 * ( (int64_t)dT  * (int64_t)dT  ) ) >> 38;
+//		T2 = ( 5 * ( (int64_t)dT  * (int64_t)dT  ) ) >> 38;
 		OFF2 = 0 ;
 		SENS2 = 0 ;
 	}

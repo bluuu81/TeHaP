@@ -6,7 +6,7 @@
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2022 STMicroelectronics.
+  * Copyright (c) 2024 STMicroelectronics.
   * All rights reserved.
   *
   * This software is licensed under terms that can be found in the LICENSE file
@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -31,6 +32,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -48,39 +50,12 @@ I2C_HandleTypeDef hi2c1;
 I2C_HandleTypeDef hi2c2;
 I2C_HandleTypeDef hi2c3;
 
-TIM_HandleTypeDef htim6;
-TIM_HandleTypeDef htim16;
-
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
+osThreadId defaultTaskHandle;
+osThreadId THPMainTaskHandle;
 /* USER CODE BEGIN PV */
-volatile uint8_t charger_state;
-
-TMP117_struct_t TMP117;
-SHT3_struct_t SHT3;
-MS8607_struct_t MS8607;
-BME280_struct_t BME280;
-DPS368_struct_t DPS368;
-
-BMP280_HandleTypedef bmp280;
-
-Config_TypeDef config;
-volatile uint16_t new_tim_interval; //w sekundach
-volatile uint16_t tim_interval = 0;
-volatile uint8_t disp_type;
-volatile uint8_t meas_start = 0;
-uint8_t meas_ready = 0;
-uint16_t meas_count = 10;
-uint8_t meas_cont_mode = 1;
-
-uint16_t tmp117_avr;
-volatile uint8_t dps368_ovr_temp;
-volatile uint8_t dps368_ovr_press;
-volatile uint16_t dps368_ovr_conf;
-uint8_t sht3_mode;
-
-
 
 /* USER CODE END PV */
 
@@ -95,11 +70,11 @@ static void MX_I2C3_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_CRC_Init(void);
-static void MX_TIM16_Init(void);
-void MX_TIM6_Init(uint16_t tim_int);
+void StartDefaultTask(void const * argument);
+extern void THP_MainTask(void const * argument);
+
 static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
-
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -143,269 +118,49 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   MX_CRC_Init();
-  MX_TIM16_Init();
 
   /* Initialize interrupts */
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
-  HAL_TIM_PWM_Start(&htim16, TIM_CHANNEL_1);	// LED2 na PWM
-  HAL_TIM_Base_Start_IT(&htim6);
-  HAL_UART_RxCpltCallback(&huart1); //CLI
-  HAL_UART_RxCpltCallback(&huart2); //SIM
-  check_powerOn();
-  SIM_HW_OFF();
-  printf("\r\n\r\n\r\nInitializing ...\r\n");
-  if (Load_config()==0) {printf("Config loaded OK \r\n");};
-  charger_state = BQ25798_check();
-  if (charger_state) {
-	  printf("Configure charger \r\n");
-	  QON_EN();
-	  BQ25798_Sys_Min_Voltage_write(3); 	// 3250mV
-	  BQ25798_Chr_Volt_Limit_write(4200); 	// 4200mV
-	  BQ25798_Chr_Curr_Limit_write(2000); 	// 2000mA
-	  BQ25798_Chr_Input_Voltage_Limit_write(130); //*100mV
-	  BQ25798_Chr_Input_Curr_Limit_write(200); //*10mA
-	  BQ25798_Chrg_CTRL1_write(0x95);
-	  BQ25798_Chrg_NTC_CTRL1_write(1);
-	  CE_EN();
-	  BQ25798_MPPT_CTRL(1); //MPPT ON
 
-  }
-  LED1_ON();
-  LED2_OFF();
-  ADC_DMA_Start();
-
-  TMP117.present = TMP117_check();
-  SHT3.present = SHTC3_check();
-  MS8607.present = MS8607_check();
-  BME280.present = BME280_check();
-  DPS368.present = DPS368_check();
-
-  getConfVars();
-
-  tmp117_avr=tmp117_avr_conf(TMP117.sensor_conf);
-//  printf("TMP117 conf var %x\r\n", tmp117_avr);
-  dps368_ovr_conf=dps368_ovr_config(DPS368.sensor_conf);
-  printf("DPS368 conf var %x\r\n", dps368_ovr_conf);
-  dps368_ovr_temp = (uint8_t)(dps368_ovr_conf >> 8);
-  dps368_ovr_press = (uint8_t)dps368_ovr_conf;
-
-  DPS368_init(FIFO_DIS, INT_NONE);
-  DPS368_temp_correct(dps368_ovr_temp);
-
-  sht3_mode=SHT3.sensor_conf;
-  if(sht3_mode==normal) printf("SHTC3 normal mode\r\n");
-  else printf("SHTC3 low power mode\r\n");
-
-  bme280_conf_change(BME280.sensor_conf);
-
-  MS8607_osr(MS8607.sensor_conf);
-  switch (MS8607.sensor_conf)
-  {
-  	  case 0:
-  		printf("MS8607 OSR 256\r\n");
-  		break;
-  	  case 1:
-  		printf("MS8607 OSR 512\r\n");
-  		break;
-  	  case 2:
-  		printf("MS8607 OSR 1024\r\n");
-  		break;
-  	  case 3:
-  		printf("MS8607 OSR 2048\r\n");
-  		break;
-  	  case 4:
-  		printf("MS8607 OSR 4096\r\n");
-  		break;
-  	  case 5:
-  		printf("MS8607 OSR 8192\r\n");
-  		break;
-  	  default:
-  		break;
-  }
-
-  disp_type = config.disp_type;
-
-  new_tim_interval = config.tim_interval; //w sekundach
-
-  MX_TIM6_Init(tim_interval);
-  uint8_t meas2disp = 0;
-  uint8_t meas2disp_dps = 0;
-
-  uint32_t ticks30ms = HAL_GetTick();
-  uint32_t ticks_meas = HAL_GetTick();
-  uint32_t dps_ticks_meas = HAL_GetTick();
-  uint32_t ticksbqwd = HAL_GetTick();
-  uint16_t meas_time = 100;
-  uint16_t dps_meas_time = 200;
-
-  uint8_t dps368_press = 0;
-  uint8_t dps368_press_ready = 0;
-  float dps_scaled_temp;
-  uint8_t shtc3_values[6];
-
-//  LED2_ON();
   /* USER CODE END 2 */
 
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* definition and creation of defaultTask */
+  osThreadDef(defaultTask, StartDefaultTask, osPriorityLow, 0, 128);
+  defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
+
+  /* definition and creation of THPMainTask */
+  osThreadDef(THPMainTask, THP_MainTask, osPriorityNormal, 0, 512);
+  THPMainTaskHandle = osThreadCreate(osThread(THPMainTask), NULL);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  /* USER CODE END RTOS_THREADS */
+
+  /* Start scheduler */
+  osKernelStart();
+  /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if (new_tim_interval != tim_interval) {
-		  tim_interval = new_tim_interval;
-		  config.tim_interval = tim_interval;
-	      ReinitTimer(tim_interval);
-	  }
-
-	  thp_loop();
-
-	  if(HAL_GetTick()-ticks30ms >= 30)
-	  {
-		  ticks30ms = HAL_GetTick();
-		  LED1_TOGGLE();
-		  check_powerOff();
-	  }
-
-	  if(HAL_GetTick()-ticksbqwd >= 15000)
-	  {
-		  ticksbqwd = HAL_GetTick();
-		  BQ25798_WD_RST();
-	  }
-
-
-	  if(meas_start) {
-		  if (meas_count > 0 || meas_cont_mode) {
-			  if(meas_cont_mode == 0) meas_count--;
-			  if(TMP117.present){
-				  if(TMP117.sensor_use && TMP117.temp.use_meas) {
-					  TMP117_start_meas(tmp117_avr);
-					  meas_time += 200;
-				  }
-			  }
-			  if(BME280.present){
-				  if(BME280.sensor_use && (BME280.temp.use_meas || BME280.press.use_meas || BME280.hum.use_meas) ) {
-					  BME280_start_meas();
-					  meas_time += 500;
-				  }
-			  }
-			  if(SHT3.present){
-				  if(SHT3.sensor_use && (SHT3.temp.use_meas || SHT3.hum.use_meas)) {
-					  SHTC3_start_meas(sht3_mode);
-					  meas_time += 100;
-				  }
-			  }
-			  if(DPS368.present){
-				  if(DPS368.sensor_use && (DPS368.temp.use_meas || DPS368.press.use_meas)) {
-					  DPS368_start_meas_temp(dps368_ovr_temp);
-					  meas_time += calcBusyTime(dps368_ovr_temp);
-					  if (DPS368.press.use_meas) {
-						  dps368_press = 1;
-					  }
-				  }
-			  }
-			  meas_ready = 1;
-			  ticks_meas = HAL_GetTick();
-			  dps_ticks_meas = HAL_GetTick();
-			  meas_start = 0;
-			  if(disp_type == 1) {
-				  printf("Komenda startu pomiarow wyslana\r\n");
-				  printf("Meas interval: %u\r\n", tim_interval);
-			  }
-			  if (meas_count == 0 && meas_cont_mode == 0) {
-				  HAL_TIM_Base_Stop_IT(&htim6);
-			  }
-		  }
-	  }
-
-
-
-      if ((meas_ready) && ((HAL_GetTick() - ticks_meas) >= meas_time)) {
-    	  if(TMP117.present && TMP117.sensor_use){
-    		  if(TMP117.temp.use_meas) {
-    			  TMP117.temp.value = TMP117_get_temp();
-//    			  printf("Temperatura TMP117: %.2f\r\n", TMP117.temp.value);
-    		  }
-    	  }
-    	  if(BME280.present && BME280.sensor_use){
-    		  if(BME280.temp.use_meas) {
-    			  BME280.temp.value = BME280_get_temp();
-//    			  printf("Temperatura BME280: %.2f\r\n", BME280.temp.value);
-    		  }
-    		  if(BME280.press.use_meas) {
-    			  BME280.press.value = BME280_get_press();
-//    			  printf("Cisnienie BME280: %.2f\r\n", BME280.press.value);
-    		  }
-    		  if(BME280.hum.use_meas) {
-    		      BME280.hum.value = BME280_get_hum();
-//    		      printf("Wilgotnosc BME280: %.2f\r\n", BME280.hum.value);
-    		  }
-    	  }
-    	  if(SHT3.present && SHT3.sensor_use){
-    		  SHTC3_read_values(shtc3_values);
-    		  if(SHT3.temp.use_meas) {
-    			  SHT3.temp.value = SHTC3_get_temp(shtc3_values);
-//    			  printf("Temperatura SHT3: %.2f\r\n", SHT3.temp.value);
-    		  }
-    		  if(SHT3.hum.use_meas) {
-    			  SHT3.hum.value = SHTC3_get_hum(shtc3_values);
-//    			  printf("Wilgotnosc SHT3: %.2f\r\n", SHT3.hum.value);
-    		  }
-    	  }
-    	  if(MS8607.present && MS8607.sensor_use){
-    		  if(MS8607.temp.use_meas) {
-    			  MS8607.temp.value = MS8607_get_temp();
-//    			  printf("Temperatura MS8607: %.2f\r\n", MS8607.temp.value);
-    		  }
-    		  if(MS8607.press.use_meas) {
-    			  MS8607.press.value = MS8607_get_press();
-//    			  printf("Cisnienie MS8607: %.2f\r\n", MS8607.press.value);
-    		  }
-    		  if(MS8607.hum.use_meas) {
-    			  MS8607.hum.value = MS8607_get_hum();
-//    			  printf("Wilgotnosc MS8607: %.2f\r\n", MS8607.hum.value);
-    		  }
-    	  }
-    	  if(DPS368.present && DPS368.sensor_use){
-    		  dps_scaled_temp = DPS368_get_scaled_temp();
-    		  if(DPS368.temp.use_meas) {
-    			  DPS368.temp.value = DPS368_calc_temp(dps_scaled_temp);
-//    			  printf("Temperatura DPS368: %.2f\r\n", DPS368.temp.value);
-    		  }
-    	  }
-          meas_ready = 0;
-	      meas_time = 200;
-	      meas2disp = 1;
-
-
-		  if(dps368_press) {
-			  DPS368_start_meas_press(dps368_ovr_press);
-			  dps_meas_time = calcBusyTime(dps368_ovr_press);
-			  dps368_press = 0;
-			  dps368_press_ready = 1;
-		  }
-      }
-
-      if (dps368_press_ready && ((HAL_GetTick() - dps_ticks_meas) >= dps_meas_time)) {
-   		  if(DPS368.sensor_use && DPS368.press.use_meas) {
-   			  DPS368.press.value = DPS368_get_press(dps_scaled_temp);
-//    		  printf("Cisnienie DPS368: %.2f\r\n", DPS368.press.value);
-    		  dps368_press_ready = 0;
-    		  meas2disp_dps = 1;
-   		  }
-      }
-
-      if(disp_type > 0) {
-    	  if(DPS368.sensor_use && DPS368.press.use_meas) {
-    		  if(meas2disp_dps) {
-    			  display_values(disp_type);
-    			  meas2disp_dps = 0;
-    		  }
-    	  } else if(meas2disp) {
-			  display_values(disp_type);
-			  meas2disp = 0;
-    	  }
-      }
-
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -468,10 +223,10 @@ void SystemClock_Config(void)
 static void MX_NVIC_Init(void)
 {
   /* USART1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(USART1_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(USART1_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(USART1_IRQn);
   /* USART2_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(USART2_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(USART2_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(USART2_IRQn);
 }
 
@@ -555,7 +310,7 @@ static void MX_CRC_Init(void)
   hcrc.Instance = CRC;
   hcrc.Init.DefaultPolynomialUse = DEFAULT_POLYNOMIAL_DISABLE;
   hcrc.Init.DefaultInitValueUse = DEFAULT_INIT_VALUE_DISABLE;
-  hcrc.Init.GeneratingPolynomial = 0x31;
+  hcrc.Init.GeneratingPolynomial = 49;
   hcrc.Init.CRCLength = CRC_POLYLENGTH_8B;
   hcrc.Init.InitValue = 0xFF;
   hcrc.Init.InputDataInversionMode = CRC_INPUTDATA_INVERSION_NONE;
@@ -642,7 +397,7 @@ static void MX_I2C2_Init(void)
   hi2c2.Init.OwnAddress2 = 0;
   hi2c2.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
   hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_ENABLE;
   if (HAL_I2C_Init(&hi2c2) != HAL_OK)
   {
     Error_Handler();
@@ -712,106 +467,6 @@ static void MX_I2C3_Init(void)
   /* USER CODE BEGIN I2C3_Init 2 */
 
   /* USER CODE END I2C3_Init 2 */
-
-}
-
-/**
-  * @brief TIM6 Initialization Function
-  * @param None
-  * @retval None
-  */
-void MX_TIM6_Init(uint16_t tim_int)
-{
-
-  /* USER CODE BEGIN TIM6_Init 0 */
-
-  /* USER CODE END TIM6_Init 0 */
-
-  TIM_MasterConfigTypeDef sMasterConfig = {0};
-
-  /* USER CODE BEGIN TIM6_Init 1 */
-
-  /* USER CODE END TIM6_Init 1 */
-  htim6.Instance = TIM6;
-  htim6.Init.Prescaler = (SystemCoreClock / 1000) - 1;
-  htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim6.Init.Period = (tim_int * 1000) - 1;
-  htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim6, &sMasterConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM6_Init 2 */
-
-  /* USER CODE END TIM6_Init 2 */
-
-}
-
-/**
-  * @brief TIM16 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM16_Init(void)
-{
-
-  /* USER CODE BEGIN TIM16_Init 0 */
-
-  /* USER CODE END TIM16_Init 0 */
-
-  TIM_OC_InitTypeDef sConfigOC = {0};
-  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
-
-  /* USER CODE BEGIN TIM16_Init 1 */
-
-  /* USER CODE END TIM16_Init 1 */
-  htim16.Instance = TIM16;
-  htim16.Init.Prescaler = 312;
-  htim16.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim16.Init.Period = 256;
-  htim16.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim16.Init.RepetitionCounter = 0;
-  htim16.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim16) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_TIM_PWM_Init(&htim16) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_LOW;
-  sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_ENABLE;
-  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
-  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
-  if (HAL_TIM_PWM_ConfigChannel(&htim16, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
-  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
-  sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
-  sBreakDeadTimeConfig.DeadTime = 0;
-  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
-  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
-  sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
-  if (HAL_TIMEx_ConfigBreakDeadTime(&htim16, &sBreakDeadTimeConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN TIM16_Init 2 */
-
-  /* USER CODE END TIM16_Init 2 */
-  HAL_TIM_MspPostInit(&htim16);
 
 }
 
@@ -896,7 +551,7 @@ static void MX_DMA_Init(void)
 
   /* DMA interrupt init */
   /* DMA1_Channel1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
 
 }
@@ -919,16 +574,21 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, SIM_UART_DTR_Pin|SIM_GPS_Pin|RST2_Pin|BQ_QON_Pin
-                          |BQ_CE_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(SIM_UART_DTR_GPIO_Port, SIM_UART_DTR_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, SIM_PWR_Pin|RST3_Pin|LED1_Pin|Main_SW_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, SIM_PWR_Pin|RST3_Pin|Main_SW_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, RST2_Pin|BQ_QON_Pin|BQ_CE_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, LED1_Pin|LED2_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin : But_ONOFF_Pin */
   GPIO_InitStruct.Pin = But_ONOFF_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(But_ONOFF_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PC14 PC15 */
@@ -949,15 +609,21 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(SIM_UART_RI_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : SIM_UART_DTR_Pin SIM_GPS_Pin BQ_QON_Pin BQ_CE_Pin */
-  GPIO_InitStruct.Pin = SIM_UART_DTR_Pin|SIM_GPS_Pin|BQ_QON_Pin|BQ_CE_Pin;
+  /*Configure GPIO pins : SIM_UART_DTR_Pin BQ_QON_Pin BQ_CE_Pin */
+  GPIO_InitStruct.Pin = SIM_UART_DTR_Pin|BQ_QON_Pin|BQ_CE_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : SIM_PWR_Pin LED1_Pin Main_SW_Pin */
-  GPIO_InitStruct.Pin = SIM_PWR_Pin|LED1_Pin|Main_SW_Pin;
+  /*Configure GPIO pin : GPS_1PPS_Pin */
+  GPIO_InitStruct.Pin = GPS_1PPS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPS_1PPS_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : SIM_PWR_Pin RST3_Pin LED1_Pin LED2_Pin */
+  GPIO_InitStruct.Pin = SIM_PWR_Pin|RST3_Pin|LED1_Pin|LED2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -966,7 +632,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pins : SIM_WDT_Pin BQ_INT_Pin */
   GPIO_InitStruct.Pin = SIM_WDT_Pin|BQ_INT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : TP7_Pin TP8_Pin PB11 PB3 */
@@ -974,13 +640,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : RST3_Pin */
-  GPIO_InitStruct.Pin = RST3_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(RST3_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : RST2_Pin */
   GPIO_InitStruct.Pin = RST2_Pin;
@@ -995,25 +654,63 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : Main_SW_Pin */
+  GPIO_InitStruct.Pin = Main_SW_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(Main_SW_GPIO_Port, &GPIO_InitStruct);
+
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
 
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
-    if (htim->Instance == TIM6) {
-        // Zmienna start ustawiona na 1 co określony okres czasu
-        meas_start = 1;
-    }
+/* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_StartDefaultTask */
+/**
+  * @brief  Function implementing the defaultTask thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_StartDefaultTask */
+void StartDefaultTask(void const * argument)
+{
+  /* USER CODE BEGIN 5 */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+    __WFI();
+  }
+  /* USER CODE END 5 */
 }
 
-void ReinitTimer(uint16_t period) {
-    HAL_TIM_Base_DeInit(&htim6);
-    MX_TIM6_Init(period);
-    HAL_TIM_Base_Start_IT(&htim6);
+/**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM7 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM7) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+  if (htim->Instance == TIM7) {
+	  HAL_SYSTICK_Callback();
+  }
+
+  /* USER CODE END Callback 1 */
 }
-/* USER CODE END 4 */
 
 /**
   * @brief  This function is executed in case of error occurrence.
@@ -1024,9 +721,6 @@ void Error_Handler(void)
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
-  printf("Hard fault ...\r\n");
-  LED1_OFF();
-  LED2_ON();
   while (1)
   {
   }

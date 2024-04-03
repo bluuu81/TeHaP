@@ -16,10 +16,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include "EEPROM.h"
+#include "SIM868.h"
 
 
-#define DEBUG_BUF_SIZE 512
-#define SIM_BUF_SIZE 512
+#define DEBUG_BUF_SIZE 64
 
 extern uint8_t charger_state;
 extern Config_TypeDef config;
@@ -40,9 +40,10 @@ uint16_t csvcnt;
 
 uint8_t  debug_rx_buf[DEBUG_BUF_SIZE];
 uint16_t debug_rxtail;
+uint8_t simch;
 
-uint8_t sim_rx_buf[32];    // 32 bytes buffer
-uint16_t sim_rxtail;
+//uint8_t sim_rx_buf[32];    // 32 bytes buffer
+//uint16_t sim_rxtail;
 
 static char clibuf[64];
 static int cliptr;
@@ -61,7 +62,9 @@ void debug_putchar(uint8_t ch)
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(huart == &huart1) HAL_UART_Receive_IT(&huart1, debug_rx_buf, DEBUG_BUF_SIZE);  // Interrupt start Uart1 RX
-	if(huart == &huart2) HAL_UART_Receive_IT(&huart2, sim_rx_buf, SIM_BUF_SIZE); // Interrupt start Uart2 RX
+	if(huart == &huart2) {
+		HAL_UART_Receive_IT(&huart2, &simch, 1); // Interrupt start Uart2 RX
+	}
 }
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
@@ -155,7 +158,7 @@ void CLI_proc(char ch)
 {
 	char *p;
 	int32_t temp;
-	float tempfloat;
+	float tempfloat = 0.0;
 	if(cliptr < sizeof(clibuf)) clibuf[cliptr++] = ch;
 	if(ch == 10)	// LF
 	{

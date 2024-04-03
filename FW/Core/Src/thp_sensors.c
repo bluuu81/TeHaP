@@ -91,12 +91,12 @@ void i2c_scan(I2C_HandleTypeDef * i2c, uint8_t addr_min, uint8_t addr_max)
 	{
 		HAL_StatusTypeDef status;
 		status = HAL_I2C_IsDeviceReady(i2c, addr << 1, 3, 500);
-		HAL_Delay(100);
+		osDelay(100);
 		if (status == HAL_OK) {
 			    	printf("Device found on %#x \r\n", addr);
 			    } else {
 			    	printf("Device NOTfound on %#x \r\n", addr);
-			    	HAL_Delay(100);
+			    	osDelay(100);
 			    }
 	}
 }
@@ -138,7 +138,7 @@ if (channel >1) {
 }
 if (channel == 0 || channel == 1) {
 		I2C2TCA_NRST();
-		HAL_Delay(1);
+		osDelay(1);
 		uint8_t data = 1 << channel;
 		HAL_I2C_Mem_Write(&hi2c2, TCA9543A_ADDRESS, 0x00, I2C_MEMADD_SIZE_8BIT, &data, 1, HAL_MAX_DELAY);
 	}
@@ -160,7 +160,7 @@ uint8_t TMP117_check()
 {
 	HAL_StatusTypeDef status;
 	status = HAL_I2C_IsDeviceReady(&hi2c2, TMP117_ADDR << 1, 3, 500);
-	HAL_Delay(100);
+	osDelay(100);
 	if (status == HAL_OK) {
 		uint16_t value;
 		i2c_read16(&hi2c2, TMP117_ID_REG, &value, TMP117_ADDR << 1);
@@ -172,7 +172,7 @@ void TMP117_RST_Conf_Reg()
 {
 //	printf("TMP117 RESET REG\r\n");
 	i2c_write16(&hi2c2, TMP117_CONF_REG, TMP117_RESET_CONF, TMP117_ADDR << 1);
-	HAL_Delay(1);
+	osDelay(1);
 
 }
 
@@ -196,7 +196,7 @@ void TMP117_start_meas(uint8_t avg_mode)
 	swapconfig |= one_shot;
 	config = byteswap16(swapconfig);
 	i2c_write16(&hi2c2, TMP117_CONF_REG, config, TMP117_ADDR << 1);
-	HAL_Delay(2);
+	osDelay(2);
 }
 
 uint16_t tmp117_avr_conf(uint8_t sensor_conf)
@@ -261,7 +261,7 @@ uint8_t SHTC3_wakeup()
 	uint16_t command = SHTC3_CMD_WAKEUP;
 	status = HAL_I2C_Master_Transmit(&hi2c2, SHTC3_ADDR_WRITE, (uint8_t*)&command, 2, 150);
 //	status = HAL_I2C_Mem_Write(&hi2c2, SHTC3_ADDR_WRITE, 0x00, I2C_MEMADD_SIZE_8BIT, (uint8_t*)&command, 1, HAL_MAX_DELAY);
-//	HAL_Delay(13);
+//	osDelay(13);
 	if(status == HAL_OK) { return 1; }
 	else {printf("SHTC3 Wake up fail %x\r\n", status); return 0; }
 }
@@ -271,7 +271,7 @@ uint8_t SHTC3_sleep()
 	HAL_StatusTypeDef status;
 	uint16_t command = SHTC3_CMD_SLEEP;
 	status = HAL_I2C_Master_Transmit(&hi2c2, SHTC3_ADDR_WRITE, (uint8_t*)&command, 2, 150);
-	HAL_Delay(2);
+	osDelay(2);
 	if(status == HAL_OK) return 1;
 	else return 0;
 }
@@ -282,7 +282,7 @@ uint8_t SHTC3_check()
 	HAL_StatusTypeDef status, status2;
 	uint8_t data[2];
 	status = HAL_I2C_IsDeviceReady(&hi2c2, SHTC3_ADDR_WRITE, 3, 500);
-	HAL_Delay(2);
+	osDelay(2);
 	if (status == HAL_OK) {
 		SHTC3_wakeup();
 		uint16_t command = SHTC3_CMD_READ_ID;
@@ -317,7 +317,7 @@ uint8_t SHTC3_read_values(uint8_t* result)
 {
 	HAL_StatusTypeDef status;
 	status = HAL_I2C_Master_Receive(&hi2c2, SHTC3_ADDR_READ, (uint8_t*)result, 6, 500);
-//	HAL_Delay(20);
+//	osDelay(20);
 	if (status != HAL_OK) {
 		return 0;
 	} 	else {
@@ -355,7 +355,7 @@ uint8_t BME280_check()
 	SET_BME280();
 	HAL_StatusTypeDef status;
 	status = HAL_I2C_IsDeviceReady(&hi2c2, BMP280_I2C_ADDRESS_1 << 1, 3, 150);
-	HAL_Delay(100);
+	osDelay(100);
 	if (status == HAL_OK) {
 		i2c_read8(&hi2c2, BMP280_REG_ID, &value, BMP280_I2C_ADDRESS_1 << 1);
 		if(value == BME280_CHIP_ID) {printf("BME280 OK\r\n"); return 1;} else {printf("NOT BME280\r\n"); return 0;}

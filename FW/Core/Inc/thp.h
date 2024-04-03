@@ -66,5 +66,5 @@ uint8_t calculateCRC(uint8_t data[], uint8_t len);
 void display_values (uint8_t format);
 void printCSVheader();
 void getConfVars();
-
+void ReinitTimer(uint16_t tim_interval);
 #endif /* INC_THP_H_ */

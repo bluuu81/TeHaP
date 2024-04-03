@@ -9,5 +9,14 @@
 void SIM_HW_OFF()
 {
 	SIM_OFF();
-	GPS_OFF();
+}
+
+void GPS_ON()
+{
+
+}
+
+void GPS_OFF()
+{
+
 }

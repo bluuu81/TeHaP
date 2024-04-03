@@ -23,7 +23,7 @@ uint8_t BQ25798_check()
 	printf("Checking BQ25798 ... ");
 	for (int i = 0; i < 5; i++) {
 		status = HAL_I2C_IsDeviceReady(&hi2c1, BQ25798_ADDR, 3, 1500);
-		HAL_Delay(50);
+		osDelay(50);
 	    if (status == HAL_OK) {
 	    	printf("OK !\r\n");
 	    	BQ25798_set_ADC();
@@ -31,7 +31,7 @@ uint8_t BQ25798_check()
 	        break;
 	    } else {
 	    	res = FAULT;
-	    	HAL_Delay(500);
+	    	osDelay(500);
 	    }
 	}
 	if(res == FAULT) printf("not ready\r\n");
@@ -43,7 +43,7 @@ void BQ25798_set_ADC()
 	uint8_t reg;
 	reg = 0b10000000;
 	i2c_write8(&hi2c1, REG2E_ADC_Control, reg, BQ25798_ADDR);
-	HAL_Delay(1);
+	osDelay(1);
 }
 
 uint16_t BQ25798_Vbat_read()

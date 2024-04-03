@@ -12,10 +12,10 @@ uint8_t BME280_check()
 {
 	uint8_t value;
 	TCA9543A_SelectChannel(1);
-	HAL_Delay(1);
+	osDelay(1);
 	HAL_StatusTypeDef status;
 	status = HAL_I2C_IsDeviceReady(&hi2c2, BME280_ADDR, 3, 150);
-	HAL_Delay(100);
+	osDelay(100);
 	if (status == HAL_OK) {
 		i2c_read8(&hi2c2, BME280_REG_ID, &value, BME280_ADDR);
 		TCA9543A_SelectChannel(0);

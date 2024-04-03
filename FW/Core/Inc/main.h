@@ -42,6 +42,7 @@ extern "C" {
 #include "cli.h"
 #include "EEPROM.h"
 #include "stdbool.h"
+#include "cmsis_os.h"
 
 
 /* USER CODE END Includes */
@@ -61,15 +62,12 @@ extern "C" {
 
 /* USER CODE END EM */
 
-void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
-
 /* Exported functions prototypes ---------------------------------------------*/
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 void I2C_Reinit();
 void I2C_Reinit_STR();
-void ReinitTimer(uint16_t period);
 
 /* USER CODE END EFP */
 
@@ -86,8 +84,8 @@ void ReinitTimer(uint16_t period);
 #define SIM_UART_RI_GPIO_Port GPIOA
 #define SIM_UART_DTR_Pin GPIO_PIN_5
 #define SIM_UART_DTR_GPIO_Port GPIOA
-#define SIM_GPS_Pin GPIO_PIN_6
-#define SIM_GPS_GPIO_Port GPIOA
+#define GPS_1PPS_Pin GPIO_PIN_6
+#define GPS_1PPS_GPIO_Port GPIOA
 #define SIM_PWR_Pin GPIO_PIN_0
 #define SIM_PWR_GPIO_Port GPIOB
 #define SIM_WDT_Pin GPIO_PIN_1
@@ -118,9 +116,9 @@ void ReinitTimer(uint16_t period);
 #define LED1_OFF()		HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET)
 #define LED1_TOGGLE()	HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin)
 
-#define LED2_ON()		setLed2(31)
-#define LED2_OFF()		setLed2(0)
-#define LED2_TOGGLE()	{if(TIM16->CCR1 & 0xFFFF) setLed2(0); else setLed2(31);}
+#define LED2_ON()		HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET)
+#define LED2_OFF()		HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET)
+#define LED2_TOGGLE()	HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin)
 
 #define POWER_ON()		HAL_GPIO_WritePin(Main_SW_GPIO_Port, Main_SW_Pin, GPIO_PIN_SET)
 #define POWER_OFF()		HAL_GPIO_WritePin(Main_SW_GPIO_Port, Main_SW_Pin, GPIO_PIN_RESET)
