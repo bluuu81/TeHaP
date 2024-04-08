@@ -2,7 +2,7 @@
 ../Middlewares/Third_Party/FreeRTOS/Source/queue.c:2171:13:prvUnlockQueue	9
 ../Middlewares/Third_Party/FreeRTOS/Source/queue.c:255:12:xQueueGenericReset	5
 ../Middlewares/Third_Party/FreeRTOS/Source/queue.c:368:16:xQueueGenericCreate	4
-../Middlewares/Third_Party/FreeRTOS/Source/queue.c:740:12:xQueueGenericSend	23
+../Middlewares/Third_Party/FreeRTOS/Source/queue.c:740:12:xQueueGenericSend	20
 ../Middlewares/Third_Party/FreeRTOS/Source/queue.c:496:16:xQueueCreateMutex	2
 ../Middlewares/Third_Party/FreeRTOS/Source/queue.c:950:12:xQueueGenericSendFromISR	12
 ../Middlewares/Third_Party/FreeRTOS/Source/queue.c:1112:12:xQueueGiveFromISR	10

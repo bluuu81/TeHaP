@@ -10,6 +10,7 @@
 
 #include "main.h"
 #include "cli.h"
+
 #include "thp_sensors.h"
 #include "ctype.h"
 #include <stdio.h>

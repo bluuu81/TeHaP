@@ -13,10 +13,10 @@ void SIM_HW_OFF()
 
 void GPS_ON()
 {
-
+	///HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
 }
 
 void GPS_OFF()
 {
-
+	//HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
 }

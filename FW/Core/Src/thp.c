@@ -9,6 +9,7 @@
 #include "thp.h"
 #include "bq25798.h"
 #include "cmsis_os.h"
+#include "gsm.h"
 
 volatile uint8_t charger_state;
 
@@ -40,6 +41,7 @@ volatile uint8_t device_state = 0;
 volatile uint32_t offTim;
 
 osThreadId measTaskHandle;
+osThreadId GSMTaskHandle;
 uint32_t ticksstart;
 
 //void _close(void) {}
@@ -362,17 +364,79 @@ void SensorsTask(void const *argument)
 		  }
 		}
 		sensors_data_ready = 1;
+
 	}		// while(1)
 }
 
 // ******************************************************************************************************
+
+
+void GSMTask(void const *argument)
+{
+	printf("========GSM TASK STARTED=======\r\n");
+	SIM_ON();
+	  gsm_init();
+	  gsm_power(true);
+	    gsm_waitForRegister(30);
+
+	    char model[50];
+	      char sms_data[160];
+	      uint8_t signal;
+
+
+
+	      signal=gsm_getSignalQuality_0_to_100();
+	     	  while(signal==0)
+	     	  {
+	     	  signal=gsm_getSignalQuality_0_to_100();
+	     	  }
+	     	  gsm_gprs_setApName("internet");
+	     	  gsm_gprs_connect();
+	     	 // printf("signal: %i \r\n",signal);
+	     	  //HAL_Delay(5000);
+
+	     	  gsm_gprs_ntpServer("194.146.251.101", 8);
+	     	  gsm_gprs_ntpSyncTime();
+
+	     	 while (1)
+	     	  {
+	     		 signal=gsm_getSignalQuality_0_to_100();
+	     		 	  gsm_loop();
+
+	     		  //gsm_getModel(model, 20);
+	     		  //gsm_getIMEI(model, 20);
+	     		  HAL_Delay(5000);
+
+	     		  gsm_gprs_ntpGetTime(model);
+	     		  sprintf(sms_data,"NTP Time: %s",model);
+
+	     		  printf("%s \r\n",sms_data);
+	     		  //setLed2(signal);
+	     		  if (signal>0)
+	     		  {
+	     			 // gsm_gprs_ntpGetTime(model);
+	     			 // printf("time: %s \r\n",model);
+	     			  //HAL_Delay(500);
+
+	     			 HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
+	     			//gsm_msg_send("510755075", &sms_data);
+	     			//while(1);
+
+	     		  }
+	     		  else
+	     		  {
+	     			 HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
+	     		  }
+	     	  }
+
+}
+
 
 void THP_MainTask(void const *argument)
 {
 	  POWER_OFF();
 	  if(!Power_SW_READ()) HAL_NVIC_SystemReset();		// nie nacisniety power -> reset CPU
 	  HAL_UART_RxCpltCallback(&huart1); //CLI
-	  HAL_UART_RxCpltCallback(&huart2); //SIM
 	  check_powerOn();
 	  if(!Power_SW_READ()) HAL_NVIC_SystemReset();		// nie nacisniety power -> reset CPU
 	  SIM_HW_OFF();
@@ -427,9 +491,18 @@ void THP_MainTask(void const *argument)
 	  disp_type = config.disp_type;
 	  new_tim_interval = config.tim_interval; //w sekundach
 
+
+	  //task dla GSM
+	  	  osThreadDef(GSMTask, GSMTask, osPriorityNormal, 0, 512);
+	  	  GSMTaskHandle = osThreadCreate(osThread(GSMTask), NULL);
+
 	  // uruchomienie taska sensorów
 	  osThreadDef(SensorTask, SensorsTask, osPriorityNormal, 0, 512);
 	  measTaskHandle = osThreadCreate(osThread(SensorTask), NULL);
+
+
+
+
 
 	  uint32_t ticks30ms = HAL_GetTick();
 	  uint32_t ticksbqwd = HAL_GetTick();
@@ -444,6 +517,7 @@ void THP_MainTask(void const *argument)
 		  }
 
 		  CLI();
+
 
 		  // miganie LED i test wyłącznika
 		  if(HAL_GetTick()-ticks30ms >= 30)
@@ -469,9 +543,24 @@ void THP_MainTask(void const *argument)
 					  meas_count--;
 					  if(meas_count == 0) printf("Last measure\r\n");
 				  }
-				  vTaskResume(measTaskHandle);						// odblokuj taks pomiarow
+	 				 printf("===TASK Meas\r\n");
+				//  vTaskResume(measTaskHandle);						// odblokuj taks pomiarow
 			  }
 		  }
+
+		  if(HAL_GetTick() - ticksstart >= 3*1000UL || firstrun) {	// czas uruchomic gsm ?
+		 			  ticksstart = HAL_GetTick();
+		 			  firstrun = 0;
+		 			  if (meas_count > 0 || meas_cont_mode) {
+		 				  if(meas_cont_mode == 0) {
+		 					  meas_count--;
+		 					  if(meas_count == 0) printf("Last measure\r\n");
+		 				  }
+		 				 printf("===TASK GSM\r\n");
+		 				  vTaskResume(GSMTaskHandle);						// odblokuj taks pomiarow
+		 			  }
+		 		  }
+
 
 		  // wyswietlenie pomiarow
 	      if(sensors_data_ready) {						// taks sensorow zakonczyl dzialanie ?

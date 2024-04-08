@@ -17,6 +17,9 @@
 #include <stdlib.h>
 #include "EEPROM.h"
 #include "SIM868.h"
+//include "gsm.h"
+
+
 
 
 #define DEBUG_BUF_SIZE 64
@@ -62,9 +65,7 @@ void debug_putchar(uint8_t ch)
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(huart == &huart1) HAL_UART_Receive_IT(&huart1, debug_rx_buf, DEBUG_BUF_SIZE);  // Interrupt start Uart1 RX
-	if(huart == &huart2) {
-		HAL_UART_Receive_IT(&huart2, &simch, 1); // Interrupt start Uart2 RX
-	}
+
 }
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
