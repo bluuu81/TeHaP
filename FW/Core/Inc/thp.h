@@ -43,7 +43,9 @@ extern BME280_struct_t BME280;
 extern DPS368_struct_t DPS368;
 extern uint16_t csvcnt;
 
-
+extern uint8_t rtc_debug;
+extern uint8_t rtos_debug;
+extern uint8_t meas_debug;
 
 enum device_state
 {

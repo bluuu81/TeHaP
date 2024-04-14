@@ -887,17 +887,17 @@ bool gsm_gprs_ntpSyncTime(void)
 {
   if (gsm.gprs.connected == false)
   {
-    gsm_printf("[GSM] gprs_ntpSyncTime() failed!\r\n");
+    gsm_printf("[GSM] gprs_ntpSyncTime() 1 failed!\r\n");
     return false;
   }
   if (gsm_lock(10000) == false)
   {
-    gsm_printf("[GSM] gprs_ntpSyncTime() failed!\r\n");
+    gsm_printf("[GSM] gprs_ntpSyncTime() 2 failed!\r\n");
     return false;
   }
   if (gsm_command("AT+CNTP\r\n", 10000, NULL, 0, 2, "\r\n+CNTP: 1\r\n", "\r\nERROR\r\n") != 1)
   {
-    gsm_printf("[GSM] gprs_ntpSyncTime() failed!\r\n");
+    gsm_printf("[GSM] gprs_ntpSyncTime() 3 failed!\r\n");
     gsm_unlock();
     return false;
   }

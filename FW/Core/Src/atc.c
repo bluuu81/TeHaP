@@ -93,6 +93,7 @@ void atc_rxCallback(atc_t *atc)
       atc->rxIndex++;
     }
     atc->rxTime = HAL_GetTick();
+
     return;
   }
 //  if (LL_USART_IsActiveFlag_PE(atc->usart))

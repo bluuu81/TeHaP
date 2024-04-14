@@ -10,6 +10,7 @@
 #include "bq25798.h"
 #include "cmsis_os.h"
 #include "gsm.h"
+extern RTC_HandleTypeDef hrtc;
 
 volatile uint8_t charger_state;
 
@@ -42,7 +43,14 @@ volatile uint32_t offTim;
 
 osThreadId measTaskHandle;
 osThreadId GSMTaskHandle;
+osThreadId RTC000TaskHandle;
 uint32_t ticksstart;
+
+volatile RTC_TimeTypeDef sTime;
+volatile RTC_DateTypeDef sDate;
+volatile RTC_TimeTypeDef sNewTime;
+volatile RTC_DateTypeDef sNewDate;
+
 
 //void _close(void) {}
 //void _lseek(void) {}
@@ -373,60 +381,30 @@ void SensorsTask(void const *argument)
 
 void GSMTask(void const *argument)
 {
+
+
 	printf("========GSM TASK STARTED=======\r\n");
 	SIM_ON();
 	  gsm_init();
 	  gsm_power(true);
-	    gsm_waitForRegister(30);
-
-	    char model[50];
-	      char sms_data[160];
-	      uint8_t signal;
-
-
-
-	      signal=gsm_getSignalQuality_0_to_100();
+	  gsm_waitForRegister(30);
+	  uint8_t signal;
+      signal=gsm_getSignalQuality_0_to_100();
 	     	  while(signal==0)
 	     	  {
 	     	  signal=gsm_getSignalQuality_0_to_100();
 	     	  }
 	     	  gsm_gprs_setApName("internet");
 	     	  gsm_gprs_connect();
-	     	 // printf("signal: %i \r\n",signal);
-	     	  //HAL_Delay(5000);
-
 	     	  gsm_gprs_ntpServer("194.146.251.101", 8);
-	     	  gsm_gprs_ntpSyncTime();
+	     	  //gsm_gprs_ntpSyncTime();
+	     	  printf("gprs\r\n");
 
 	     	 while (1)
 	     	  {
-	     		 signal=gsm_getSignalQuality_0_to_100();
-	     		 	  gsm_loop();
+	     		// signal=gsm_getSignalQuality_0_to_100();
 
-	     		  //gsm_getModel(model, 20);
-	     		  //gsm_getIMEI(model, 20);
-	     		  HAL_Delay(5000);
 
-	     		  gsm_gprs_ntpGetTime(model);
-	     		  sprintf(sms_data,"NTP Time: %s",model);
-
-	     		  printf("%s \r\n",sms_data);
-	     		  //setLed2(signal);
-	     		  if (signal>0)
-	     		  {
-	     			 // gsm_gprs_ntpGetTime(model);
-	     			 // printf("time: %s \r\n",model);
-	     			  //HAL_Delay(500);
-
-	     			 HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_RESET);
-	     			//gsm_msg_send("510755075", &sms_data);
-	     			//while(1);
-
-	     		  }
-	     		  else
-	     		  {
-	     			 HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
-	     		  }
 	     	  }
 
 }
@@ -435,6 +413,10 @@ void GSMTask(void const *argument)
 void THP_MainTask(void const *argument)
 {
 	  POWER_OFF();
+	  HAL_RTC_GetTime(&hrtc, &sTime, 0);
+	  HAL_RTC_GetDate(&hrtc, &sDate, 0);
+	  gsm_loop();
+
 	  if(!Power_SW_READ()) HAL_NVIC_SystemReset();		// nie nacisniety power -> reset CPU
 	  HAL_UART_RxCpltCallback(&huart1); //CLI
 	  check_powerOn();
@@ -500,11 +482,16 @@ void THP_MainTask(void const *argument)
 	  osThreadDef(SensorTask, SensorsTask, osPriorityNormal, 0, 512);
 	  measTaskHandle = osThreadCreate(osThread(SensorTask), NULL);
 
+	  //task dla RTC
+	  //osThreadDef(RTCTask, RTCTask, osPriorityNormal, 0, 512);
+	  //RTCTaskHandle = osThreadCreate(osThread(RTCTask), NULL);
+
 
 
 
 
 	  uint32_t ticks30ms = HAL_GetTick();
+	  uint32_t ticks1000ms = HAL_GetTick();
 	  uint32_t ticksbqwd = HAL_GetTick();
 	  uint8_t firstrun = 1;
 	  osDelay(100);
@@ -519,13 +506,30 @@ void THP_MainTask(void const *argument)
 		  CLI();
 
 
+
 		  // miganie LED i test wyłącznika
 		  if(HAL_GetTick()-ticks30ms >= 30)
 		  {
 			  ticks30ms = HAL_GetTick();
 			  LED1_TOGGLE();
 			  check_powerOff();
+
 		  }
+
+		  if(HAL_GetTick()-ticks1000ms >= 1000)
+		  {
+			  ticks1000ms = HAL_GetTick();
+			  HAL_RTC_GetTime(&hrtc, &sTime, 0);
+			  HAL_RTC_GetDate(&hrtc, &sDate, 0);
+			  if (rtc_debug)
+			  {
+			  printf("RTC Time: %02i:%02i:%02i %i/%i/20%02i\r\n",sTime.Hours,sTime.Minutes,sTime.Seconds, sDate.Date, sDate.Month, sDate.Year);
+			  }
+		  }
+
+
+
+
 
 		  // reset BQ
 		  if(HAL_GetTick()-ticksbqwd >= 15000)
@@ -543,8 +547,8 @@ void THP_MainTask(void const *argument)
 					  meas_count--;
 					  if(meas_count == 0) printf("Last measure\r\n");
 				  }
-	 				 printf("===TASK Meas\r\n");
-				//  vTaskResume(measTaskHandle);						// odblokuj taks pomiarow
+				  if (rtos_debug) { printf("===TASK MEAS\r\n");}
+				  vTaskResume(measTaskHandle);						// odblokuj taks pomiarow
 			  }
 		  }
 
@@ -556,8 +560,9 @@ void THP_MainTask(void const *argument)
 		 					  meas_count--;
 		 					  if(meas_count == 0) printf("Last measure\r\n");
 		 				  }
-		 				 printf("===TASK GSM\r\n");
-		 				  vTaskResume(GSMTaskHandle);						// odblokuj taks pomiarow
+		 				 if (rtos_debug) { printf("===TASK GSM\r\n");}
+
+		 				 vTaskResume(GSMTaskHandle);						// odblokuj taks pomiarow
 		 			  }
 		 		  }
 
@@ -572,5 +577,49 @@ void THP_MainTask(void const *argument)
 
 	      __WFI();
 	  }
+}
+
+uint8_t sync_NTP()
+{
+
+	uint8_t rok,miesiac,dzien,godzina,minuta,sekunda;
+
+	char tempdata[50];
+	if (gsm_gprs_ntpSyncTime() != 1)
+	{return 1;
+
+	}
+
+	if ( gsm_gprs_ntpGetTime(&tempdata) !=1)
+	{
+		return 2;
+	}
+	printf("=====%s=========",&tempdata);
+	sscanf(tempdata,"%2i/%2i/%2i,%02i:%02i:%02i", &rok, &miesiac , &dzien, &godzina, &minuta, &sekunda);
+	sNewDate.Year=rok;
+	sNewDate.Month=miesiac;
+	sNewDate.Date=dzien;
+	sNewTime.Hours=godzina;
+	sNewTime.Minutes=minuta;
+	sNewTime.Seconds=sekunda;
+	//sscanf(sms_data,"%*s %*s %2i/%2i/%2i,%02i:%02i:%02i*%s", &sNewDate.Year, &sNewDate.Month, &sNewDate.Date, &sNewTime.Hours, &sNewTime.Minutes, &sNewTime.Seconds);
+	HAL_RTC_SetTime(&hrtc, &sNewTime, 0);
+	HAL_RTC_SetDate(&hrtc, &sNewDate, 0);
+	HAL_RTC_GetTime(&hrtc, &sTime, 0);
+	HAL_RTC_GetDate(&hrtc, &sDate, 0);
+	if (rtc_debug)
+		{
+		printf("RTC Time UPDATED: %02i:%02i:%02i %i/%i/20%02i\r\n",sTime.Hours,sTime.Minutes,sTime.Seconds, sDate.Date, sDate.Month, sDate.Year);
+		}
+	return 0;
+}
+
+
+void print_rtc_time()
+{
+	HAL_RTC_GetTime(&hrtc, &sTime, 0);
+			HAL_RTC_GetDate(&hrtc, &sDate, 0);
+		  printf("RTC Time: %02i:%02i:%02i %i/%i/20%02i\r\n",sTime.Hours,sTime.Minutes,sTime.Seconds, sDate.Date, sDate.Month, sDate.Year);
+
 }
 

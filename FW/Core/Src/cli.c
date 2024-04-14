@@ -20,7 +20,10 @@
 //include "gsm.h"
 
 
-
+extern RTC_TimeTypeDef sTime;
+extern RTC_DateTypeDef sDate;
+extern RTC_TimeTypeDef sNewTime;
+extern RTC_DateTypeDef sNewDate;
 
 #define DEBUG_BUF_SIZE 64
 
@@ -44,6 +47,12 @@ uint16_t csvcnt;
 uint8_t  debug_rx_buf[DEBUG_BUF_SIZE];
 uint16_t debug_rxtail;
 uint8_t simch;
+
+
+uint8_t rtc_debug;
+uint8_t rtos_debug=1;
+uint8_t meas_debug;
+
 
 //uint8_t sim_rx_buf[32];    // 32 bytes buffer
 //uint16_t sim_rxtail;
@@ -182,6 +191,29 @@ void CLI_proc(char ch)
 
 		if(find("gps on")==clibuf+6) {GPS_ON(); return;}
 		if(find("gps off")==clibuf+7) {GPS_OFF(); return;}
+		if(find("rtc debug on")==clibuf+12) {printf("RTC Debug ON\r\n"); rtc_debug=1; return;}
+		if(find("rtc debug off")==clibuf+13) {printf("RTC Debug OFF\r\n"); rtc_debug=0; return;}
+		if(find("rtos debug on")==clibuf+13) {printf("RTOS Debug ON\r\n"); rtos_debug=1; return;}
+		if(find("rtos debug off")==clibuf+14) {printf("RTOS Debug OFF\r\n"); rtos_debug=0; return;}
+		if(find("rtos debug on")==clibuf+13) {printf("RTOS Debug ON\r\n"); rtos_debug=1; return;}
+		if(find("rtos debug off")==clibuf+14) {printf("RTOS Debug OFF\r\n"); rtos_debug=0; return;}
+		if(find("meas debug on")==clibuf+13) {printf("MEAS Debug ON\r\n"); meas_debug=1; return;}
+		if(find("meas debug off")==clibuf+14) {printf("MEAS Debug OFF\r\n"); meas_debug=0; return;}
+
+		if(find("get time")==clibuf+8) {print_rtc_time(); return;}
+
+		if(find("rtc sync ntp")==clibuf+12)
+			{uint8_t status;
+			printf("RTC SYNC NTP\r\n");
+			status= sync_NTP();
+			if (status>0)
+			{
+				printf("NTP sync error %i\r\n",status);
+			}
+				return;
+
+			}
+
 
 
 		p = find("set ");
