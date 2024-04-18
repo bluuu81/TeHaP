@@ -154,8 +154,7 @@ void Load_defaults()
 	config.bat_scale = 0.0505f;
 	config.batt_alarm = BATT_ALARM_VOLTAGE;  // definicja w main.h
 	config.reset_state = 0;
-	config.disp_type = TXT;
-	config.tim_interval = 8;
+	config.disp_type = NONE;
 	config.TMP117_use = 1;
 	config.TMP117_conf = 1;
 	config.TMP117_t_use = 1;
@@ -188,6 +187,10 @@ void Load_defaults()
 	config.DPS368_p_use = 1;
 	config.DPS368_t_offset = 0.0f;
 	config.DPS368_p_offset = 0.0f;
+
+	config.tim_interval = 15;			// w minutach zaokraglany do 15min przez system
+	config.measures = 20;
+	config.sendFormat = 1;
 }
 
 void EEPROM_Print_config(void)
@@ -197,6 +200,15 @@ void EEPROM_Print_config(void)
 	printf("Battery scale: %f \r\n", config.bat_scale);
 	printf("Low Batt alarm: %i \r\n", config.batt_alarm);
 	printf("Meas interval: %i \r\n", config.tim_interval);
+	printf("Meas count: %i \r\n", config.measures);
+	printf("Send Format: %i \r\n", config.sendFormat);
+	printf("Server IP: %s \r\n", config.serverIP);
+	printf("Server Port: %i \r\n", config.serverPort);
+	printf("MQTT IP: %s \r\n", config.mqttIP);
+	printf("MQTT Port: %i \r\n", config.mqttPort);
+	printf("MQTT User: %s \r\n", config.mqttUser);
+	printf("MQTT Pass: %s \r\n", config.mqttPass);
+
 	printf("TMP117 sensor use %i %i \r\n", config.TMP117_use, TMP117.sensor_use);
 	printf("TMP117 config %i %i \r\n", config.TMP117_conf, TMP117.sensor_conf);
 	printf("TMP117 temp meas %i %i \r\n", config.TMP117_t_use, TMP117.temp.use_meas);

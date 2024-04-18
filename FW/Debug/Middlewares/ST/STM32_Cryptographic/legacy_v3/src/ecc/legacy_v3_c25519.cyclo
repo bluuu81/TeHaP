@@ -1,0 +1,2 @@
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/ecc/legacy_v3_c25519.c:25:9:C25519keyExchange	1
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/ecc/legacy_v3_c25519.c:55:9:C25519keyGen	3

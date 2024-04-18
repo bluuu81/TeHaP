@@ -1,0 +1,4 @@
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/membuf/legacy_v3_membuf.c:23:10:clv3_allocate	4	static
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/membuf/legacy_v3_membuf.c:40:10:clv3_free	0	static
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/membuf/legacy_v3_membuf.c:57:6:cmox_helper_membuf_fromV4	4	static
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/membuf/legacy_v3_membuf.c:65:6:cmox_helper_membuf_toV4	4	static

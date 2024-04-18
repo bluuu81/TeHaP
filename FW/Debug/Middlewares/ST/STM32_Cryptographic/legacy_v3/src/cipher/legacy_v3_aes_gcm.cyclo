@@ -1,0 +1,7 @@
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_gcm.c:25:9:AES_GCM_Encrypt_Init	13
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_gcm.c:84:9:AES_GCM_Header_Append	3
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_gcm.c:112:9:AES_GCM_Encrypt_Append	4
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_gcm.c:155:9:AES_GCM_Encrypt_Finish	6
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_gcm.c:201:9:AES_GCM_Decrypt_Init	13
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_gcm.c:262:9:AES_GCM_Decrypt_Append	4
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_gcm.c:307:9:AES_GCM_Decrypt_Finish	6

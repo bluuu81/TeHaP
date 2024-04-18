@@ -16,23 +16,15 @@
 #include <string.h>
 #include <stdlib.h>
 #include "EEPROM.h"
-#include "SIM868.h"
-//include "gsm.h"
 
-
-extern RTC_TimeTypeDef sTime;
-extern RTC_DateTypeDef sDate;
-extern RTC_TimeTypeDef sNewTime;
-extern RTC_DateTypeDef sNewDate;
 
 #define DEBUG_BUF_SIZE 64
+#define DEBUG_TX_SIZE  2048
 
 extern uint8_t charger_state;
 extern Config_TypeDef config;
 
-extern uint16_t tim_interval;
-extern uint16_t new_tim_interval;
-extern uint8_t disp_type;
+extern int meas_start;
 extern uint16_t meas_count;
 extern uint8_t meas_cont_mode;
 
@@ -48,11 +40,9 @@ uint8_t  debug_rx_buf[DEBUG_BUF_SIZE];
 uint16_t debug_rxtail;
 uint8_t simch;
 
-
-uint8_t rtc_debug;
-uint8_t rtos_debug=1;
-uint8_t meas_debug;
-
+uint8_t  debug_tx_buf[DEBUG_TX_SIZE];
+uint16_t debug_txhead;
+uint16_t debug_txtail;
 
 //uint8_t sim_rx_buf[32];    // 32 bytes buffer
 //uint16_t sim_rxtail;
@@ -60,21 +50,42 @@ uint8_t meas_debug;
 static char clibuf[64];
 static int cliptr;
 
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+	if(huart == &huart1 && debug_txhead != debug_txtail) {
+		if(debug_txhead > debug_txtail) {
+			HAL_UART_Transmit_IT(&huart1, debug_tx_buf+debug_txtail, debug_txhead-debug_txtail);
+			debug_txtail = debug_txhead;
+		} else {
+			HAL_UART_Transmit_IT(&huart1, debug_tx_buf+debug_txtail, DEBUG_TX_SIZE-debug_txtail);
+			debug_txtail = 0;
+		}
+	}
+}
+
+// buffered uart printf
 int _write(int file, char *ptr, int len)
 {
-    HAL_UART_Transmit(&huart1, (uint8_t *)ptr, len, len+1);  // uart1
+//    HAL_UART_Transmit(&huart1, (uint8_t *)ptr, len, len+5);  // uart1 - debug
+	uint8_t need_start = (debug_txhead == debug_txtail) ? 1:0;
+	for(int i=0; i<len; ++i) {debug_tx_buf[debug_txhead] = ptr[i]; debug_txhead = (debug_txhead + 1) % DEBUG_TX_SIZE;}
+	if(need_start && huart1.gState != HAL_UART_STATE_BUSY_TX) HAL_UART_TxCpltCallback(&huart1);
     return len;
 }
 
 void debug_putchar(uint8_t ch)
 {
-    HAL_UART_Transmit(&huart1, &ch, 1, 2);  // debug uart
+//    HAL_UART_Transmit(&huart1, &ch, 1, 2);  // debug uart
+	_write(0, (char*)&ch, 1);
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(huart == &huart1) HAL_UART_Receive_IT(&huart1, debug_rx_buf, DEBUG_BUF_SIZE);  // Interrupt start Uart1 RX
-
+	if(huart == &huart2) {
+		Sim80x_RxCallBack(simch);
+		HAL_UART_Receive_IT(&huart2, &simch, 1); // Interrupt start Uart2 RX
+	}
 }
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
@@ -123,11 +134,11 @@ char * getval(char *p, int32_t *val, int32_t min, int32_t max)		// get s32 value
 void getString(char *p, char *dst, int16_t minlen, int16_t maxlen, const char *nam)		// get string from cmdline
 {
 	if(*p == ' ') p++;
-	for(int i=0; i<maxlen; i++) if(p[i]==13 && i<minlen) {printf("Too short\r\n"); return;}	// test dlugosci
+	for(int i=0; i<maxlen; i++) if((p[i]==13 || p[i]==10) && i<minlen) {printf("Too short\r\n"); return;}	// test dlugosci
 	for(int i=0; i<maxlen; i++)
 	{
 		dst[i] = p[i];
-		if(p[i] == 13) {dst[i] = 0; break;}
+		if(p[i] == 13 || p[i] == 10) {dst[i] = 0; break;}
 	}
 	printf("%s: %s\r\n", nam, dst);
 }
@@ -186,63 +197,129 @@ void CLI_proc(char ch)
 		if(find("setbattalarm")==clibuf+12){getval(clibuf+13, &temp, 0, 15000); config.batt_alarm=temp; printf("Batt alarm:%i",config.batt_alarm); return;};
 		if(find("setbatscale")==clibuf+11){getFloat(clibuf+12, &tempfloat, -10.0, 10.0); config.bat_scale=tempfloat; printf("Batt scale:%f \r\n",config.bat_scale); return;};
 
-		if(find("sim on")==clibuf+6) {SIM_ON(); return;}
-		if(find("sim off")==clibuf+7) {SIM_OFF(); return;}
+		if(find("sim on")==clibuf+6) {Sim80x_SetPower(1); return;}
+		if(find("sim off")==clibuf+7) {Sim80x_SetPower(0); return;}
 
-		if(find("gps on")==clibuf+6) {GPS_ON(); return;}
-		if(find("gps off")==clibuf+7) {GPS_OFF(); return;}
-		if(find("rtc debug on")==clibuf+12) {printf("RTC Debug ON\r\n"); rtc_debug=1; return;}
-		if(find("rtc debug off")==clibuf+13) {printf("RTC Debug OFF\r\n"); rtc_debug=0; return;}
-		if(find("rtos debug on")==clibuf+13) {printf("RTOS Debug ON\r\n"); rtos_debug=1; return;}
-		if(find("rtos debug off")==clibuf+14) {printf("RTOS Debug OFF\r\n"); rtos_debug=0; return;}
-		if(find("rtos debug on")==clibuf+13) {printf("RTOS Debug ON\r\n"); rtos_debug=1; return;}
-		if(find("rtos debug off")==clibuf+14) {printf("RTOS Debug OFF\r\n"); rtos_debug=0; return;}
-		if(find("meas debug on")==clibuf+13) {printf("MEAS Debug ON\r\n"); meas_debug=1; return;}
-		if(find("meas debug off")==clibuf+14) {printf("MEAS Debug OFF\r\n"); meas_debug=0; return;}
+		if(find("gprs start")==clibuf+10) {
+			printf("Status: %s\r\n", GPRS_ConnectToNetwork("INTERNET", "", "", false) ? "OK":"ERROR");
+			printf("Connected to GPRS, IP: %s\r\n", Sim80x.GPRS.LocalIP);
+			return;
+		}
+		if(find("gprs stop")==clibuf+9) {GPRS_DeactivatePDPContext(); return;}
 
-		if(find("get time")==clibuf+8) {print_rtc_time(); return;}
+		if(find("gprs server ")==clibuf+12) {
+			char srv[48];
+		    getString(p, srv, 8, 48, NULL);
+			printf("Status: %s\r\n", GPRS_ConnectToServer(srv,20390) ? "OK":"ERROR");
+			return;
+		}
+		if(find("gprs close")==clibuf+10) {GPRS_DisconnectFromServer(); return;}
+		if(find("gprs send")==clibuf+9) {
+			printf("Status: %s\r\n", GPRS_SendString("Test Wysylania przez GPRS\r\n") ? "OK":"ERROR");
+			return;
+		}
+		if(find("gprs test")==clibuf+9) {StartSendGPRS(); return;}
 
-		if(find("rtc sync ntp")==clibuf+12)
-			{uint8_t status;
-			printf("RTC SYNC NTP\r\n");
-			status= sync_NTP();
-			if (status>0)
-			{
-				printf("NTP sync error %i\r\n",status);
-			}
-				return;
+		if(find("gps get")==clibuf+7) {StartReadGps(); return;}
+		if(find("gps position")==clibuf+12) {
+			printf("Lat: %d, Lon: %d, Alt: %d, Sat: %d\r\n", (int)Sim80x.GPS.Lat, (int)Sim80x.GPS.Lon,
+															 (int)Sim80x.GPS.Alt, Sim80x.GPS.SatInUse);
+			return;
+		}
 
-			}
-
-
+		if(find("gsm time")==clibuf+8) {
+			Sim80x_GetTime();
+			printf("GSM time: %04d-%02d-%02d  %02d:%02d:%02d, TZ:%d\r\n",
+					Sim80x.Gsm.Time.Year, Sim80x.Gsm.Time.Month, Sim80x.Gsm.Time.Day,
+					Sim80x.Gsm.Time.Hour, Sim80x.Gsm.Time.Min, Sim80x.Gsm.Time.Sec, Sim80x.Gsm.Time.Zone);
+			return;
+		}
 
 		p = find("set ");
-		if(p == clibuf+4)
-		{
-			if((p = find("interval ")))
-			{
+		if(p == clibuf+4) {
+			if((p = find("interval ")))	{
 				int32_t tmp = -1;
-	            getval(p, &tmp, 4, 3600);
-		            if(tmp >= 4)
-		            {
-		                new_tim_interval = tmp;
-		                printf("New meas interval: %u\r\n", new_tim_interval);
-		            }
-		            return;
+	            getval(p, &tmp, 15, 1440);
+				if(tmp >= 15) {
+					config.tim_interval = ((tmp+7)/15) * 15; 	// zaokraglenie do wielokrotnosci 15
+					printf("New meas interval: %u\r\n", config.tim_interval);
+				}
+				return;
 			}
-			if((p = find("disptype ")))
-			{
+			if((p = find("measures ")))	{
+				int32_t tmp = -1;
+	            getval(p, &tmp, 1, 250);
+				if(tmp > 0) {
+					config.measures = tmp;
+					printf("New meas count: %u\r\n", config.measures);
+				}
+				return;
+			}
+			if((p = find("disptype ")))	{
 				int32_t tmp = -1;
 	            getval(p, &tmp, 0, 2);
-		            if(tmp >= 1)
-		            {
-		            	if(tmp==1) printf("Display type TXT\r\n"); else if(tmp==2) { printf("Display type CSV"); printCSVheader();}
-		            	csvcnt = 0;
-		            	disp_type = tmp;
-		            }
-		            else {disp_type = tmp; printf("Silent mode\r\n");}
-		            return;
+				if(tmp >= 1) {
+					if(tmp==1) printf("Display type TXT\r\n");
+					else if(tmp==2) { printf("Display type CSV"); printCSVheader();}
+					csvcnt = 0;
+				}
+				else {printf("Silent mode\r\n");}
+				config.disp_type = tmp;
+				return;
 			}
+
+			if((p = find("send format "))) {
+				int32_t tmp = -1;
+	            getval(p, &tmp, 0, 3);
+				if(tmp >= 0) {
+					config.sendFormat = tmp;
+					switch(config.sendFormat) {
+					case 0: printf("Send OFF\r\n"); break;
+					case 1: printf("Send format: Normal\r\n"); break;
+					case 2: printf("Send format: MQTT\r\n"); break;
+					case 3: printf("Send format: Normal+MQTT\r\n"); break;
+					}
+				}
+				return;
+			}
+
+			if((p = find("server ip "))) {
+				getString(p, config.serverIP, 1, sizeof(config.serverIP), "Server IP");
+	            return;
+			}
+			if((p = find("server port ")))	{
+				int32_t tmp = -1;
+	            getval(p, &tmp, 0, 65535);
+				if(tmp >= 0) {
+					config.serverPort = tmp;
+					printf("Server port: %u\r\n", config.serverPort);
+				}
+				return;
+			}
+
+			if((p = find("mqtt ip "))) {
+				getString(p, config.mqttIP, 1, sizeof(config.mqttIP), "MQTT IP");
+	            return;
+			}
+			if((p = find("mqtt port ")))	{
+				int32_t tmp = -1;
+	            getval(p, &tmp, 0, 65535);
+				if(tmp >= 0) {
+					config.mqttPort = tmp;
+					printf("MQTT port: %u\r\n", config.mqttPort);
+				}
+				return;
+			}
+			if((p = find("mqtt user "))) {
+				getString(p, config.mqttUser, 1, sizeof(config.mqttUser), "MQTT Username");
+	            return;
+			}
+			if((p = find("mqtt pass "))) {
+				getString(p, config.mqttPass, 1, sizeof(config.mqttPass), "MQTT Password");
+	            return;
+			}
+
+
 			if((p = find("tmp117 ")))
 			{
 				if(p == clibuf+11)
@@ -734,9 +811,10 @@ void CLI_proc(char ch)
 						getval(clibuf+15, &tmp, 1, 500);
 						meas_count = tmp;
 						meas_cont_mode = 0;
-						disp_type = 1;
+						config.disp_type = 1;
+						meas_start = 1;
 						printf("Start %i measures, TXT output\r\n", meas_count);
-						ReinitTimer(tim_interval);
+						ReinitTimer(config.tim_interval);
 						return;
 					}
 					if((strstr(clibuf+11, "csv ")))
@@ -745,11 +823,12 @@ void CLI_proc(char ch)
 						getval(clibuf+15, &tmp, 1, 500);
 						meas_count = tmp;
 						meas_cont_mode = 0;
-						disp_type = 2;
+						meas_start = 1;
+						config.disp_type = 2;
 						printf("Start %i measures, CSV output\r\n", meas_count);
 						csvcnt = 0;
 						printCSVheader();
-						ReinitTimer(tim_interval);
+						ReinitTimer(config.tim_interval);
 						return;
 					}
 					if(p == clibuf+11)
@@ -759,19 +838,19 @@ void CLI_proc(char ch)
 							if((strstr(clibuf+16, "txt")))
 							{
 								meas_cont_mode = 1;
-								disp_type = 1;
+								config.disp_type = 1;
 								printf("Start continuous measurement, TXT format\r\n");
-								ReinitTimer(tim_interval);
+								ReinitTimer(config.tim_interval);
 								return;
 							}
 							if((strstr(clibuf+16, "csv")))
 							{
 								meas_cont_mode = 1;
-								disp_type = 2;
+								config.disp_type = 2;
 								printf("Start continuous measurement, TXT format\r\n");
 								csvcnt = 0;
 								printCSVheader();
-								ReinitTimer(tim_interval);
+								ReinitTimer(config.tim_interval);
 								return;
 							}
 
@@ -781,165 +860,8 @@ void CLI_proc(char ch)
 				return;
 			}
 		}
+	}
 }
-//		if(find("load defaults")==clibuf+13)
-//		{
-//			Load_defaults();
-//			Save_config();
-//			printf("return to defaults ...\r\n");
-//			return;
-//		}
-//// ................................................................................
-//        if((p = find("debug ")))
-//        {
-//            int32_t tmp = -1;
-//            getval(p, &tmp, 0, 2);
-//            if(tmp >= 0)
-//            {
-//                debug_level = tmp;
-//                printf("Debug: %u\r\n", debug_level);
-//            }
-//            return;
-//        }
-//
-//        p = find("charger ");           // set commands
-//        if(p == clibuf+8)
-//        {
-//            if((p = find("start")))
-//            {
-//            	printf("Start charging\r\n");
-//            	start_charging();
-//                return;
-//            }
-//            if((p = find("stop")))
-//            {
-//            	printf("Stop charging\r\n");
-//            	stop_charging();
-//                return;
-//            }
-//
-//        }
-//	}
-}
-
-
-/*void setOffset(void)
-{ float valtostore;
-
-switch (clibuf[10])
-{
-
-case 'h':
-	if(find("sht3")==clibuf+16)
-	{
-		if (getFloat(clibuf+17, &valtostore, MIN_OFFSET, MAX_OFFSET))
-		{config.SHT3_h_offset=valtostore;}
-		printf("SHT3 hum offset:%f \r\n",config.SHT3_h_offset);
-		return;
-		break;
-	}
-
-	if(find("ms8607")==clibuf+18)
-	{
-		if (getFloat(clibuf+19, &valtostore, MIN_OFFSET, MAX_OFFSET))
-		{config.MS8607_h_offset=valtostore;}
-		printf("MS8607 hump offset:%f \r\n",config.MS8607_h_offset);
-		return;
-		break;
-	}
-	if(find("bme280")==clibuf+18)
-	{
-		if (getFloat(clibuf+19, &valtostore, MIN_OFFSET, MAX_OFFSET))
-		{config.BME280_h_offset=valtostore;}
-		printf("BME280 hum offset:%f \r\n",config.BME280_h_offset);
-		return;
-		break;
-	}
-
-	printf("unknown sensor");
-	break;
-case 'p':
-	if(find("ms8607")==clibuf+18)
-	{
-		if (getFloat(clibuf+19, &valtostore, MIN_OFFSET, MAX_OFFSET))
-		{config.MS8607_p_offset=valtostore;}
-		printf("MS8607 press offset:%f \r\n",config.MS8607_p_offset);
-		return;
-		break;
-	}
-	if(find("bme280")==clibuf+18)
-	{
-		if (getFloat(clibuf+19, &valtostore, MIN_OFFSET, MAX_OFFSET))
-		{config.BME280_p_offset=valtostore;}
-		printf("BME280 press offset:%f \r\n",config.BME280_p_offset);
-		return;
-		break;
-	}
-	if(find("dps368")==clibuf+18)
-	{
-		if (getFloat(clibuf+19, &valtostore, MIN_OFFSET, MAX_OFFSET))
-		{config.DPS368_p_offset=valtostore;}
-		printf("DPS368 press offset:%f \r\n",config.DPS368_p_offset);
-		return;
-		break;
-	}
-	printf("unknown sensor");
-	break;
-case 't':
-	if(find("tmp117")==clibuf+18)
-	{
-		if (getFloat(clibuf+19, &valtostore, MIN_OFFSET, MAX_OFFSET))
-		{config.TMP117_t_offset=valtostore;}
-		printf("TMP117 temp offset:%f \r\n",config.TMP117_t_offset);
-		return;
-		break;
-	}
-
-	if(find("sht3")==clibuf+16)
-	{
-		if (getFloat(clibuf+17, &valtostore, MIN_OFFSET, MAX_OFFSET))
-		{config.SHT3_t_offset=valtostore;}
-		printf("SHT3 temp offset:%f \r\n",config.SHT3_t_offset);
-		return;
-		break;
-	}
-
-	if(find("ms8607")==clibuf+18)
-	{
-		if (getFloat(clibuf+19, &valtostore, MIN_OFFSET, MAX_OFFSET))
-		{config.MS8607_t_offset=valtostore;}
-		printf("MS8607 temp offset:%f \r\n",config.MS8607_t_offset);
-		return;
-		break;
-	}
-	if(find("bme280")==clibuf+18)
-	{
-		if (getFloat(clibuf+19, &valtostore, MIN_OFFSET, MAX_OFFSET))
-		{config.BME280_t_offset=valtostore;}
-		printf("BME280 temp offset:%f \r\n",config.BME280_t_offset);
-		return;
-		break;
-	}
-	if(find("dps368")==clibuf+18)
-	{
-		if (getFloat(clibuf+19, &valtostore, MIN_OFFSET, MAX_OFFSET))
-		{config.DPS368_t_offset=valtostore;}
-		printf("DPS368 temp offset:%f \r\n",config.DPS368_t_offset);
-		return;
-		break;
-	}
-	printf("unknown sensor");
-	break;
-
-default:
-	printf( "unknown parameter");
-	break;
-}
-
-printf("bad parameters. usage: setoffset X YYYY ff.fff | x:t/p/h | Y:sensor name | ff.fff: offset\r\n");
-return;
-}*/
-
 
 
 void print_status()
@@ -988,7 +910,7 @@ void print_help()
 {
 	printf("--- THP HW v%1.1f  FW v%1.1f --- \r\n", HW_VER*0.1f,FW_VER*0.1f );
 	printf("SET COMMANDS:\r\n");
-	printf("set interval X - X=4..3600[s] - measurement interval\r\n");
+	printf("set interval X - X=15..1440[min] - measurement interval\r\n");
 	printf("set disptype X - 0 - NONE(silent), 1 - TXT, 2 - CSV - measurement format\r\n");
 	printf("set [sensor] enable - sensor=[tmp117;bme280;shtc3;ms8607;dps368] - enable sensor\r\n");
 	printf("set [sensor] disable - sensor=[tmp117;bme280;shtc3;ms8607;dps368] - disable sensor\r\n");
@@ -1008,6 +930,22 @@ void print_help()
 	printf("MEAS COMMANDS:\r\n");
 	printf("meas start cont [disp] - Start continuos measurement disp=[txt;csv]\r\n");
 	printf("meas start [disp] X - Start X measures disp=[txt;csv], X=1..500 \r\n");
+	printf("-----------------\r\n");
+
+	printf("TEST COMMANDS:\r\n");
+	printf("sim on\r\n");
+	printf("sim off\r\n");
+	printf("gps get - start GPS thread and read data from GPS\r\n");
+	printf("gps position - display GPS data\r\n");
+	printf("gsm time - get time from GSM module\r\n");
+
+	printf("gprs start - connect to GPRS\r\n");
+	printf("gprs stop - GPRS off\r\n");
+	printf("gprs server - connect to hardcoded server IP and port\r\n");
+	printf("gprs close - disconnect from server\r\n");
+	printf("gprs send - send hardcoded test string to connected server\r\n");
+	printf("gprs test - full test gprs: connect to gprs, connect to server, send data, disconect, gprs down\r\n");
+
 
 	printf("-----------------\r\n");
 	printf("? or help - help\r\n");

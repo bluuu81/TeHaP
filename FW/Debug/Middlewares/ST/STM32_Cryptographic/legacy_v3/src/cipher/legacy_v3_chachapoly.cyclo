@@ -1,0 +1,7 @@
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_chachapoly.c:25:9:ChaCha20Poly1305_Encrypt_Init	9
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_chachapoly.c:78:9:ChaCha20Poly1305_Header_Append	3
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_chachapoly.c:106:9:ChaCha20Poly1305_Encrypt_Append	4
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_chachapoly.c:149:9:ChaCha20Poly1305_Encrypt_Finish	5
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_chachapoly.c:189:9:ChaCha20Poly1305_Decrypt_Init	9
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_chachapoly.c:242:9:ChaCha20Poly1305_Decrypt_Append	4
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_chachapoly.c:285:9:ChaCha20Poly1305_Decrypt_Finish	5

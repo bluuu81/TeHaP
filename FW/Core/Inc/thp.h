@@ -10,14 +10,18 @@
 
 #include "main.h"
 #include "cli.h"
-
 #include "thp_sensors.h"
+#include "cmox_crypto.h"
 #include "ctype.h"
 #include <stdio.h>
 #include <string.h>
 
 #define HW_VER 10
-#define FW_VER 5
+#define FW_VER 9
+
+#define GSM_RESTART_INTERVAL (30*3600*24)		// 30ms tick x secperhour x 24h (set to 0 for disable)
+#define GPS_INTERVAL		 (60*60*12)			// w sekundach = 12h
+
 
 extern ADC_HandleTypeDef hadc1;
 
@@ -42,10 +46,11 @@ extern MS8607_struct_t MS8607;
 extern BME280_struct_t BME280;
 extern DPS368_struct_t DPS368;
 extern uint16_t csvcnt;
+extern volatile int seconds;
 
-extern uint8_t rtc_debug;
-extern uint8_t rtos_debug;
-extern uint8_t meas_debug;
+#define FNV_PRIME_32 16777619
+#define FNV_BASIS_32 0x811C9DC5
+#define SEC_PER_DAY	 (24*60*60)
 
 enum device_state
 {
@@ -70,4 +75,9 @@ void display_values (uint8_t format);
 void printCSVheader();
 void getConfVars();
 void ReinitTimer(uint16_t tim_interval);
+void  GPRS_UserNewData(char *NewData, uint16_t len);
+bool StartReadGps(void);
+bool StartSendGPRS(void);
+void SysTimeSync();
+
 #endif /* INC_THP_H_ */

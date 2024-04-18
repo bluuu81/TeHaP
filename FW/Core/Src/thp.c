@@ -9,8 +9,7 @@
 #include "thp.h"
 #include "bq25798.h"
 #include "cmsis_os.h"
-#include "gsm.h"
-extern RTC_HandleTypeDef hrtc;
+#include "sim80xDrv.h"
 
 volatile uint8_t charger_state;
 
@@ -23,14 +22,10 @@ DPS368_struct_t DPS368;
 BMP280_HandleTypedef bmp280;
 
 Config_TypeDef config;
-volatile uint16_t new_tim_interval; //w sekundach
-volatile uint16_t tim_interval = 0;
-volatile uint8_t disp_type;
-volatile uint8_t meas_start = 0;
-uint8_t meas_ready = 0;
-uint16_t meas_count = 10;
-uint8_t meas_cont_mode = 1;
-uint8_t sensors_data_ready;
+volatile int seconds;
+uint8_t timesync;
+uint16_t meas_count;
+uint8_t meas_cont_mode, send_enable, sensors_data_ready;
 
 uint16_t tmp117_avr;
 volatile uint8_t dps368_ovr_temp;
@@ -38,19 +33,21 @@ volatile uint8_t dps368_ovr_press;
 volatile uint16_t dps368_ovr_conf;
 uint8_t sht3_mode;
 
-volatile uint8_t device_state = 0;
 volatile uint32_t offTim;
+volatile uint32_t gps_start = 0, gps_interval = 30;			// puerwszy odczyt GPS po 30s od zalaczenia
+osThreadId measTaskHandle, gpsTaskHandle, GprsSendTaskHandle;
+bool gpsTaskFlag, GprsSendTaskFlag;
+bool dayleap;
 
-osThreadId measTaskHandle;
-osThreadId GSMTaskHandle;
-osThreadId RTC000TaskHandle;
-uint32_t ticksstart;
+int meas_start;
+uint8_t gprs_send_status, simOn_lock;
 
-volatile RTC_TimeTypeDef sTime;
-volatile RTC_DateTypeDef sDate;
-volatile RTC_TimeTypeDef sNewTime;
-volatile RTC_DateTypeDef sNewDate;
-
+enum {
+	GPRSsendStatusIdle,
+	GPRSsendStatusInprogress,
+	GPRSsendStatusOk,
+	GPRSsendStatusError
+};
 
 //void _close(void) {}
 //void _lseek(void) {}
@@ -62,9 +59,21 @@ void _read(void)  {}
 
 //volatile uint32_t tim_secdiv, tim_meas;
 
+uint32_t getUID()
+{
+    uint32_t tmp[3];
+    tmp[0] = HAL_GetUIDw0();
+    tmp[1] = HAL_GetUIDw1();
+    tmp[2] = HAL_GetUIDw2();
+    uint32_t hash = FNV_BASIS_32;
+    uint8_t *p = (uint8_t*)&tmp;
+    for(int i=0; i<12; ++i) hash = (hash * FNV_PRIME_32) ^ *p++;
+    return hash;
+}
+
 void ReinitTimer(uint16_t interval)
 {
-	ticksstart = HAL_GetTick();
+	meas_start = seconds;
 }
 
 void HAL_SYSTICK_Callback(void)
@@ -78,8 +87,7 @@ void check_powerOn()
 	  while(Power_SW_READ() == GPIO_PIN_SET)
 	  {
 //		  printf("2. Check Power BUT\r\n");
-	    if(HAL_GetTick() - timon > 1000)     // 1 sec pushing
-	    {
+	    if(HAL_GetTick() - timon > 1000) {    // 1 sec pushing
 	    	timon = HAL_GetTick();
 	        POWER_ON();    // pull-up power supply
 	    	printf("Power ON\r\n");
@@ -91,15 +99,14 @@ void check_powerOn()
 void check_powerOff()
 {
   static uint8_t keystate;
-  if(Power_SW_READ()) //power button pressed
-  {
+  if(Power_SW_READ()) { //power button pressed
 	 LED2_ON();
 	 keystate = 1;
-     if(offTim && HAL_GetTick() - offTim > 2000)    // 2 sec pressed
-     {
+     if(offTim && HAL_GetTick() - offTim > 2000) {    // 2 sec pressed
     	 printf("Power off\r\n");
     	 LED2_OFF();
     	 LED1_OFF();
+		 Sim80x_SetPower(0);
     	 POWER_OFF();
     	 osDelay(2000);
     	 HAL_NVIC_SystemReset();
@@ -109,7 +116,6 @@ void check_powerOff()
 	  if(keystate) LED2_OFF();
 	  keystate = 0;
   }
-
 }
 
 void MCUgoSleep()
@@ -265,6 +271,283 @@ void getConfVars()
 
 // ******************************************************************************************************
 
+void SendTestMessage()
+{
+	char tekst[100];
+	Sim80x_GetTime();		// pobranie czasu z RTC sim868
+	sprintf(tekst, "Test Wysylania przez GPRS z tasku GprsSend, Czas: %02u:%02u:%02u\r\n",
+			Sim80x.Gsm.Time.Hour, Sim80x.Gsm.Time.Min, Sim80x.Gsm.Time.Sec);
+
+	Sim80x.GPRS.SendStatus = GPRSSendData_Idle;
+	for(int i=0; i<5; ++i) {
+		GPRS_SendString(tekst);
+		uint8_t tout = 0;
+		while(Sim80x.GPRS.SendStatus != GPRSSendData_SendOK) {
+			osDelay(100);
+			if(++tout >= 100) break;			// break while - tout 10 sekund
+		}
+		if(tout < 50) {printf("Sending OK !\r\n"); break;}	// break for
+	}
+
+	if(Sim80x.GPRS.SendStatus != GPRSSendData_SendOK) {
+		printf("GPRS Sending Failed !\r\n");
+		gprs_send_status = GPRSsendStatusError;			// ustaw globalny status wysylania na error
+	}
+	osDelay(5000);			// normalnie zbedny, ale to dla mozliwosci odebrania danych z serwera.
+							// zamiast tego powinno byc oczekiwanie na potwierdzenie z serwera (jesli wystepuje)
+}
+
+void SendMqttMessage(void)
+{
+	char tekst[100];
+	Sim80x_GetTime();		// pobranie czasu z RTC sim868
+	sprintf(tekst, "Test Wysylania do MQTT, Czas: %02u:%02u:%02u\r\n",
+			Sim80x.Gsm.Time.Hour, Sim80x.Gsm.Time.Min, Sim80x.Gsm.Time.Sec);
+
+	Sim80x.GPRS.SendStatus = GPRSSendData_Idle;
+	for(int i=0; i<5; ++i) {
+		GPRS_SendRaw((uint8_t*)tekst, strlen(tekst));
+		uint8_t tout = 0;
+		while(Sim80x.GPRS.SendStatus != GPRSSendData_SendOK) {
+			osDelay(100);
+			if(++tout >= 100) break;			// break while - tout 10s
+		}
+		if(tout < 50) {printf("Sending OK !\r\n"); break;}	// break for
+	}
+
+	if(Sim80x.GPRS.SendStatus != GPRSSendData_SendOK) {
+		printf("GPRS Sending Failed !\r\n");
+		gprs_send_status = GPRSsendStatusError;			// ustaw globalny status wysylania na error
+	}
+	osDelay(5000);			// normalnie zbedny, ale to dla mozliwosci odebrania danych z serwera.
+							// zamiast tego powinno byc oczekiwanie na potwierdzenie z serwera (jesli wystepuje)
+}
+
+void GprsSendTask(void const *argument)
+{
+	gprs_send_status = GPRSsendStatusInprogress;					// ustaw globalny status wysylania na "in progress"
+	if(Sim80x.GPRS.Connection < GPRSConnection_GPRSup ||
+	   Sim80x.GPRS.Connection > GPRSConnection_ConnectOK)	{		// nie polaczony do GPRS
+		bool status = GPRS_ConnectToNetwork("INTERNET", "", "", false);
+		printf("Connect to network: %s\r\n", status ? "OK":"ERROR");
+		printf("Connected to GPRS, IP: %s\r\n", Sim80x.GPRS.LocalIP);
+		osDelay(250);
+		if(!status) {printf("GPRS ERROR\r\n"); goto error;}
+	} else printf("GPRS is UP\r\n");
+
+	if(config.sendFormat & 1) {				// normal send
+		printf("Connecting to server: %s, port %d - %s\r\n", config.serverIP, config.serverPort,
+				GPRS_ConnectToServer(config.serverIP, config.serverPort) ? "IN PROGRESS":"ERROR");
+		uint8_t tout = 0;
+		while(Sim80x.GPRS.Connection != GPRSConnection_ConnectOK)	{	// gotowy do wysylania danych ?
+			osDelay(100);
+			if(++tout >= 100) break;			// timeout na 10 sekund
+		}
+		if(tout < 100) {						// nie bylo timeout
+			printf("Connected !\r\n");
+			SendTestMessage();					// serwer połączony, pogadaj z nim
+			GPRS_DisconnectFromServer();		// rozlacz od serwera
+		} else printf("Server not respond\r\n");
+	}
+	if(config.sendFormat & 2) {				// MQTT send
+		printf("Connecting to MQTT: %s, port %d - %s\r\n", config.mqttIP, config.mqttPort,
+				GPRS_ConnectToServer(config.mqttIP, config.mqttPort) ? "IN PROGRESS":"ERROR");
+		uint8_t tout = 0;
+		while(Sim80x.GPRS.Connection != GPRSConnection_ConnectOK)	{	// gotowy do wysylania danych ?
+			osDelay(100);
+			if(++tout >= 100) break;			// timeout na 10 sekund
+		}
+		if(tout < 100) {						// nie bylo timeout
+			printf("Connected !\r\n");
+			SendMqttMessage();					// serwer MQTT połączony, pogadaj z nim
+			GPRS_DisconnectFromServer();		// rozlacz od serwera
+		} else printf("MQTT Server not respond\r\n");
+	}
+	osDelay(300);
+	GPRS_DeactivatePDPContext();				// wylacz GPRS
+error:
+	osDelay(50);
+	GprsSendTaskFlag = 0;						// odblokuj mozliwosc ponownego uruchomienia tego taska
+	vTaskDelete(NULL);							// usun task z pamieci jako juz zbedny
+}
+
+
+bool StartSendGPRS(void)
+{
+	if(GprsSendTaskFlag == 0 && Sim80x.Status.RegisterdToNetwork && config.sendFormat) {
+		if((config.sendFormat & 1) && (config.serverIP[0]==0 || config.serverPort==0)) return false;	// blad IP/Port normal
+		if((config.sendFormat & 2) && (config.mqttIP[0]==0 || config.mqttPort==0)) return false;		// blad IP/Port MQTT
+		osThreadDef(SendGPRSTask, GprsSendTask, osPriorityNormal, 0, 256);
+		GprsSendTaskHandle = osThreadCreate(osThread(SendGPRSTask), NULL);
+		GprsSendTaskFlag = 1;
+		return true;			// poprawnie uruchomiono task
+	}
+	return false;				// nie uruchomiono tasku bo juz działa
+}
+
+void  GPRS_UserNewData(char *NewData, uint16_t len)		// callback dla danych przyjetych z serwera
+{
+	_write(0, NewData, len);
+	printf("\r\n");
+}
+
+// *******************************************************************************************
+// SIM868 watchdog & autorestart
+
+void GsmWdt(void)
+{
+	static uint8_t  gsm_led_state;
+	static uint16_t gsm_wdt;
+#if(GSM_RESTART_INTERVAL > 0)
+	static uint32_t gsm_restart_time = GSM_RESTART_INTERVAL;
+#endif
+	// watchdog dla GSM
+	gsm_wdt++;
+	if(!gsm_led_state && SIM_WDT_READ()) {
+		gsm_led_state = 1;
+		gsm_wdt = 0;
+	}
+	if(gsm_led_state && !SIM_WDT_READ()) gsm_led_state = 0;
+
+	if(Sim80x.Status.Power && gsm_wdt > 300) {		// 10 sekund WDT timeout
+		printf("GSM module recovery!\r\n");
+		Sim80x.Status.FatalError = 1;
+	} else if(!Sim80x.Status.Power) gsm_wdt = 0;
+
+#if(GSM_RESTART_INTERVAL > 0)
+    if(gsm_restart_time) gsm_restart_time--;
+    if(gsm_restart_time == 0) {						// cykliczny restart SIM868 co 24h
+        uint8_t msg_in_process = 0;
+        for(uint8_t i=0 ;i<sizeof(Sim80x.Gsm.HaveNewMsg); ++i) {
+            if(Sim80x.Gsm.HaveNewMsg[i] > 0) msg_in_process = 1;
+        }
+
+        if(!Sim80x.GPS.RunStatus &&                                 // GPS OFF
+           Sim80x.GPRS.Connection == GPRSConnection_Idle &&         // Nie ma komunikacji GPRS
+           !Sim80x.Status.Busy &&                                   // Nie jest obslugiwana komenda AT
+           Sim80x.Gsm.GsmVoiceStatus == GsmVoiceStatus_Idle &&      // Nie trwa polaczenie voice
+           Sim80x.Gsm.MsgUsed == 0 &&                               // nie ma w pamieci nieobsluzonych SMS
+           msg_in_process == 0) {                                   // nie jest obslugiwany przychodzacy SMS
+            gsm_restart_time = GSM_RESTART_INTERVAL;
+            Sim80x.Status.FatalError = 1;                           // wymus pelny restart SIM800
+            printf("Sheduled GSM restart.\r\n");
+        } else gsm_restart_time = 10*5;                             // nie wolno restartowac, kolejny test za 5s.
+    }
+#endif
+
+	if(Sim80x.Status.FatalError) {			// odpal restart GSM
+		printf("Restarting...\r\n");
+		HAL_GPIO_WritePin(_SIM80X_POWER_KEY_GPIO,_SIM80X_POWER_KEY_PIN,GPIO_PIN_SET);
+		osDelay(1200);
+		printf("RST 2\r\n");
+		HAL_GPIO_WritePin(_SIM80X_POWER_KEY_GPIO,_SIM80X_POWER_KEY_PIN,GPIO_PIN_RESET);
+		osDelay(4000);
+		printf("GSM power UP.\r\n");
+		memset(&Sim80x,0,sizeof(Sim80x));
+		Sim80x_SetPower(true);
+		osDelay(100);
+		gps_start = seconds;
+		gps_interval = 30;					// odczyt GPS po 30s od restartu
+		GprsSendTaskFlag = 0;
+		gpsTaskFlag = 0;
+        gsm_wdt = 0;
+	}
+}
+
+// ******************************************************************************************************
+
+Sim80x_Time_t fixTZ(Sim80x_Time_t tim, int zone)		// adjust time with time zone. Use GSM format, zone = 15min
+{
+	#define LEAP_YEAR(Y)  ( !(Y%4) && ( (Y%100) || !(Y%400) ) )
+	static const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31};
+	uint8_t monthLength;
+	for(int i=0; i<abs(zone); ++i) {
+		int Min = (int)tim.Min + ((zone < 0) ? -15:15);
+		if(zone > 0 && Min > 59) {
+			Min -= 60;
+			if(++tim.Hour > 23)	{
+				tim.Hour = 0;
+				if (tim.Month==2) { 		// luty
+				  if (LEAP_YEAR(tim.Year)) { monthLength=29; } else { monthLength=28; }		// luty ma 28 czy 29 ?
+				} else { monthLength = monthDays[tim.Month-1]; }							// inny miesiac
+				if(++tim.Day > monthLength) {												// zmiana miesiaca ?
+					tim.Day = 1;
+					if(++tim.Month > 12) {tim.Month = 1; tim.Year++;}
+				}
+			}
+		} else if(zone < 0 && Min < 0) {
+			Min += 60;
+			int Hour = tim.Hour;			// konwersja na int ze znakiem aby wykryć ujemne wartosci godzin
+			if(--Hour < 0) {
+				Hour = 23;
+				if(--tim.Day < 1) {
+					if(--tim.Month < 1)  {tim.Month = 12; tim.Year--;}							// oblucz nowy miesiac i rok
+					if (tim.Month==2) { 														// jak wyszedl luty
+						if (LEAP_YEAR(tim.Year)) { monthLength=29; } else { monthLength=28; }	// luty ma 28 czy 29 ?
+					} else { monthLength = monthDays[tim.Month-1]; }							// inny miesiac
+					tim.Day = monthLength;								// ustaw na ostatni dzien miesiaca
+				}
+			}
+			tim.Hour = Hour;
+		}
+		tim.Min = Min;
+	}
+	tim.Zone += zone;
+	return tim;
+}
+
+void GpsReadTask(void const *argument)
+{
+	uint8_t time_updated = 0;
+	printf("GPS start.\r\n");
+	GPS_SetPower(1);
+	uint16_t GPS_tout = 0;
+	while(1) {
+		osDelay(1000);
+		if(Sim80x.GPS.Time.Year > 2022 												// prawidlowy czas
+		   && !time_updated 														// i jeszcze nie uaktualniony
+		   && Sim80x.GPS.Fix														// i jest fix
+		   && Sim80x.GPRS.Connection != GPRSConnection_ConnectOK) {					// i nie polaczony z serwerem
+			if(Sim80x.Gsm.Time.Zone == 0) Sim80x.Gsm.Time.Zone = 8;					// tu male oszustwo ze strefą czasową
+			Sim80x.Gsm.Time = fixTZ(Sim80x.GPS.Time, Sim80x.Gsm.Time.Zone);
+			time_updated = Sim80x_SetTime();
+			printf("GSM Time update %s.\r\n", time_updated ? "OK":"ERROR");
+			printf("Current time is: %04u-%02u-%02u %02u:%02u:%02u, TZ:%d\r\n",
+					Sim80x.Gsm.Time.Year, Sim80x.Gsm.Time.Month, Sim80x.Gsm.Time.Day,
+					Sim80x.Gsm.Time.Hour, Sim80x.Gsm.Time.Min, Sim80x.Gsm.Time.Sec, Sim80x.Gsm.Time.Zone);
+		}
+		if(time_updated && Sim80x.GPS.Fix && Sim80x.GPS.SatInUse > 3) break;
+		if(++GPS_tout > 180 || Sim80x.GPS.RunStatus == 0) {		// 3 minuty timeout
+			printf("GPS signal not available.");
+			goto gpstaskend;
+		}
+	}
+	while(Sim80x.GPRS.Connection == GPRSConnection_ConnectOK) osDelay(1000);	// nie wysylaj nic do GPS jak polaczony
+	Sim80x_SendAtCommand("AT+CGNSCMD=0,\"$PMTK285,1,10*0D\"\r\n", 500, 1,"\r\nOK\r\n");		// 10ms BLUE blink
+	printf("FIX ok, position readed.\r\n");
+	osDelay(15000);			// jeszcze przez 15 sekund czytaj GPS
+gpstaskend:
+	while(Sim80x.GPRS.Connection == GPRSConnection_ConnectOK) osDelay(1000);	// nie wysylaj nic do GPS jak polaczony
+	GPS_SetPower(0);
+	printf("GPS stopped.\r\n");
+	osDelay(100);
+	gpsTaskFlag = 0;
+	vTaskDelete(NULL);		// usun task z pamieci jako juz zbedny
+}
+
+bool StartReadGps(void)
+{
+	if(gpsTaskFlag == 0 && Sim80x.GPRS.Connection != GPRSConnection_ConnectOK) {
+		osThreadDef(GPSTask, GpsReadTask, osPriorityNormal, 0, 256);
+		gpsTaskHandle = osThreadCreate(osThread(GPSTask), NULL);
+		gpsTaskFlag = 1;
+		return true;			// poprawnie uruchomiono task
+	}
+	return false;				// nie uruchomiono tasku bo juz działa
+}
+
+// ******************************************************************************************************
+
 void SensorsTask(void const *argument)
 {
 	uint8_t shtc3_values[6];
@@ -304,11 +587,12 @@ void SensorsTask(void const *argument)
 			  if(DPS368.press.use_meas) dps368_press = 1;				// z DPS bedzie tez cisnienie
 		  }
 		}
-		if(disp_type == 1) {
+		if(config.disp_type == 1) {
 		  printf("Komenda startu pomiarow wyslana\r\n");
-		  printf("Meas interval: %u\r\n", tim_interval);
+		  if(!meas_cont_mode) printf("Meas count: %u\r\n", meas_count);
 		}
 
+		osDelay(10);
 		LED2_OFF();						// mrugniecie czerwona
 		osDelay(meas_time);				// odczekaj czas potrzebny na przetworzenie (maksymalny wymagany)
 
@@ -372,56 +656,52 @@ void SensorsTask(void const *argument)
 		  }
 		}
 		sensors_data_ready = 1;
-
 	}		// while(1)
 }
 
 // ******************************************************************************************************
 
-
-void GSMTask(void const *argument)
+void SysTimeSync()
 {
-
-
-	printf("========GSM TASK STARTED=======\r\n");
-	SIM_ON();
-	  gsm_init();
-	  gsm_power(true);
-	  gsm_waitForRegister(30);
-	  uint8_t signal;
-      signal=gsm_getSignalQuality_0_to_100();
-	     	  while(signal==0)
-	     	  {
-	     	  signal=gsm_getSignalQuality_0_to_100();
-	     	  }
-	     	  gsm_gprs_setApName("internet");
-	     	  gsm_gprs_connect();
-	     	  gsm_gprs_ntpServer("194.146.251.101", 8);
-	     	  //gsm_gprs_ntpSyncTime();
-	     	  printf("gprs\r\n");
-
-	     	 while (1)
-	     	  {
-	     		// signal=gsm_getSignalQuality_0_to_100();
-
-
-	     	  }
-
+    // synchronizacja soft rtc
+    Sim80x_GetTime();
+    if(Sim80x.Gsm.Time.Year > 2022) {
+		int gsmsec = Sim80x.Gsm.Time.Hour * 3600 + Sim80x.Gsm.Time.Min * 60 + Sim80x.Gsm.Time.Sec;
+		if(seconds != gsmsec) {
+		  seconds = gsmsec;
+		  timesync = 1;
+		}
+    }
 }
 
+void CalculateNextMeasTime()
+{
+	printf("Current sys time: %02d:%02d:%02d\r\n", seconds/3600, (seconds%3600)/60, seconds%60);
+	printf("Send interval: %d min, Meas count: %d, Meas Interval: 5s\r\n", config.tim_interval, config.measures);
+	int nextsend = ((seconds + 60*config.tim_interval + 60)/900) * 900;	// aktualny + interval zaokraglony do 15min
+	printf("Next send at: %02d:%02d:%02d\r\n", nextsend/3600, (nextsend%3600)/60, nextsend%60);
+	nextsend -= config.measures * 5;						// odejmij czas potrzebny na pomiary
+	if(nextsend < 0 ) nextsend += SEC_PER_DAY;				// jak < 0 to start przed polnoca
+	if(nextsend <= seconds) {								// za malo czasu od teraz do startu
+		nextsend += 60*config.tim_interval;					// dodaj jeden interwal
+		printf("Advance by one send interval\r\n");
+	}
+	if(nextsend >= SEC_PER_DAY) {
+		nextsend -= SEC_PER_DAY;							// wysylka bedzie w kolejnym dniu
+		dayleap = true;										// blokada do czasu zmiany dnia
+	}
+	meas_start = nextsend;
+	printf("Next measure start at: %02d:%02d:%02d\r\n", nextsend/3600, (nextsend%3600)/60, nextsend%60);
+}
 
 void THP_MainTask(void const *argument)
 {
 	  POWER_OFF();
-	  HAL_RTC_GetTime(&hrtc, &sTime, 0);
-	  HAL_RTC_GetDate(&hrtc, &sDate, 0);
-	  gsm_loop();
-
 	  if(!Power_SW_READ()) HAL_NVIC_SystemReset();		// nie nacisniety power -> reset CPU
 	  HAL_UART_RxCpltCallback(&huart1); //CLI
+	  HAL_UART_RxCpltCallback(&huart2); //SIM
 	  check_powerOn();
 	  if(!Power_SW_READ()) HAL_NVIC_SystemReset();		// nie nacisniety power -> reset CPU
-	  SIM_HW_OFF();
 	  printf("\r\n\r\n\r\nInitializing (RTOS version)...\r\n");
 	  if (Load_config()==0) {printf("Config loaded OK \r\n");};
 	  charger_state = BQ25798_check();
@@ -470,156 +750,112 @@ void THP_MainTask(void const *argument)
 	  MS8607_osr(MS8607.sensor_conf);
 	  printf("MS8607 OSR %d\r\n", 256<<MS8607.sensor_conf);
 
-	  disp_type = config.disp_type;
-	  new_tim_interval = config.tim_interval; //w sekundach
+	  if(!TMP117.present && !SHT3.present && !MS8607.present && !BME280.present && !DPS368.present)
+		  config.disp_type = 0;
 
+	  if (cmox_initialize(NULL) != CMOX_INIT_SUCCESS) puts("Cipher init error\r");
 
-	  //task dla GSM
-	  	  osThreadDef(GSMTask, GSMTask, osPriorityNormal, 0, 512);
-	  	  GSMTaskHandle = osThreadCreate(osThread(GSMTask), NULL);
-
+	  Sim80x_Init(osPriorityNormal);
+	  printf("SIM868 module startup %s.\r\n", Sim80x.Status.Power ? "OK" : "FAILED");
 	  // uruchomienie taska sensorów
 	  osThreadDef(SensorTask, SensorsTask, osPriorityNormal, 0, 512);
 	  measTaskHandle = osThreadCreate(osThread(SensorTask), NULL);
-
-	  //task dla RTC
-	  //osThreadDef(RTCTask, RTCTask, osPriorityNormal, 0, 512);
-	  //RTCTaskHandle = osThreadCreate(osThread(RTCTask), NULL);
-
-
-
-
+	  osDelay(10);
 
 	  uint32_t ticks30ms = HAL_GetTick();
-	  uint32_t ticks1000ms = HAL_GetTick();
 	  uint32_t ticksbqwd = HAL_GetTick();
-	  uint8_t firstrun = 1;
-	  osDelay(100);
+	  uint32_t secdiv = HAL_GetTick();
+	  uint8_t registered = 0;
+	  uint8_t measint = 99;
+
+	  meas_start = -1;
+	  meas_count = config.measures;
+	  if(meas_count == 0) meas_count = 1;
 
 	  while (1)
 	  {
-		  if (new_tim_interval != tim_interval) {
-			  tim_interval = new_tim_interval;
-			  config.tim_interval = tim_interval;
-		  }
-
 		  CLI();
 
-
-
 		  // miganie LED i test wyłącznika
-		  if(HAL_GetTick()-ticks30ms >= 30)
-		  {
+		  if(HAL_GetTick()-ticks30ms >= 30) {
 			  ticks30ms = HAL_GetTick();
 			  LED1_TOGGLE();
 			  check_powerOff();
+			  GsmWdt();
 
-		  }
-
-		  if(HAL_GetTick()-ticks1000ms >= 1000)
-		  {
-			  ticks1000ms = HAL_GetTick();
-			  HAL_RTC_GetTime(&hrtc, &sTime, 0);
-			  HAL_RTC_GetDate(&hrtc, &sDate, 0);
-			  if (rtc_debug)
-			  {
-			  printf("RTC Time: %02i:%02i:%02i %i/%i/20%02i\r\n",sTime.Hours,sTime.Minutes,sTime.Seconds, sDate.Date, sDate.Month, sDate.Year);
+			  if(!registered && Sim80x.Status.RegisterdToNetwork) {
+				  printf("Succesfully registered to network.\r\n");
+				  registered = 1;
 			  }
+			  if(registered && Sim80x.Status.RegisterdToNetwork == 0) registered = 0;
 		  }
-
-
-
-
 
 		  // reset BQ
-		  if(HAL_GetTick()-ticksbqwd >= 15000)
-		  {
+		  if(HAL_GetTick()-ticksbqwd >= 15000) {
 			  ticksbqwd = HAL_GetTick();
 			  BQ25798_WD_RST();
 		  }
 
-		  // uruchomienie pomiaru
-		  if(HAL_GetTick() - ticksstart >= tim_interval*1000UL || firstrun) {	// czas uruchomic pomiar ?
-			  ticksstart = HAL_GetTick();
-			  firstrun = 0;
-			  if (meas_count > 0 || meas_cont_mode) {
-				  if(meas_cont_mode == 0) {
-					  meas_count--;
-					  if(meas_count == 0) printf("Last measure\r\n");
-				  }
-				  if (rtos_debug) { printf("===TASK MEAS\r\n");}
-				  vTaskResume(measTaskHandle);						// odblokuj taks pomiarow
-			  }
-		  }
-
-		  if(HAL_GetTick() - ticksstart >= 3*1000UL || firstrun) {	// czas uruchomic gsm ?
-		 			  ticksstart = HAL_GetTick();
-		 			  firstrun = 0;
-		 			  if (meas_count > 0 || meas_cont_mode) {
-		 				  if(meas_cont_mode == 0) {
-		 					  meas_count--;
-		 					  if(meas_count == 0) printf("Last measure\r\n");
-		 				  }
-		 				 if (rtos_debug) { printf("===TASK GSM\r\n");}
-
-		 				 vTaskResume(GSMTaskHandle);						// odblokuj taks pomiarow
-		 			  }
-		 		  }
-
-
-		  // wyswietlenie pomiarow
+		  // wyslanie i wyswietlenie pomiarow
 	      if(sensors_data_ready) {						// taks sensorow zakonczyl dzialanie ?
 	    	  sensors_data_ready = 0;
-	    	  if(disp_type > 0) {
-	    		  display_values(disp_type);
+	    	  if(config.disp_type > 0) {
+	    		  display_values(config.disp_type);
+	    	  }
+
+	    	  if(send_enable) {
+	    		  send_enable = 0;
+	    		  if(!meas_cont_mode) printf("Starting GPRS thread %s\r\n", StartSendGPRS() ? "OK":"ERROR");
 	    	  }
 	      }
+//--------------------------------------------------------------------------------------------------
+		  // zadania wykonywane co sekunde
+		  if(HAL_GetTick() - secdiv >= 1000UL) {
+			  secdiv = HAL_GetTick();
+			  // zwieksz globalny licznik sekund liczacy sekundy danego jednego dnia
+			  if(++seconds >= SEC_PER_DAY) seconds = 0;
+			  // zeruj flage nastepnego dnia (nie przy stricte 0, bo korekta moze spowodowac przeoczenie)
+			  if(seconds < 60) dayleap = false;
 
+			  // ===================================================================================
+
+			  if(meas_start < 0 && timesync) CalculateNextMeasTime();		// oblicz czas rozpoczecia pomiaru
+			  if(registered && meas_start < 0) SysTimeSync();
+
+			  // uruchomienie pomiaru
+			  if((!dayleap && meas_start >= 0 && seconds >= meas_start) || meas_cont_mode) {	// czas uruchomic pomiar ?
+				  if(++measint >= 5) {
+					  measint = 0;
+					  if (meas_count > 0 || meas_cont_mode) {
+						  if(meas_cont_mode == 0) {
+							  if(--meas_count == 0) {
+								  printf("Last measure & Send\r\n");
+								  send_enable = 1;
+								  measint = 99;
+								  meas_count = config.measures;
+								  CalculateNextMeasTime();					// oblicz czas rozpoczecia kolejnego pomiaru
+							  } else printf("Measure no.%u\r\n", config.measures-meas_count);
+						  }
+						  vTaskResume(measTaskHandle);						// odblokuj taks pomiarow
+					  }
+				  }
+			  }
+
+			  // ===================================================================================
+
+			  // czas na odczyt GPS ?, nie odczytuj w trakcie połączenia z serwerem, bo komendy bruzdza
+			  if(++gps_start >= gps_interval) {
+				  if(StartReadGps()) {	// najpierw test na GPRS
+					  gps_start = 0;
+					  gps_interval = 15*60;						// co 15 minut proba odczytu GPS
+				  } else gps_interval += 30;					// nie wolno zalaczyc GPS -> za 30sek kolejna proba
+			  }
+			  // jak zlapano FIX to następny odczyt GPS za 12 godzin
+			  if(Sim80x.GPS.Fix && gps_interval < GPS_INTERVAL)  gps_interval = GPS_INTERVAL;	// GPS OK, nastepny raz za 12 godzin
+
+			  // ===================================================================================
+		  }
 	      __WFI();
 	  }
-}
-
-uint8_t sync_NTP()
-{
-
-	uint8_t rok,miesiac,dzien,godzina,minuta,sekunda;
-
-	char tempdata[50];
-	if (gsm_gprs_ntpSyncTime() != 1)
-	{return 1;
-
-	}
-
-	if ( gsm_gprs_ntpGetTime(&tempdata) !=1)
-	{
-		return 2;
-	}
-	printf("=====%s=========",&tempdata);
-	sscanf(tempdata,"%2i/%2i/%2i,%02i:%02i:%02i", &rok, &miesiac , &dzien, &godzina, &minuta, &sekunda);
-	sNewDate.Year=rok;
-	sNewDate.Month=miesiac;
-	sNewDate.Date=dzien;
-	sNewTime.Hours=godzina;
-	sNewTime.Minutes=minuta;
-	sNewTime.Seconds=sekunda;
-	//sscanf(sms_data,"%*s %*s %2i/%2i/%2i,%02i:%02i:%02i*%s", &sNewDate.Year, &sNewDate.Month, &sNewDate.Date, &sNewTime.Hours, &sNewTime.Minutes, &sNewTime.Seconds);
-	HAL_RTC_SetTime(&hrtc, &sNewTime, 0);
-	HAL_RTC_SetDate(&hrtc, &sNewDate, 0);
-	HAL_RTC_GetTime(&hrtc, &sTime, 0);
-	HAL_RTC_GetDate(&hrtc, &sDate, 0);
-	if (rtc_debug)
-		{
-		printf("RTC Time UPDATED: %02i:%02i:%02i %i/%i/20%02i\r\n",sTime.Hours,sTime.Minutes,sTime.Seconds, sDate.Date, sDate.Month, sDate.Year);
-		}
-	return 0;
-}
-
-
-void print_rtc_time()
-{
-	HAL_RTC_GetTime(&hrtc, &sTime, 0);
-			HAL_RTC_GetDate(&hrtc, &sDate, 0);
-		  printf("RTC Time: %02i:%02i:%02i %i/%i/20%02i\r\n",sTime.Hours,sTime.Minutes,sTime.Seconds, sDate.Date, sDate.Month, sDate.Year);
-
 }
 

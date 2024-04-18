@@ -15,7 +15,6 @@
 #include <stdbool.h>
 
 
-
 uint16_t Crc16_up(uint16_t crc, uint8_t data);
 void Calc_config_crc(void);
 uint8_t Load_config(void);
@@ -25,7 +24,7 @@ uint8_t Save_config(void);
 
 
 #define BATT_ALARM_VOLTAGE	3300
-#define CONFIG_VERSION  1
+#define CONFIG_VERSION  2
 
 
 typedef struct {
@@ -67,6 +66,18 @@ typedef struct {
   uint16_t	DPS368_p_use	:1;
   float		DPS368_t_offset;
   float		DPS368_p_offset;
+  // nowe pola
+  uint8_t	measures;
+  uint8_t	sendFormat	:2;
+  uint8_t	keyAES[16];
+  char		serverIP[48];
+  uint16_t	serverPort;
+  char		mqttIP[48];
+  uint16_t	mqttPort;
+  char		mqttUser[16];
+  char		mqttPass[16];
+  uint8_t	spare[32];
+
   uint16_t 	checksum;
 } __attribute__((packed))  Config_TypeDef;
 

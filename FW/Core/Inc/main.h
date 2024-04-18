@@ -29,18 +29,6 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32l4xx_hal.h"
 
-#include "stm32l4xx_ll_usart.h"
-#include "stm32l4xx_ll_rcc.h"
-#include "stm32l4xx_ll_bus.h"
-#include "stm32l4xx_ll_cortex.h"
-#include "stm32l4xx_ll_system.h"
-#include "stm32l4xx_ll_utils.h"
-#include "stm32l4xx_ll_pwr.h"
-#include "stm32l4xx_ll_gpio.h"
-#include "stm32l4xx_ll_dma.h"
-
-#include "stm32l4xx_ll_exti.h"
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "String.h"
@@ -151,7 +139,15 @@ void I2C_Reinit_STR();
 #define I2C3TCA_RST()	HAL_GPIO_WritePin(RST3_GPIO_Port, RST3_Pin, GPIO_PIN_RESET)
 #define I2C3TCA_NRST()	HAL_GPIO_WritePin(RST3_GPIO_Port, RST3_Pin, GPIO_PIN_SET)
 
-#define WDR() if(hiwdg.Instance == IWDG) {HAL_IWDG_Refresh(&hiwdg);}
+#define GSM_DTR_LOW		HAL_GPIO_WritePin(SIM_UART_DTR_GPIO_Port, SIM_UART_DTR_Pin, GPIO_PIN_RESET)
+#define GSM_DTR_HI  	HAL_GPIO_WritePin(SIM_UART_DTR_GPIO_Port, SIM_UART_DTR_Pin, GPIO_PIN_SET)
+#define GSM_DTR_READ	HAL_GPIO_ReadPin(SIM_UART_DTR_GPIO_Port, SIM_UART_DTR_Pin)
+
+#define SIM_WDT_READ()	HAL_GPIO_ReadPin(SIM_WDT_GPIO_Port, SIM_WDT_Pin)
+
+
+#define WDR()
+//if(hiwdg.Instance == IWDG) {HAL_IWDG_Refresh(&hiwdg);}
 
 enum disp_type {
 	NONE = 0,

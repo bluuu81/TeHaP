@@ -1,0 +1,5 @@
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/drbg/legacy_v3_ctr_drbg.c:44:9:RNGinit	32	static
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/drbg/legacy_v3_ctr_drbg.c:79:9:RNGfree	8	static
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/drbg/legacy_v3_ctr_drbg.c:99:9:RNGreseed	16	static
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/drbg/legacy_v3_ctr_drbg.c:135:9:RNGgenBytes	16	static
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/drbg/legacy_v3_ctr_drbg.c:175:9:RNGgenWords	16	static

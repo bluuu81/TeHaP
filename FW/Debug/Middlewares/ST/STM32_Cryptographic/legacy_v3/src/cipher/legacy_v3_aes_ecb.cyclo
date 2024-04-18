@@ -1,0 +1,6 @@
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_ecb.c:26:9:AES_ECB_Encrypt_Init	5
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_ecb.c:64:9:AES_ECB_Encrypt_Append	6
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_ecb.c:118:9:AES_ECB_Encrypt_Finish	3
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_ecb.c:140:9:AES_ECB_Decrypt_Init	5
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_ecb.c:178:9:AES_ECB_Decrypt_Append	6
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_ecb.c:233:9:AES_ECB_Decrypt_Finish	3

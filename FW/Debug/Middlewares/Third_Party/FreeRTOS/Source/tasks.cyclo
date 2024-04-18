@@ -1,6 +1,7 @@
 ../Middlewares/Third_Party/FreeRTOS/Source/tasks.c:5177:13:prvAddCurrentTaskToDelayedList	6
 ../Middlewares/Third_Party/FreeRTOS/Source/tasks.c:733:13:xTaskCreate	14
 ../Middlewares/Third_Party/FreeRTOS/Source/tasks.c:1162:7:vTaskDelete	10
+../Middlewares/Third_Party/FreeRTOS/Source/tasks.c:1386:13:eTaskGetState	8
 ../Middlewares/Third_Party/FreeRTOS/Source/tasks.c:1478:14:uxTaskPriorityGet	2
 ../Middlewares/Third_Party/FreeRTOS/Source/tasks.c:1500:14:uxTaskPriorityGetFromISR	2
 ../Middlewares/Third_Party/FreeRTOS/Source/tasks.c:1540:7:vTaskPrioritySet	11
@@ -17,7 +18,7 @@
 ../Middlewares/Third_Party/FreeRTOS/Source/tasks.c:2707:12:xTaskIncrementTick	10
 ../Middlewares/Third_Party/FreeRTOS/Source/tasks.c:2194:12:xTaskResumeAll.part.0	11
 ../Middlewares/Third_Party/FreeRTOS/Source/tasks.c:2194:12:xTaskResumeAll	2
-../Middlewares/Third_Party/FreeRTOS/Source/tasks.c:3392:8:prvIdleTask	16
+../Middlewares/Third_Party/FreeRTOS/Source/tasks.c:3392:8:prvIdleTask	14
 ../Middlewares/Third_Party/FreeRTOS/Source/tasks.c:2609:12:xTaskCatchUpTicks	3
 ../Middlewares/Third_Party/FreeRTOS/Source/tasks.c:1341:7:vTaskDelay	5
 ../Middlewares/Third_Party/FreeRTOS/Source/tasks.c:1257:7:vTaskDelayUntil	11

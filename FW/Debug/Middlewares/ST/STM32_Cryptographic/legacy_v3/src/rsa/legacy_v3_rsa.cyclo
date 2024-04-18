@@ -1,0 +1,4 @@
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/rsa/legacy_v3_rsa.c:100:9:RSA_PKCS1v15_Sign	16
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/rsa/legacy_v3_rsa.c:147:9:RSA_PKCS1v15_Verify	16
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/rsa/legacy_v3_rsa.c:197:9:RSA_PKCS1v15_Encrypt	14
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/rsa/legacy_v3_rsa.c:263:9:RSA_PKCS1v15_Decrypt	10

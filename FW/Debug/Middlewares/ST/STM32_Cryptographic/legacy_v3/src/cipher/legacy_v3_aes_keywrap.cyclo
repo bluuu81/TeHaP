@@ -1,0 +1,6 @@
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_keywrap.c:26:9:AES_KeyWrap_Encrypt_Init	6
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_keywrap.c:70:9:AES_KeyWrap_Encrypt_Append	6
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_keywrap.c:124:9:AES_KeyWrap_Encrypt_Finish	3
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_keywrap.c:146:9:AES_KeyWrap_Decrypt_Init	6
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_keywrap.c:190:9:AES_KeyWrap_Decrypt_Append	6
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_keywrap.c:245:9:AES_KeyWrap_Decrypt_Finish	3

@@ -1,0 +1,6 @@
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_ofb.c:26:9:AES_OFB_Encrypt_Init	6
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_ofb.c:70:9:AES_OFB_Encrypt_Append	6
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_ofb.c:124:9:AES_OFB_Encrypt_Finish	3
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_ofb.c:146:9:AES_OFB_Decrypt_Init	6
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_ofb.c:190:9:AES_OFB_Decrypt_Append	6
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_ofb.c:245:9:AES_OFB_Decrypt_Finish	3

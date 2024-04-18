@@ -1,0 +1,33 @@
+v0.01
+-porting na RTOS
+-usuniecie timera 6
+-usuniecie PWM dla ledy
+-naprawa działania switcha power
+
+v0.02
+-implementacja obslugi sim868
+-usuniecie obslugi BT
+-uruchomienie kompilacji modułu
+
+v0.03
+-obsluga GPS
+-ustawienie czasu GSM z GPS
+-wątek obsługujący GPS
+-pobieranie pozycji z GPS
+-automatyczne uruchamianie wątku GPS
+
+v0.04
+-wątek obsługi GPRS
+-buforowany TX uarta debug, bo wstrzymywania bruździły w debugowaniu SIM868
+-sim868 watchdog + sheduled restart
+-testowe komendy w CLI
+-pobieranie czasu z GSM, korekcja timezone dla czasu z GPS
+
+v0.05
+-dołączona biblioteka AES
+-rozszerzony config (wywali po załadowaniu tego softu)
+-sheduler dla uruchamiania pomiarów i wysyłania danych
+-ustawianie nowych parametrow w CLI (trzeba uzupelnic help i obsluge klucza AES)
+-poprawki blokujace GPS jak jest polaczenie z serwerem
+-poprawka migania diody GPS (nie zawsze sie wlaczala)
+-poprawka korekcji timezone

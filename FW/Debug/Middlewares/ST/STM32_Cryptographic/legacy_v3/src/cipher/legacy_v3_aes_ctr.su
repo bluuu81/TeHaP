@@ -1,0 +1,6 @@
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_ctr.c:26:9:AES_CTR_Encrypt_Init	16	static
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_ctr.c:70:9:AES_CTR_Encrypt_Append	24	static
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_ctr.c:124:9:AES_CTR_Encrypt_Finish	0	static
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_ctr.c:146:9:AES_CTR_Decrypt_Init	16	static
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_ctr.c:190:9:AES_CTR_Decrypt_Append	24	static
+../Middlewares/ST/STM32_Cryptographic/legacy_v3/src/cipher/legacy_v3_aes_ctr.c:245:9:AES_CTR_Decrypt_Finish	0	static
