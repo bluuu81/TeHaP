@@ -363,23 +363,6 @@ void SendTestMessage()
 
 	printf("---------------------------\r\n");
 
-	if(TMP117.present && TMP117.sensor_use){
-	  if(TMP117.temp.use_meas) {
-		 GPRS_meas_frame.meas_frame.sensor1_val = TMP117.temp.value+TMP117.temp.offset;
-	  }
-	} else GPRS_meas_frame.meas_frame.sensor1_val = 0.0f;
-
-	if(BME280.present && BME280.sensor_use){
-	  if(BME280.temp.use_meas) {
-		 GPRS_meas_frame.meas_frame.sensor2_val = BME280.temp.value+BME280.temp.offset;
-	  }
-	} else GPRS_meas_frame.meas_frame.sensor2_val = 0.0f;
-
-	if(DPS368.present && DPS368.sensor_use){
-	  if(DPS368.temp.use_meas) {
-		 GPRS_meas_frame.meas_frame.sensor3_val = DPS368.temp.value+DPS368.temp.offset;
-	  }
-	} else GPRS_meas_frame.meas_frame.sensor3_val = 0.0f;
 
 // Sending status and localize
 
@@ -403,10 +386,31 @@ void SendTestMessage()
 	}
 
 // Sending Temperature
+	// Fill temp values to send frame
+
+		if(TMP117.present && TMP117.sensor_use){
+		  if(TMP117.temp.use_meas) {
+			 GPRS_meas_frame.meas_frame.sensor1_val = TMP117.temp.value+TMP117.temp.offset;
+		  }
+		} else GPRS_meas_frame.meas_frame.sensor1_val = 0.0f;
+
+		if(BME280.present && BME280.sensor_use){
+		  if(BME280.temp.use_meas) {
+			 GPRS_meas_frame.meas_frame.sensor2_val = BME280.temp.value+BME280.temp.offset;
+		  }
+		} else GPRS_meas_frame.meas_frame.sensor2_val = 0.0f;
+
+		if(DPS368.present && DPS368.sensor_use){
+		  if(DPS368.temp.use_meas) {
+			 GPRS_meas_frame.meas_frame.sensor3_val = DPS368.temp.value+DPS368.temp.offset;
+		  }
+		} else GPRS_meas_frame.meas_frame.sensor3_val = 0.0f;
 
 	GPRS_meas_frame.timestamp = time_to_unix(&Sim80x.Gsm.Time); printf("Timestamp (Meas): %lu\r\n", GPRS_meas_frame.timestamp);
 	GPRS_meas_frame.meas_frame.send_type = TEMP; printf("Frame type (Meas): %u\r\n", GPRS_meas_frame.meas_frame.send_type);
 	GPRS_meas_frame.crc = calculate_crc_for_GPRS_MEAS(&GPRS_meas_frame); printf("CRC (TEMP): %x\r\n", GPRS_meas_frame.crc);
+
+
 
 	printf("Wielkosc ramki (TEMP): %u\r\n", sizeof(GPRS_meas_frame));
 
@@ -426,6 +430,53 @@ void SendTestMessage()
 		printf("GPRS Sending TEMP Failed !\r\n");
 		gprs_send_status = GPRSsendStatusError;			// ustaw globalny status wysylania na error
 	}
+
+// Sending Pressure
+	// Fill press values to send frame
+/*
+		if(BME280.present && BME280.sensor_use){
+		  if(BME280.press.use_meas) {
+			 GPRS_meas_frame.meas_frame.sensor1_val = BME280.press.value+BME280.press.offset;
+		  }
+		} else GPRS_meas_frame.meas_frame.sensor1_val = 0.0f;
+
+		if(BME280.present && BME280.sensor_use){
+		  if(BME280.temp.use_meas) {
+			 GPRS_meas_frame.meas_frame.sensor2_val = BME280.temp.value+BME280.temp.offset;
+		  }
+		} else GPRS_meas_frame.meas_frame.sensor2_val = 0.0f;
+
+		if(DPS368.present && DPS368.sensor_use){
+		  if(DPS368.temp.use_meas) {
+			 GPRS_meas_frame.meas_frame.sensor3_val = DPS368.temp.value+DPS368.temp.offset;
+		  }
+		} else GPRS_meas_frame.meas_frame.sensor3_val = 0.0f;
+
+	GPRS_meas_frame.timestamp = time_to_unix(&Sim80x.Gsm.Time); printf("Timestamp (Meas): %lu\r\n", GPRS_meas_frame.timestamp);
+	GPRS_meas_frame.meas_frame.send_type = TEMP; printf("Frame type (Meas): %u\r\n", GPRS_meas_frame.meas_frame.send_type);
+	GPRS_meas_frame.crc = calculate_crc_for_GPRS_MEAS(&GPRS_meas_frame); printf("CRC (TEMP): %x\r\n", GPRS_meas_frame.crc);
+
+
+
+		printf("Wielkosc ramki (TEMP): %u\r\n", sizeof(GPRS_meas_frame));
+
+		osDelay(500);
+
+		for(int i=0; i<5; ++i) {
+			GPRS_SendRaw((uint8_t*)&GPRS_meas_frame, sizeof(GPRS_meas_frame));
+			uint8_t tout = 0;
+			while(Sim80x.GPRS.SendStatus != GPRSSendData_SendOK) {
+				osDelay(100);
+				if(++tout >= 100) break;			// break while - tout 10 sekund
+			}
+			if(tout < 50) {printf("Sending TEMP OK !\r\n"); break;}	// break for
+		}
+
+		if(Sim80x.GPRS.SendStatus != GPRSSendData_SendOK) {
+			printf("GPRS Sending TEMP Failed !\r\n");
+			gprs_send_status = GPRSsendStatusError;			// ustaw globalny status wysylania na error
+		}
+*/
 
 	osDelay(5000);			// normalnie zbedny, ale to dla mozliwosci odebrania danych z serwera.
 							// zamiast tego powinno byc oczekiwanie na potwierdzenie z serwera (jesli wystepuje)
@@ -505,7 +556,7 @@ error:
 	vTaskDelete(NULL);							// usun task z pamieci jako juz zbedny
 }
 
-
+/*
 bool StartSendGPRS(void)
 {
 	if(GprsSendTaskFlag == 0 && Sim80x.Status.RegisterdToNetwork && config.sendFormat) {
@@ -517,6 +568,26 @@ bool StartSendGPRS(void)
 		return true;			// poprawnie uruchomiono task
 	}
 	return false;				// nie uruchomiono tasku bo juz działa
+}
+*/
+bool StartSendGPRS(void)
+{
+	if(GprsSendTaskFlag == 0 && Sim80x.Status.RegisterdToNetwork && config.sendFormat) {
+		if((config.sendFormat & 1) && (config.serverIP[0]==0 || config.serverPort==0)) {
+			printf("Normal server param error, IP: %s, Port: %d\r\n", config.serverIP, config.serverPort);
+			return false; // blad IP/Port normal
+		}
+		if((config.sendFormat & 2) && (config.mqttIP[0]==0 || config.mqttPort==0)) {
+			printf("MQTT server param error, IP: %s, Port: %d\r\n", config.serverIP, config.serverPort);
+			return false; // blad IP/Port MQTT
+		}
+		osThreadDef(SendGPRSTask, GprsSendTask, osPriorityNormal, 0, 256);
+		GprsSendTaskHandle = osThreadCreate(osThread(SendGPRSTask), NULL);
+		GprsSendTaskFlag = 1;
+		return true; // poprawnie uruchomiono task
+	}
+	printf("Start debug: GprsSendTaskFlag: %d, RegisterdToNetwork: %d, sendFormat: %d\r\n", GprsSendTaskFlag, Sim80x.Status.RegisterdToNetwork, config.sendFormat);
+	return false; // nie uruchomiono tasku bo juz działa
 }
 
 void  GPRS_UserNewData(char *NewData, uint16_t len)		// callback dla danych przyjetych z serwera
@@ -593,7 +664,7 @@ void GsmWdt(void)
 
 Sim80x_Time_t fixTZ(Sim80x_Time_t tim, int zone)		// adjust time with time zone. Use GSM format, zone = 15min
 {
-//	#define LEAP_YEAR(Y)  ( !(Y%4) && ( (Y%100) || !(Y%400) ) )
+	#define LEAP_YEAR_SIM(Y)  ( !(Y%4) && ( (Y%100) || !(Y%400) ) )
 	static const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31};
 	uint8_t monthLength;
 	for(int i=0; i<abs(zone); ++i) {
@@ -603,7 +674,7 @@ Sim80x_Time_t fixTZ(Sim80x_Time_t tim, int zone)		// adjust time with time zone.
 			if(++tim.Hour > 23)	{
 				tim.Hour = 0;
 				if (tim.Month==2) { 		// luty
-				  if (LEAP_YEAR(tim.Year)) { monthLength=29; } else { monthLength=28; }		// luty ma 28 czy 29 ?
+				  if (LEAP_YEAR_SIM(tim.Year)) { monthLength=29; } else { monthLength=28; }		// luty ma 28 czy 29 ?
 				} else { monthLength = monthDays[tim.Month-1]; }							// inny miesiac
 				if(++tim.Day > monthLength) {												// zmiana miesiaca ?
 					tim.Day = 1;
@@ -618,7 +689,7 @@ Sim80x_Time_t fixTZ(Sim80x_Time_t tim, int zone)		// adjust time with time zone.
 				if(--tim.Day < 1) {
 					if(--tim.Month < 1)  {tim.Month = 12; tim.Year--;}							// oblucz nowy miesiac i rok
 					if (tim.Month==2) { 														// jak wyszedl luty
-						if (LEAP_YEAR(tim.Year)) { monthLength=29; } else { monthLength=28; }	// luty ma 28 czy 29 ?
+						if (LEAP_YEAR_SIM(tim.Year)) { monthLength=29; } else { monthLength=28; }	// luty ma 28 czy 29 ?
 					} else { monthLength = monthDays[tim.Month-1]; }							// inny miesiac
 					tim.Day = monthLength;								// ustaw na ostatni dzien miesiaca
 				}
