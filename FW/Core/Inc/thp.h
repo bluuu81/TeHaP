@@ -8,6 +8,7 @@
 #ifndef INC_THP_H_
 #define INC_THP_H_
 
+#include "Sim80xDrv.h"
 #include "main.h"
 #include "cli.h"
 #include "thp_sensors.h"
@@ -15,6 +16,8 @@
 #include "ctype.h"
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
+
 
 #define HW_VER 10
 #define FW_VER 9
@@ -22,6 +25,12 @@
 #define GSM_RESTART_INTERVAL (30*3600*24)		// 30ms tick x secperhour x 24h (set to 0 for disable)
 #define GPS_INTERVAL		 (60*60*12)			// w sekundach = 12h
 
+#define SECS_PER_MIN  ((uint32_t)(60UL))
+#define SECS_PER_HOUR ((uint32_t)(3600UL))
+#define SECS_PER_DAY  ((uint32_t)(SECS_PER_HOUR * 24UL))
+#define LEAP_YEAR(Y)  ( ((1970+(Y))>0) && !((1970+(Y))%4) && ( ((1970+(Y))%100) || !((1970+(Y))%400) ) )
+
+#define GPRS_TOKEN	0xDEF8
 
 extern ADC_HandleTypeDef hadc1;
 
@@ -59,6 +68,61 @@ enum device_state
 	WORKING
 };
 
+enum GPRS_send_types
+{
+	STATUS = 20,
+	LOCALIZE,
+	TEMP,
+	PRESS,
+	HUM
+};
+
+typedef struct
+{
+	uint8_t send_type;
+	float 	sensor1_val;
+	float 	sensor2_val;
+	float 	sensor3_val;
+
+} Meas_Send_t;
+
+typedef struct
+{
+	uint16_t	token;
+	uint32_t	UID;
+	uint8_t		send_type;
+	float		MCU_temp;
+	uint16_t	Vbat;
+	uint16_t	Vac1;
+	uint16_t	Vac2;
+	uint8_t		charg_state;
+	uint32_t	timestamp;
+	uint8_t		crc;
+} GPRS_status_t;
+
+typedef struct
+{
+	uint16_t	token;
+	uint32_t	UID;
+	uint8_t		send_type;
+	float		lat;
+	float		lon;
+	uint8_t		sats;
+	uint8_t		fix;
+	uint32_t	timestamp;
+	uint8_t		crc;
+} GPRS_localize_t;
+
+typedef struct
+{
+	uint16_t	token;
+	uint32_t	UID;
+	Meas_Send_t meas_frame;
+	uint32_t	timestamp;
+	uint8_t		crc;
+} GPRS_meas_frame_t;
+
+
 void setLed2(uint8_t bri);
 void led2Sweep(uint16_t spd, uint16_t cnt, uint16_t wait);
 
@@ -69,7 +133,7 @@ void MCUgoSleep();
 void thp_loop();
 
 uint8_t HALcalculateCRC(uint8_t data[], uint8_t len);
-uint8_t calculateCRC(uint8_t data[], uint8_t len);
+//uint8_t calculateCRC(uint8_t data[], uint8_t len);
 
 void display_values (uint8_t format);
 void printCSVheader();
@@ -79,5 +143,6 @@ void  GPRS_UserNewData(char *NewData, uint16_t len);
 bool StartReadGps(void);
 bool StartSendGPRS(void);
 void SysTimeSync();
+//uint32_t time_to_unix(Sim80x_Time_t *tm);
 
 #endif /* INC_THP_H_ */

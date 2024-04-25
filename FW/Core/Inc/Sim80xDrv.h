@@ -10,6 +10,7 @@
 #define	_SIM80X_H
 
 #include "main.h"
+//#include "thp.h"
 #include "Sim80xConfig.h"
 #include <stdbool.h>
 #include <stdio.h>

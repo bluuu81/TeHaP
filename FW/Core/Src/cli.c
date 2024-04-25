@@ -207,11 +207,9 @@ void CLI_proc(char ch)
 		}
 		if(find("gprs stop")==clibuf+9) {GPRS_DeactivatePDPContext(); return;}
 
-		if(find("gprs server ")==clibuf+12) {
-			char srv[48];
-		    getString(p, srv, 8, 48, NULL);
-			printf("Status: %s\r\n", GPRS_ConnectToServer(srv,20390) ? "OK":"ERROR");
-			return;
+		if(find("gprs server")==clibuf+11) {
+					printf("Status: %s\r\n", GPRS_ConnectToServer("95.216.115.174", 20390) ? "OK":"ERROR");
+					return;
 		}
 		if(find("gprs close")==clibuf+10) {GPRS_DisconnectFromServer(); return;}
 		if(find("gprs send")==clibuf+9) {

@@ -6,10 +6,12 @@
  */
 
 #include "main.h"
+#include "sim80xDrv.h"
 #include "thp.h"
 #include "bq25798.h"
 #include "cmsis_os.h"
-#include "sim80xDrv.h"
+
+
 
 volatile uint8_t charger_state;
 
@@ -18,8 +20,16 @@ SHT3_struct_t SHT3;
 MS8607_struct_t MS8607;
 BME280_struct_t BME280;
 DPS368_struct_t DPS368;
-
 BMP280_HandleTypedef bmp280;
+
+GPRS_status_t GPRS_status_frame;
+GPRS_localize_t GPRS_GPS_frame;
+GPRS_meas_frame_t GPRS_meas_frame;
+
+Meas_Send_t Temp_frame;
+Meas_Send_t Press_frame;
+Meas_Send_t Hum_frame;
+
 
 Config_TypeDef config;
 volatile int seconds;
@@ -42,6 +52,8 @@ bool dayleap;
 int meas_start;
 uint8_t gprs_send_status, simOn_lock;
 
+static  const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31};
+
 enum {
 	GPRSsendStatusIdle,
 	GPRSsendStatusInprogress,
@@ -58,6 +70,7 @@ void _read(void)  {}
 //void _fstat(void) {}
 
 //volatile uint32_t tim_secdiv, tim_meas;
+
 
 uint32_t getUID()
 {
@@ -137,24 +150,39 @@ uint8_t HALcalculateCRC(uint8_t* data, uint8_t len)
     uint32_t crc = HAL_CRC_Calculate(&hcrc, (uint32_t*)data, len);
     return (uint8_t)(crc & 0xFF);
 }
-/*
-uint8_t calculateCRC(uint8_t data[], uint8_t len)
+
+
+uint8_t calculate_crc(uint8_t *data, uint32_t length)
 {
     uint8_t crc = 0xFF;
-    for (uint8_t i = 0; i < len; i++)
+    for (uint32_t i = 0; i < length; i++)
     {
         crc ^= data[i];
-        for (uint8_t bit = 0; bit < 8; bit++)
+        for (uint8_t j = 0; j < 8; j++)
         {
             if (crc & 0x80)
                 crc = (crc << 1) ^ 0x31;
             else
-                crc = crc << 1;
+                crc <<= 1;
         }
     }
     return crc;
 }
-*/
+
+uint8_t calculate_crc_for_GPRS_status(GPRS_status_t *status)
+{
+    return calculate_crc((uint8_t*)status, sizeof(GPRS_status_t));
+}
+
+uint8_t calculate_crc_for_GPRS_GPS(GPRS_localize_t *status)
+{
+    return calculate_crc((uint8_t*)status, sizeof(GPRS_localize_t));
+}
+
+uint8_t calculate_crc_for_GPRS_MEAS(GPRS_meas_frame_t *status)
+{
+    return calculate_crc((uint8_t*)status, sizeof(GPRS_meas_frame_t));
+}
 
 void printCSVheader()
 {
@@ -269,30 +297,136 @@ void getConfVars()
 	  MS8607.hum.offset = config.MS8607_h_offset;
 }
 
+uint32_t time_to_unix(Sim80x_Time_t *tm)
+{
+	int i;
+	uint32_t seconds;
+	uint16_t year = tm->Year-1970;
+
+	// seconds from 1970 till 1 jan 00:00:00 of the given year
+	seconds= year*(SECS_PER_DAY * 365);
+	for (i = 0; i < year; i++) {
+		if (LEAP_YEAR(i)) {
+		  seconds +=  SECS_PER_DAY;   // add extra days for leap years
+		}
+	}
+
+	// add days for this year, months start from 1
+	for (i = 1; i < tm->Month; i++) {
+		if ( (i == 2) && LEAP_YEAR(year)) {
+		  seconds += SECS_PER_DAY * 29;
+		} else {
+		  seconds += SECS_PER_DAY * monthDays[i-1];  //monthDay array starts from 0
+		}
+	}
+	seconds+= (tm->Day-1) * SECS_PER_DAY;
+	seconds+= tm->Hour * SECS_PER_HOUR;
+	seconds+= tm->Min * SECS_PER_MIN;
+	seconds+= tm->Sec;
+	return (uint32_t)seconds;
+}
+
 // ******************************************************************************************************
 
 void SendTestMessage()
 {
-	char tekst[100];
+//	char tekst[100];
 	Sim80x_GetTime();		// pobranie czasu z RTC sim868
-	sprintf(tekst, "Test Wysylania przez GPRS z tasku GprsSend, Czas: %02u:%02u:%02u\r\n",
-			Sim80x.Gsm.Time.Hour, Sim80x.Gsm.Time.Min, Sim80x.Gsm.Time.Sec);
+//	sprintf(tekst, "Test Wysylania przez GPRS z tasku GprsSend, Czas: %02u:%02u:%02u\r\n",
+//			Sim80x.Gsm.Time.Hour, Sim80x.Gsm.Time.Min, Sim80x.Gsm.Time.Sec);
+
+	printf("UID: %lx\r\n", GPRS_status_frame.UID);
+	printf("Token: %x\r\n", GPRS_status_frame.token);
+
+	GPRS_status_frame.timestamp = time_to_unix(&Sim80x.Gsm.Time); printf("Timestamp (status): %lu\r\n", GPRS_status_frame.timestamp);
+	GPRS_status_frame.MCU_temp = GET_MCU_Temp(); printf("MCU Temp: %.2f\r\n", GPRS_status_frame.MCU_temp);
+	GPRS_status_frame.send_type = STATUS; printf("Frame type (status): %u\r\n", GPRS_status_frame.send_type);
+	GPRS_status_frame.Vac1 = BQ25798_Vac2_read(); printf("AC1 Voltage: %u\r\n", GPRS_status_frame.Vac1);
+	GPRS_status_frame.Vac2 = BQ25798_Vac2_read(); printf("AC2 Voltage: %u\r\n", GPRS_status_frame.Vac2);
+	GPRS_status_frame.Vbat = BQ25798_Vbat_read(); printf("BAT Voltage: %u\r\n", GPRS_status_frame.Vbat);
+	GPRS_status_frame.charg_state = charger_state; printf("Chrg state: %u\r\n", GPRS_status_frame.charg_state);
+	GPRS_status_frame.crc = calculate_crc_for_GPRS_status(&GPRS_status_frame); printf("CRC (status): %x\r\n", GPRS_status_frame.crc);
+
+	printf("Wielkosc ramki (status): %u\r\n", sizeof(GPRS_status_frame));
+
+	printf("---------------------------\r\n");
+
+	GPRS_GPS_frame.timestamp = time_to_unix(&Sim80x.Gsm.Time); printf("Timestamp (GPS): %lu\r\n", GPRS_GPS_frame.timestamp);
+	GPRS_GPS_frame.lat = (float)(Sim80x.GPS.Lat * 0.01f); printf("Latitude (GPS): %.6f\r\n", GPRS_GPS_frame.lat);
+	GPRS_GPS_frame.lon = (float)(Sim80x.GPS.Lon * 0.01f); printf("Longtitude (GPS): %.6f\r\n", GPRS_GPS_frame.lon);
+	GPRS_GPS_frame.sats = Sim80x.GPS.SatInUse; printf("SAT count: %u\r\n", GPRS_GPS_frame.sats);
+	GPRS_GPS_frame.fix = Sim80x.GPS.Fix; printf("FIX type: %u\r\n", GPRS_GPS_frame.fix);
+	GPRS_GPS_frame.send_type = LOCALIZE; printf("Frame type (GPS): %u\r\n", GPRS_GPS_frame.send_type);
+	GPRS_GPS_frame.crc = calculate_crc_for_GPRS_GPS(&GPRS_GPS_frame); printf("CRC (GPS): %x\r\n", GPRS_GPS_frame.crc);
+
+	printf("Wielkosc ramki (GPS): %u\r\n", sizeof(GPRS_GPS_frame));
+
+	printf("---------------------------\r\n");
+
+	if(TMP117.present && TMP117.sensor_use){
+	  if(TMP117.temp.use_meas) {
+		 GPRS_meas_frame.meas_frame.sensor1_val = TMP117.temp.value+TMP117.temp.offset;
+	  }
+	} else GPRS_meas_frame.meas_frame.sensor1_val = 0.0f;
+
+	if(BME280.present && BME280.sensor_use){
+	  if(BME280.temp.use_meas) {
+		 GPRS_meas_frame.meas_frame.sensor2_val = BME280.temp.value+BME280.temp.offset;
+	  }
+	} else GPRS_meas_frame.meas_frame.sensor2_val = 0.0f;
+
+	if(DPS368.present && DPS368.sensor_use){
+	  if(DPS368.temp.use_meas) {
+		 GPRS_meas_frame.meas_frame.sensor3_val = DPS368.temp.value+DPS368.temp.offset;
+	  }
+	} else GPRS_meas_frame.meas_frame.sensor3_val = 0.0f;
+
+// Sending status and localize
 
 	Sim80x.GPRS.SendStatus = GPRSSendData_Idle;
 	for(int i=0; i<5; ++i) {
-		GPRS_SendString(tekst);
+//		GPRS_SendString(tekst);
+		GPRS_SendRaw((uint8_t*)&GPRS_status_frame, sizeof(GPRS_status_frame));
+		osDelay(1000);
+		GPRS_SendRaw((uint8_t*)&GPRS_GPS_frame, sizeof(GPRS_GPS_frame));
 		uint8_t tout = 0;
 		while(Sim80x.GPRS.SendStatus != GPRSSendData_SendOK) {
 			osDelay(100);
 			if(++tout >= 100) break;			// break while - tout 10 sekund
 		}
-		if(tout < 50) {printf("Sending OK !\r\n"); break;}	// break for
+		if(tout < 50) {printf("Sending status & localize OK !\r\n"); break;}	// break for
 	}
 
 	if(Sim80x.GPRS.SendStatus != GPRSSendData_SendOK) {
-		printf("GPRS Sending Failed !\r\n");
+		printf("GPRS Sending status & localize Failed !\r\n");
 		gprs_send_status = GPRSsendStatusError;			// ustaw globalny status wysylania na error
 	}
+
+// Sending Temperature
+
+	GPRS_meas_frame.timestamp = time_to_unix(&Sim80x.Gsm.Time); printf("Timestamp (Meas): %lu\r\n", GPRS_meas_frame.timestamp);
+	GPRS_meas_frame.meas_frame.send_type = TEMP; printf("Frame type (Meas): %u\r\n", GPRS_meas_frame.meas_frame.send_type);
+	GPRS_meas_frame.crc = calculate_crc_for_GPRS_MEAS(&GPRS_meas_frame); printf("CRC (TEMP): %x\r\n", GPRS_meas_frame.crc);
+
+	printf("Wielkosc ramki (TEMP): %u\r\n", sizeof(GPRS_meas_frame));
+
+	osDelay(500);
+
+	for(int i=0; i<5; ++i) {
+		GPRS_SendRaw((uint8_t*)&GPRS_meas_frame, sizeof(GPRS_meas_frame));
+		uint8_t tout = 0;
+		while(Sim80x.GPRS.SendStatus != GPRSSendData_SendOK) {
+			osDelay(100);
+			if(++tout >= 100) break;			// break while - tout 10 sekund
+		}
+		if(tout < 50) {printf("Sending TEMP OK !\r\n"); break;}	// break for
+	}
+
+	if(Sim80x.GPRS.SendStatus != GPRSSendData_SendOK) {
+		printf("GPRS Sending TEMP Failed !\r\n");
+		gprs_send_status = GPRSsendStatusError;			// ustaw globalny status wysylania na error
+	}
+
 	osDelay(5000);			// normalnie zbedny, ale to dla mozliwosci odebrania danych z serwera.
 							// zamiast tego powinno byc oczekiwanie na potwierdzenie z serwera (jesli wystepuje)
 }
@@ -456,9 +590,10 @@ void GsmWdt(void)
 
 // ******************************************************************************************************
 
+
 Sim80x_Time_t fixTZ(Sim80x_Time_t tim, int zone)		// adjust time with time zone. Use GSM format, zone = 15min
 {
-	#define LEAP_YEAR(Y)  ( !(Y%4) && ( (Y%100) || !(Y%400) ) )
+//	#define LEAP_YEAR(Y)  ( !(Y%4) && ( (Y%100) || !(Y%400) ) )
 	static const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31};
 	uint8_t monthLength;
 	for(int i=0; i<abs(zone); ++i) {
@@ -767,6 +902,14 @@ void THP_MainTask(void const *argument)
 	  uint32_t secdiv = HAL_GetTick();
 	  uint8_t registered = 0;
 	  uint8_t measint = 99;
+
+	  const uint32_t UID = getUID();
+	  GPRS_status_frame.token = GPRS_TOKEN;
+	  GPRS_status_frame.UID = UID;
+	  GPRS_GPS_frame.token = GPRS_TOKEN;
+	  GPRS_GPS_frame.UID = UID;
+	  GPRS_meas_frame.token = GPRS_TOKEN;
+	  GPRS_meas_frame.UID = UID;
 
 	  meas_start = -1;
 	  meas_count = config.measures;
