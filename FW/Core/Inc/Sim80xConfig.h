@@ -15,7 +15,7 @@ extern UART_HandleTypeDef huart2;
 
 //	0: No DEBUG				1:High Level Debug .Use printf		2:All RX Data.Use printf
 
-#define	_SIM80X_DEBUG				1
+#define	_SIM80X_DEBUG				0
 #define	_SIM80X_USART				GSM_UART
 #define	_SIM80X_USE_POWER_KEY   	1
 #define	_SIM80X_BUFFER_SIZE			768

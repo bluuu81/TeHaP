@@ -11,7 +11,8 @@
 #include "bq25798.h"
 #include "cmsis_os.h"
 
-
+#define RESEND_DELAY	2000		// w 30ms jednostkach, = 60s
+#define RESEND_RETRIES	3
 
 volatile uint8_t charger_state;
 
@@ -26,15 +27,15 @@ GPRS_status_t GPRS_status_frame;
 GPRS_localize_t GPRS_GPS_frame;
 GPRS_meas_frame_t GPRS_meas_frame;
 
-Meas_Send_t Temp_frame;
-Meas_Send_t Press_frame;
-Meas_Send_t Hum_frame;
+//Meas_Send_t Temp_frame;
+//Meas_Send_t Press_frame;
+//Meas_Send_t Hum_frame;
 
 
 Config_TypeDef config;
 volatile int seconds;
 uint8_t timesync;
-uint16_t meas_count;
+uint16_t meas_count, sendretry = 0;
 uint8_t meas_cont_mode, send_enable, sensors_data_ready;
 
 uint16_t tmp117_avr;
@@ -46,11 +47,10 @@ uint8_t sht3_mode;
 volatile uint32_t offTim;
 volatile uint32_t gps_start = 0, gps_interval = 30;			// puerwszy odczyt GPS po 30s od zalaczenia
 osThreadId measTaskHandle, gpsTaskHandle, GprsSendTaskHandle;
-bool gpsTaskFlag, GprsSendTaskFlag;
 bool dayleap;
 
 int meas_start;
-uint8_t gprs_send_status, simOn_lock;
+uint8_t gprs_send_status, lastSendStatus, simOn_lock;
 
 static  const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31};
 
@@ -60,6 +60,9 @@ enum {
 	GPRSsendStatusOk,
 	GPRSsendStatusError
 };
+
+void GpsReadTask(void const *argument);
+Sim80x_Time_t fixTZ(Sim80x_Time_t tim, int zone);
 
 //void _close(void) {}
 //void _lseek(void) {}
@@ -328,17 +331,62 @@ uint32_t time_to_unix(Sim80x_Time_t *tm)
 
 // ******************************************************************************************************
 
-void SendTestMessage()
+bool SendPkt(uint8_t *ptr, uint16_t len, char *text)
 {
-//	char tekst[100];
+	Sim80x.GPRS.SendStatus = GPRSSendData_Idle;
+	for(int i=0; i<5; ++i) {
+		GPRS_SendRaw(ptr,len);
+		uint8_t tout = 0;
+		while(Sim80x.GPRS.SendStatus != GPRSSendData_SendOK) {
+			osDelay(100);
+			if(++tout >= 100) break;			// break while - tout 10 sekund
+		}
+		if(tout < 100) {printf("Sending %s OK !\r\n", text); break;}	// break for
+	}
+
+	if(Sim80x.GPRS.SendStatus != GPRSSendData_SendOK) {
+		printf("GPRS Sending %s Failed !\r\n", text);
+		gprs_send_status = GPRSsendStatusError;			// ustaw globalny status wysylania na error
+		return false;
+	} else if(gprs_send_status < GPRSsendStatusOk) gprs_send_status = GPRSsendStatusOk;
+	osDelay(1000);
+	return true;
+}
+
+uint32_t GetCurrTimestamp()
+{
+#define USE_UTC
+
 	Sim80x_GetTime();		// pobranie czasu z RTC sim868
-//	sprintf(tekst, "Test Wysylania przez GPRS z tasku GprsSend, Czas: %02u:%02u:%02u\r\n",
-//			Sim80x.Gsm.Time.Hour, Sim80x.Gsm.Time.Min, Sim80x.Gsm.Time.Sec);
+#ifdef USE_UTC
+	Sim80x_Time_t Ti = fixTZ(Sim80x.Gsm.Time, -Sim80x.Gsm.Time.Zone);
+#else
+	Sim80x_Time_t Ti = Sim80x.Gsm.Time;
+#endif
+	return time_to_unix(&Ti);
+}
+
+
+void PrepareGpsPacket()
+{
+	// wypelnienie struktury GPS
+	GPRS_GPS_frame.timestamp = GetCurrTimestamp(); printf("Timestamp (GPS): %lu\r\n", GPRS_GPS_frame.timestamp);
+	GPRS_GPS_frame.lat = (float)(Sim80x.GPS.Lat * 0.01f); printf("Latitude (GPS): %.6f\r\n", GPRS_GPS_frame.lat);
+	GPRS_GPS_frame.lon = (float)(Sim80x.GPS.Lon * 0.01f); printf("Longtitude (GPS): %.6f\r\n", GPRS_GPS_frame.lon);
+	GPRS_GPS_frame.sats = Sim80x.GPS.SatInUse; printf("SAT count: %u\r\n", GPRS_GPS_frame.sats);
+	GPRS_GPS_frame.fix = Sim80x.GPS.Fix; printf("FIX type: %u\r\n", GPRS_GPS_frame.fix);
+	GPRS_GPS_frame.send_type = LOCALIZE; printf("Frame type (GPS): %u\r\n", GPRS_GPS_frame.send_type);
+	GPRS_GPS_frame.crc = calculate_crc_for_GPRS_GPS(&GPRS_GPS_frame); printf("CRC (GPS): %x\r\n", GPRS_GPS_frame.crc);
+}
+
+void PreparePacketOutData()
+{
+#define USE_UTC
 
 	printf("UID: %lx\r\n", GPRS_status_frame.UID);
 	printf("Token: %x\r\n", GPRS_status_frame.token);
 
-	GPRS_status_frame.timestamp = time_to_unix(&Sim80x.Gsm.Time); printf("Timestamp (status): %lu\r\n", GPRS_status_frame.timestamp);
+	GPRS_status_frame.timestamp = GetCurrTimestamp(); printf("Timestamp (status): %lu\r\n", GPRS_status_frame.timestamp);
 	GPRS_status_frame.MCU_temp = GET_MCU_Temp(); printf("MCU Temp: %.2f\r\n", GPRS_status_frame.MCU_temp);
 	GPRS_status_frame.send_type = STATUS; printf("Frame type (status): %u\r\n", GPRS_status_frame.send_type);
 	GPRS_status_frame.Vac1 = BQ25798_Vac2_read(); printf("AC1 Voltage: %u\r\n", GPRS_status_frame.Vac1);
@@ -348,135 +396,110 @@ void SendTestMessage()
 	GPRS_status_frame.crc = calculate_crc_for_GPRS_status(&GPRS_status_frame); printf("CRC (status): %x\r\n", GPRS_status_frame.crc);
 
 	printf("Wielkosc ramki (status): %u\r\n", sizeof(GPRS_status_frame));
-
 	printf("---------------------------\r\n");
 
-	GPRS_GPS_frame.timestamp = time_to_unix(&Sim80x.Gsm.Time); printf("Timestamp (GPS): %lu\r\n", GPRS_GPS_frame.timestamp);
-	GPRS_GPS_frame.lat = (float)(Sim80x.GPS.Lat * 0.01f); printf("Latitude (GPS): %.6f\r\n", GPRS_GPS_frame.lat);
-	GPRS_GPS_frame.lon = (float)(Sim80x.GPS.Lon * 0.01f); printf("Longtitude (GPS): %.6f\r\n", GPRS_GPS_frame.lon);
-	GPRS_GPS_frame.sats = Sim80x.GPS.SatInUse; printf("SAT count: %u\r\n", GPRS_GPS_frame.sats);
-	GPRS_GPS_frame.fix = Sim80x.GPS.Fix; printf("FIX type: %u\r\n", GPRS_GPS_frame.fix);
-	GPRS_GPS_frame.send_type = LOCALIZE; printf("Frame type (GPS): %u\r\n", GPRS_GPS_frame.send_type);
-	GPRS_GPS_frame.crc = calculate_crc_for_GPRS_GPS(&GPRS_GPS_frame); printf("CRC (GPS): %x\r\n", GPRS_GPS_frame.crc);
-
-	printf("Wielkosc ramki (GPS): %u\r\n", sizeof(GPRS_GPS_frame));
-
-	printf("---------------------------\r\n");
+	GPRS_GPS_frame.send_type = LOCALIZE;
+	GPRS_GPS_frame.crc = calculate_crc_for_GPRS_GPS(&GPRS_GPS_frame);
 
 
-// Sending status and localize
+}
 
-	Sim80x.GPRS.SendStatus = GPRSSendData_Idle;
-	for(int i=0; i<5; ++i) {
-//		GPRS_SendString(tekst);
-		GPRS_SendRaw((uint8_t*)&GPRS_status_frame, sizeof(GPRS_status_frame));
-		osDelay(1000);
-		GPRS_SendRaw((uint8_t*)&GPRS_GPS_frame, sizeof(GPRS_GPS_frame));
-		uint8_t tout = 0;
-		while(Sim80x.GPRS.SendStatus != GPRSSendData_SendOK) {
-			osDelay(100);
-			if(++tout >= 100) break;			// break while - tout 10 sekund
-		}
-		if(tout < 50) {printf("Sending status & localize OK !\r\n"); break;}	// break for
-	}
+void SendTestMessage()
+{
+	// Sending status
+	if(!SendPkt((uint8_t*)&GPRS_status_frame, sizeof(GPRS_status_frame), "status")) return;
 
-	if(Sim80x.GPRS.SendStatus != GPRSSendData_SendOK) {
-		printf("GPRS Sending status & localize Failed !\r\n");
-		gprs_send_status = GPRSsendStatusError;			// ustaw globalny status wysylania na error
-	}
+	// Sending localize
+	if(!SendPkt((uint8_t*)&GPRS_GPS_frame, sizeof(GPRS_GPS_frame), "localize")) return;
 
-// Sending Temperature
+//	GPRS_meas_frame.timestamp = GPRS_status_frame.timestamp;    // to wystarczy tylko raz podstawić
+	GPRS_meas_frame.timestamp = GetCurrTimestamp(); printf("Timestamp (Meas): %lu\r\n", GPRS_meas_frame.timestamp);
+
 	// Fill temp values to send frame
+	if(TMP117.present && TMP117.sensor_use){
+	  if(TMP117.temp.use_meas) {
+		 GPRS_meas_frame.meas_frame.sensor1_val = TMP117.temp.value+TMP117.temp.offset;
+	  }
+	} else GPRS_meas_frame.meas_frame.sensor1_val = 0.0f;
 
-		if(TMP117.present && TMP117.sensor_use){
-		  if(TMP117.temp.use_meas) {
-			 GPRS_meas_frame.meas_frame.sensor1_val = TMP117.temp.value+TMP117.temp.offset;
-		  }
-		} else GPRS_meas_frame.meas_frame.sensor1_val = 0.0f;
+	if(BME280.present && BME280.sensor_use){
+	  if(BME280.temp.use_meas) {
+		 GPRS_meas_frame.meas_frame.sensor2_val = BME280.temp.value+BME280.temp.offset;
+	  }
+	} else GPRS_meas_frame.meas_frame.sensor2_val = 0.0f;
 
-		if(BME280.present && BME280.sensor_use){
-		  if(BME280.temp.use_meas) {
-			 GPRS_meas_frame.meas_frame.sensor2_val = BME280.temp.value+BME280.temp.offset;
-		  }
-		} else GPRS_meas_frame.meas_frame.sensor2_val = 0.0f;
+	if(DPS368.present && DPS368.sensor_use){
+	  if(DPS368.temp.use_meas) {
+		 GPRS_meas_frame.meas_frame.sensor3_val = DPS368.temp.value+DPS368.temp.offset;
+	  }
+	} else GPRS_meas_frame.meas_frame.sensor3_val = 0.0f;
 
-		if(DPS368.present && DPS368.sensor_use){
-		  if(DPS368.temp.use_meas) {
-			 GPRS_meas_frame.meas_frame.sensor3_val = DPS368.temp.value+DPS368.temp.offset;
-		  }
-		} else GPRS_meas_frame.meas_frame.sensor3_val = 0.0f;
 
-	GPRS_meas_frame.timestamp = time_to_unix(&Sim80x.Gsm.Time); printf("Timestamp (Meas): %lu\r\n", GPRS_meas_frame.timestamp);
-	GPRS_meas_frame.meas_frame.send_type = TEMP; printf("Frame type (Meas): %u\r\n", GPRS_meas_frame.meas_frame.send_type);
+	GPRS_meas_frame.meas_frame.send_type = TEMP;
 	GPRS_meas_frame.crc = calculate_crc_for_GPRS_MEAS(&GPRS_meas_frame); printf("CRC (TEMP): %x\r\n", GPRS_meas_frame.crc);
 
-
-
+	// Sending Temperature
+	if(!SendPkt((uint8_t*)&GPRS_meas_frame, sizeof(GPRS_meas_frame), "TEMP")) return;
 	printf("Wielkosc ramki (TEMP): %u\r\n", sizeof(GPRS_meas_frame));
-
-	osDelay(500);
-
-	for(int i=0; i<5; ++i) {
-		GPRS_SendRaw((uint8_t*)&GPRS_meas_frame, sizeof(GPRS_meas_frame));
-		uint8_t tout = 0;
-		while(Sim80x.GPRS.SendStatus != GPRSSendData_SendOK) {
-			osDelay(100);
-			if(++tout >= 100) break;			// break while - tout 10 sekund
-		}
-		if(tout < 50) {printf("Sending TEMP OK !\r\n"); break;}	// break for
-	}
-
-	if(Sim80x.GPRS.SendStatus != GPRSSendData_SendOK) {
-		printf("GPRS Sending TEMP Failed !\r\n");
-		gprs_send_status = GPRSsendStatusError;			// ustaw globalny status wysylania na error
-	}
-
-// Sending Pressure
-	// Fill press values to send frame
-/*
-		if(BME280.present && BME280.sensor_use){
-		  if(BME280.press.use_meas) {
-			 GPRS_meas_frame.meas_frame.sensor1_val = BME280.press.value+BME280.press.offset;
-		  }
-		} else GPRS_meas_frame.meas_frame.sensor1_val = 0.0f;
-
-		if(BME280.present && BME280.sensor_use){
-		  if(BME280.temp.use_meas) {
-			 GPRS_meas_frame.meas_frame.sensor2_val = BME280.temp.value+BME280.temp.offset;
-		  }
-		} else GPRS_meas_frame.meas_frame.sensor2_val = 0.0f;
-
-		if(DPS368.present && DPS368.sensor_use){
-		  if(DPS368.temp.use_meas) {
-			 GPRS_meas_frame.meas_frame.sensor3_val = DPS368.temp.value+DPS368.temp.offset;
-		  }
-		} else GPRS_meas_frame.meas_frame.sensor3_val = 0.0f;
-
-	GPRS_meas_frame.timestamp = time_to_unix(&Sim80x.Gsm.Time); printf("Timestamp (Meas): %lu\r\n", GPRS_meas_frame.timestamp);
-	GPRS_meas_frame.meas_frame.send_type = TEMP; printf("Frame type (Meas): %u\r\n", GPRS_meas_frame.meas_frame.send_type);
-	GPRS_meas_frame.crc = calculate_crc_for_GPRS_MEAS(&GPRS_meas_frame); printf("CRC (TEMP): %x\r\n", GPRS_meas_frame.crc);
+	printf("---------------------------\r\n");
 
 
 
-		printf("Wielkosc ramki (TEMP): %u\r\n", sizeof(GPRS_meas_frame));
+	// Fill temp values to send frame
+	if(BME280.present && BME280.sensor_use){
+	  if(BME280.press.use_meas) {
+		 GPRS_meas_frame.meas_frame.sensor1_val = BME280.press.value+BME280.press.offset;
+	  }
+	} else GPRS_meas_frame.meas_frame.sensor1_val = 0.0f;
 
-		osDelay(500);
+	if(MS8607.present && MS8607.sensor_use){
+	  if(MS8607.press.use_meas) {
+		 GPRS_meas_frame.meas_frame.sensor2_val = MS8607.press.value+MS8607.press.offset;
+	  }
+	} else GPRS_meas_frame.meas_frame.sensor2_val = 0.0f;
 
-		for(int i=0; i<5; ++i) {
-			GPRS_SendRaw((uint8_t*)&GPRS_meas_frame, sizeof(GPRS_meas_frame));
-			uint8_t tout = 0;
-			while(Sim80x.GPRS.SendStatus != GPRSSendData_SendOK) {
-				osDelay(100);
-				if(++tout >= 100) break;			// break while - tout 10 sekund
-			}
-			if(tout < 50) {printf("Sending TEMP OK !\r\n"); break;}	// break for
-		}
+	if(DPS368.present && DPS368.sensor_use){
+	  if(DPS368.press.use_meas) {
+		 GPRS_meas_frame.meas_frame.sensor3_val = DPS368.press.value+DPS368.press.offset;
+	  }
+	} else GPRS_meas_frame.meas_frame.sensor3_val = 0.0f;
 
-		if(Sim80x.GPRS.SendStatus != GPRSSendData_SendOK) {
-			printf("GPRS Sending TEMP Failed !\r\n");
-			gprs_send_status = GPRSsendStatusError;			// ustaw globalny status wysylania na error
-		}
-*/
+	GPRS_meas_frame.meas_frame.send_type = PRESS;
+	GPRS_meas_frame.crc = calculate_crc_for_GPRS_MEAS(&GPRS_meas_frame); printf("CRC (PRESS): %x\r\n", GPRS_meas_frame.crc);
+
+	// Sending Pressure
+	if(!SendPkt((uint8_t*)&GPRS_meas_frame, sizeof(GPRS_meas_frame), "PRESS")) return;
+	printf("Wielkosc ramki (PRESS): %u\r\n", sizeof(GPRS_meas_frame));
+	printf("---------------------------\r\n");
+
+	// Fill hum values to send frame
+	if(BME280.present && BME280.sensor_use){
+	  if(BME280.hum.use_meas) {
+		 GPRS_meas_frame.meas_frame.sensor1_val = BME280.hum.value+BME280.hum.offset;
+	  }
+	} else GPRS_meas_frame.meas_frame.sensor1_val = 0.0f;
+
+	if(SHT3.present && SHT3.sensor_use){
+	  if(SHT3.hum.use_meas) {
+		 GPRS_meas_frame.meas_frame.sensor2_val = SHT3.hum.value+SHT3.hum.offset;
+	  }
+	} else GPRS_meas_frame.meas_frame.sensor2_val = 0.0f;
+
+	if(MS8607.present && MS8607.sensor_use){
+	  if(MS8607.hum.use_meas) {
+		 GPRS_meas_frame.meas_frame.sensor3_val = MS8607.hum.value+MS8607.hum.offset;
+	  }
+	} else GPRS_meas_frame.meas_frame.sensor3_val = 0.0f;
+
+	GPRS_meas_frame.meas_frame.send_type = HUM;
+	GPRS_meas_frame.crc = calculate_crc_for_GPRS_MEAS(&GPRS_meas_frame); printf("CRC (HUM): %x\r\n", GPRS_meas_frame.crc);
+
+	// Sending Humidity
+	if(!SendPkt((uint8_t*)&GPRS_meas_frame, sizeof(GPRS_meas_frame), "HUM")) return;
+	printf("Wielkosc ramki (HUM): %u\r\n", sizeof(GPRS_meas_frame));
+	printf("---------------------------\r\n");
+
+
 
 	osDelay(5000);			// normalnie zbedny, ale to dla mozliwosci odebrania danych z serwera.
 							// zamiast tego powinno byc oczekiwanie na potwierdzenie z serwera (jesli wystepuje)
@@ -489,90 +512,113 @@ void SendMqttMessage(void)
 	sprintf(tekst, "Test Wysylania do MQTT, Czas: %02u:%02u:%02u\r\n",
 			Sim80x.Gsm.Time.Hour, Sim80x.Gsm.Time.Min, Sim80x.Gsm.Time.Sec);
 
-	Sim80x.GPRS.SendStatus = GPRSSendData_Idle;
-	for(int i=0; i<5; ++i) {
-		GPRS_SendRaw((uint8_t*)tekst, strlen(tekst));
-		uint8_t tout = 0;
-		while(Sim80x.GPRS.SendStatus != GPRSSendData_SendOK) {
-			osDelay(100);
-			if(++tout >= 100) break;			// break while - tout 10s
-		}
-		if(tout < 50) {printf("Sending OK !\r\n"); break;}	// break for
-	}
-
-	if(Sim80x.GPRS.SendStatus != GPRSSendData_SendOK) {
-		printf("GPRS Sending Failed !\r\n");
-		gprs_send_status = GPRSsendStatusError;			// ustaw globalny status wysylania na error
-	}
+	SendPkt((uint8_t*)tekst, strlen(tekst), "MQTT");
 	osDelay(5000);			// normalnie zbedny, ale to dla mozliwosci odebrania danych z serwera.
 							// zamiast tego powinno byc oczekiwanie na potwierdzenie z serwera (jesli wystepuje)
 }
 
 void GprsSendTask(void const *argument)
 {
-	gprs_send_status = GPRSsendStatusInprogress;					// ustaw globalny status wysylania na "in progress"
-	if(Sim80x.GPRS.Connection < GPRSConnection_GPRSup ||
-	   Sim80x.GPRS.Connection > GPRSConnection_ConnectOK)	{		// nie polaczony do GPRS
-		bool status = GPRS_ConnectToNetwork("INTERNET", "", "", false);
-		printf("Connect to network: %s\r\n", status ? "OK":"ERROR");
-		printf("Connected to GPRS, IP: %s\r\n", Sim80x.GPRS.LocalIP);
-		osDelay(250);
-		if(!status) {printf("GPRS ERROR\r\n"); goto error;}
-	} else printf("GPRS is UP\r\n");
+	printf("GPRS task started.\r\n");
+	while(1) {
+		vTaskSuspend(NULL);		// zatrzymaj taki i czekaj na komende start
+		// ustaw globalny status wysylania na "in progress"
+		gprs_send_status = GPRSsendStatusInprogress;
+		lastSendStatus = gprs_send_status;
+		osDelay(300);
+		while(Sim80x.Status.LockSlowRun) osDelay(10);
+		LockSlowRun();
+		if(Sim80x.GPRS.Connection < GPRSConnection_GPRSup ||
+		   Sim80x.GPRS.Connection > GPRSConnection_ConnectOK)	{		// nie polaczony do GPRS
+			bool status = GPRS_ConnectToNetwork("INTERNET", "", "", false);
+			printf("Connect to network: %s\r\n", status ? "OK":"ERROR");
+			printf("Connected to GPRS, IP: %s\r\n", Sim80x.GPRS.LocalIP);
+			osDelay(250);
+			if(!status) {printf("GPRS ERROR\r\n"); gprs_send_status = GPRSsendStatusError; goto error;}
+		} else printf("GPRS is UP\r\n");
 
-	if(config.sendFormat & 1) {				// normal send
-		printf("Connecting to server: %s, port %d - %s\r\n", config.serverIP, config.serverPort,
-				GPRS_ConnectToServer(config.serverIP, config.serverPort) ? "IN PROGRESS":"ERROR");
-		uint8_t tout = 0;
-		while(Sim80x.GPRS.Connection != GPRSConnection_ConnectOK)	{	// gotowy do wysylania danych ?
-			osDelay(100);
-			if(++tout >= 100) break;			// timeout na 10 sekund
+		if(config.sendFormat & 1) {				// normal send
+			bool status = GPRS_ConnectToServer(config.serverIP, config.serverPort);
+			printf("Connecting to server: %s, port %d - %s\r\n", config.serverIP, config.serverPort, status ? "IN PROGRESS":"ERROR");
+			if(!status) {gprs_send_status = GPRSsendStatusError; goto error;}
+			uint8_t tout = 0;
+			while(Sim80x.GPRS.Connection != GPRSConnection_ConnectOK)	{	// gotowy do wysylania danych ?
+				osDelay(100);
+				if(++tout >= 100) break;			// timeout na 10 sekund
+			}
+			if(tout < 100) {						// nie bylo timeout
+				printf("Connected !\r\n");
+				SendTestMessage();					// serwer połączony, pogadaj z nim
+				GPRS_DisconnectFromServer();		// rozlacz od serwera
+			} else {gprs_send_status = GPRSsendStatusError; printf("ERROR, Server not respond\r\n");}
 		}
-		if(tout < 100) {						// nie bylo timeout
-			printf("Connected !\r\n");
-			SendTestMessage();					// serwer połączony, pogadaj z nim
-			GPRS_DisconnectFromServer();		// rozlacz od serwera
-		} else printf("Server not respond\r\n");
-	}
-	if(config.sendFormat & 2) {				// MQTT send
-		printf("Connecting to MQTT: %s, port %d - %s\r\n", config.mqttIP, config.mqttPort,
-				GPRS_ConnectToServer(config.mqttIP, config.mqttPort) ? "IN PROGRESS":"ERROR");
-		uint8_t tout = 0;
-		while(Sim80x.GPRS.Connection != GPRSConnection_ConnectOK)	{	// gotowy do wysylania danych ?
-			osDelay(100);
-			if(++tout >= 100) break;			// timeout na 10 sekund
+		if(config.sendFormat & 2) {				// MQTT send
+			bool status = GPRS_ConnectToServer(config.mqttIP, config.mqttPort);
+			printf("Connecting to MQTT: %s, port %d - %s\r\n", config.mqttIP, config.mqttPort, status ? "IN PROGRESS":"ERROR");
+			if(!status) {gprs_send_status = GPRSsendStatusError; goto error;}
+			uint8_t tout = 0;
+			while(Sim80x.GPRS.Connection != GPRSConnection_ConnectOK)	{	// gotowy do wysylania danych ?
+				osDelay(100);
+				if(++tout >= 100) break;			// timeout na 10 sekund
+			}
+			if(tout < 100) {						// nie bylo timeout
+				printf("Connected !\r\n");
+				SendMqttMessage();					// serwer MQTT połączony, pogadaj z nim
+				GPRS_DisconnectFromServer();		// rozlacz od serwera
+			} else {gprs_send_status = GPRSsendStatusError; printf("ERROR, MQTT Server not respond\r\n");}
 		}
-		if(tout < 100) {						// nie bylo timeout
-			printf("Connected !\r\n");
-			SendMqttMessage();					// serwer MQTT połączony, pogadaj z nim
-			GPRS_DisconnectFromServer();		// rozlacz od serwera
-		} else printf("MQTT Server not respond\r\n");
-	}
-	osDelay(300);
-	GPRS_DeactivatePDPContext();				// wylacz GPRS
 error:
-	osDelay(50);
-	GprsSendTaskFlag = 0;						// odblokuj mozliwosc ponownego uruchomienia tego taska
-	vTaskDelete(NULL);							// usun task z pamieci jako juz zbedny
+		osDelay(300);
+		GPRS_DeactivatePDPContext();				// wylacz GPRS
+		osDelay(50);
+		UnlockSlowRun();
+		lastSendStatus = gprs_send_status;
+		gprs_send_status = GPRSsendStatusIdle;
+	}
 }
 
-/*
-bool StartSendGPRS(void)
+// ******************************************************************************************************
+
+void ResetGprsTask()
 {
-	if(GprsSendTaskFlag == 0 && Sim80x.Status.RegisterdToNetwork && config.sendFormat) {
-		if((config.sendFormat & 1) && (config.serverIP[0]==0 || config.serverPort==0)) return false;	// blad IP/Port normal
-		if((config.sendFormat & 2) && (config.mqttIP[0]==0 || config.mqttPort==0)) return false;		// blad IP/Port MQTT
-		osThreadDef(SendGPRSTask, GprsSendTask, osPriorityNormal, 0, 256);
+	if(GprsSendTaskHandle != NULL) {
+		vTaskSuspend(GprsSendTaskHandle);
+		osDelay(5);
+		vTaskDelete(GprsSendTaskHandle);
+		osDelay(5);
+		printf("GPRS task killed.\r\n");
+		osThreadDef(SendGPRSTask, GprsSendTask, osPriorityNormal, 0, 512);
 		GprsSendTaskHandle = osThreadCreate(osThread(SendGPRSTask), NULL);
-		GprsSendTaskFlag = 1;
-		return true;			// poprawnie uruchomiono task
+		osDelay(5);
 	}
-	return false;				// nie uruchomiono tasku bo juz działa
 }
-*/
+
+void ResetGpsTask()
+{
+	if(gpsTaskHandle != NULL) {
+		vTaskSuspend(gpsTaskHandle);
+		osDelay(5);
+		vTaskDelete(gpsTaskHandle);
+		osDelay(5);
+		printf("GPS task killed.\r\n");
+		osThreadDef(GPSTask, GpsReadTask, osPriorityNormal, 0, 256);
+		gpsTaskHandle = osThreadCreate(osThread(GPSTask), NULL);
+		osDelay(5);
+	}
+}
+
 bool StartSendGPRS(void)
 {
-	if(GprsSendTaskFlag == 0 && Sim80x.Status.RegisterdToNetwork && config.sendFormat) {
+	static uint32_t lastStartTime;
+
+    lastSendStatus = GPRSsendStatusIdle;
+	bool running = (eTaskGetState(GprsSendTaskHandle) == eRunning);
+	if(running && HAL_GetTick()-lastStartTime >= 3*60000) {			// jak poprzednie uruchomienie bylo 3min temu i wiecej
+		ResetGprsTask();											// i task dalej dziala, to go zabij
+		lastStartTime = HAL_GetTick();
+		running = false;
+	}
+	if(!running && Sim80x.Status.RegisterdToNetwork && config.sendFormat) {
 		if((config.sendFormat & 1) && (config.serverIP[0]==0 || config.serverPort==0)) {
 			printf("Normal server param error, IP: %s, Port: %d\r\n", config.serverIP, config.serverPort);
 			return false; // blad IP/Port normal
@@ -581,12 +627,11 @@ bool StartSendGPRS(void)
 			printf("MQTT server param error, IP: %s, Port: %d\r\n", config.serverIP, config.serverPort);
 			return false; // blad IP/Port MQTT
 		}
-		osThreadDef(SendGPRSTask, GprsSendTask, osPriorityNormal, 0, 256);
-		GprsSendTaskHandle = osThreadCreate(osThread(SendGPRSTask), NULL);
-		GprsSendTaskFlag = 1;
+		vTaskResume(GprsSendTaskHandle);
+		lastStartTime = HAL_GetTick();
 		return true; // poprawnie uruchomiono task
 	}
-	printf("Start debug: GprsSendTaskFlag: %d, RegisterdToNetwork: %d, sendFormat: %d\r\n", GprsSendTaskFlag, Sim80x.Status.RegisterdToNetwork, config.sendFormat);
+	printf("Start debug: Task running: %d, RegisterdToNetwork: %d, sendFormat: %d\r\n", running, Sim80x.Status.RegisterdToNetwork, config.sendFormat);
 	return false; // nie uruchomiono tasku bo juz działa
 }
 
@@ -641,6 +686,7 @@ void GsmWdt(void)
 #endif
 
 	if(Sim80x.Status.FatalError) {			// odpal restart GSM
+		LockSlowRun();
 		printf("Restarting...\r\n");
 		HAL_GPIO_WritePin(_SIM80X_POWER_KEY_GPIO,_SIM80X_POWER_KEY_PIN,GPIO_PIN_SET);
 		osDelay(1200);
@@ -651,16 +697,19 @@ void GsmWdt(void)
 		memset(&Sim80x,0,sizeof(Sim80x));
 		Sim80x_SetPower(true);
 		osDelay(100);
-		gps_start = seconds;
+		ResetGprsTask();
+		ResetGpsTask();
+		gps_start = 0;
 		gps_interval = 30;					// odczyt GPS po 30s od restartu
-		GprsSendTaskFlag = 0;
-		gpsTaskFlag = 0;
+		meas_start = -1;
+		timesync = 0;
         gsm_wdt = 0;
+        lastSendStatus = GPRSsendStatusIdle;
+        UnlockSlowRun();
 	}
 }
 
 // ******************************************************************************************************
-
 
 Sim80x_Time_t fixTZ(Sim80x_Time_t tim, int zone)		// adjust time with time zone. Use GSM format, zone = 15min
 {
@@ -704,52 +753,53 @@ Sim80x_Time_t fixTZ(Sim80x_Time_t tim, int zone)		// adjust time with time zone.
 
 void GpsReadTask(void const *argument)
 {
-	uint8_t time_updated = 0;
-	printf("GPS start.\r\n");
-	GPS_SetPower(1);
-	uint16_t GPS_tout = 0;
+	printf("GPS task started.\r\n");
 	while(1) {
-		osDelay(1000);
-		if(Sim80x.GPS.Time.Year > 2022 												// prawidlowy czas
-		   && !time_updated 														// i jeszcze nie uaktualniony
-		   && Sim80x.GPS.Fix														// i jest fix
-		   && Sim80x.GPRS.Connection != GPRSConnection_ConnectOK) {					// i nie polaczony z serwerem
-			if(Sim80x.Gsm.Time.Zone == 0) Sim80x.Gsm.Time.Zone = 8;					// tu male oszustwo ze strefą czasową
-			Sim80x.Gsm.Time = fixTZ(Sim80x.GPS.Time, Sim80x.Gsm.Time.Zone);
-			time_updated = Sim80x_SetTime();
-			printf("GSM Time update %s.\r\n", time_updated ? "OK":"ERROR");
-			printf("Current time is: %04u-%02u-%02u %02u:%02u:%02u, TZ:%d\r\n",
-					Sim80x.Gsm.Time.Year, Sim80x.Gsm.Time.Month, Sim80x.Gsm.Time.Day,
-					Sim80x.Gsm.Time.Hour, Sim80x.Gsm.Time.Min, Sim80x.Gsm.Time.Sec, Sim80x.Gsm.Time.Zone);
+		vTaskSuspend(NULL);		// zatrzymaj taki i czekaj na komende start
+		while(gprs_send_status != GPRSsendStatusIdle) osDelay(1000);
+		uint8_t time_updated = 0;
+		printf("GPS start.\r\n");
+		GPS_SetPower(1);
+		uint16_t GPS_tout = 0;
+		while(1) {
+			osDelay(100);
+			if(gprs_send_status != GPRSsendStatusIdle) {printf("Stop GPS task due to GPRS comm.\r\n"); goto gpstaskend;}
+			if(Sim80x.GPS.Time.Year > 2022 && !time_updated && Sim80x.GPS.Fix) {		// prawidlowy czas
+			   																			// i jeszcze nie uaktualniony
+			  																			// i jest fix
+				if(Sim80x.Gsm.Time.Zone == 0) Sim80x.Gsm.Time.Zone = 8;					// tu male oszustwo ze strefą czasową
+				Sim80x.Gsm.Time = fixTZ(Sim80x.GPS.Time, Sim80x.Gsm.Time.Zone);
+				time_updated = Sim80x_SetTime();
+				printf("GSM Time update %s.\r\n", time_updated ? "OK":"ERROR");
+				printf("Current time is: %04u-%02u-%02u %02u:%02u:%02u, TZ:%d\r\n",
+						Sim80x.Gsm.Time.Year, Sim80x.Gsm.Time.Month, Sim80x.Gsm.Time.Day,
+						Sim80x.Gsm.Time.Hour, Sim80x.Gsm.Time.Min, Sim80x.Gsm.Time.Sec, Sim80x.Gsm.Time.Zone);
+			}
+			if(time_updated && Sim80x.GPS.Fix && Sim80x.GPS.SatInUse > 3) break;
+			if(++GPS_tout > 1800 || Sim80x.GPS.RunStatus == 0) {		// 3 minuty timeout
+				printf("GPS signal not available.");
+				goto gpstaskend;
+			}
 		}
-		if(time_updated && Sim80x.GPS.Fix && Sim80x.GPS.SatInUse > 3) break;
-		if(++GPS_tout > 180 || Sim80x.GPS.RunStatus == 0) {		// 3 minuty timeout
-			printf("GPS signal not available.");
-			goto gpstaskend;
-		}
-	}
-	while(Sim80x.GPRS.Connection == GPRSConnection_ConnectOK) osDelay(1000);	// nie wysylaj nic do GPS jak polaczony
-	Sim80x_SendAtCommand("AT+CGNSCMD=0,\"$PMTK285,1,10*0D\"\r\n", 500, 1,"\r\nOK\r\n");		// 10ms BLUE blink
-	printf("FIX ok, position readed.\r\n");
-	osDelay(15000);			// jeszcze przez 15 sekund czytaj GPS
+		while(gprs_send_status != GPRSsendStatusIdle) osDelay(1000);	// nie wysylaj nic do GPS jak polaczony z GPRS
+		Sim80x_SendAtCommand("AT+CGNSCMD=0,\"$PMTK285,1,10*0D\"\r\n", 500, 1,"\r\nOK\r\n");		// 10ms BLUE blink
+		printf("FIX ok, position readed.\r\n");
+		osDelay(15000);									// jeszcze przez 15 sekund czytaj GPS
+		PrepareGpsPacket();								// wygeneruj pakiet GPRS z danymi GPS
+
 gpstaskend:
-	while(Sim80x.GPRS.Connection == GPRSConnection_ConnectOK) osDelay(1000);	// nie wysylaj nic do GPS jak polaczony
-	GPS_SetPower(0);
-	printf("GPS stopped.\r\n");
-	osDelay(100);
-	gpsTaskFlag = 0;
-	vTaskDelete(NULL);		// usun task z pamieci jako juz zbedny
+		GPS_SetPower(0);
+		printf("GPS stopped.\r\n");
+	}
 }
 
 bool StartReadGps(void)
 {
-	if(gpsTaskFlag == 0 && Sim80x.GPRS.Connection != GPRSConnection_ConnectOK) {
-		osThreadDef(GPSTask, GpsReadTask, osPriorityNormal, 0, 256);
-		gpsTaskHandle = osThreadCreate(osThread(GPSTask), NULL);
-		gpsTaskFlag = 1;
+	if(eTaskGetState(gpsTaskHandle) != eRunning && gprs_send_status == GPRSsendStatusIdle) {
+		vTaskResume(gpsTaskHandle);
 		return true;			// poprawnie uruchomiono task
 	}
-	return false;				// nie uruchomiono tasku bo juz działa
+	return false;				// nie uruchomiono tasku bo juz działa, albo jest polaczony z GPRS
 }
 
 // ******************************************************************************************************
@@ -758,7 +808,7 @@ void SensorsTask(void const *argument)
 {
 	uint8_t shtc3_values[6];
 
-	printf("Sensors task created\r\n\r\n\r\n");
+	printf("Sensors task created\r\n");
 	while(1)
 	{
 		vTaskSuspend(NULL);		// zatrzymaj taki i czekaj na komende start
@@ -967,6 +1017,12 @@ void THP_MainTask(void const *argument)
 	  osThreadDef(SensorTask, SensorsTask, osPriorityNormal, 0, 512);
 	  measTaskHandle = osThreadCreate(osThread(SensorTask), NULL);
 	  osDelay(10);
+	  osThreadDef(GPSTask, GpsReadTask, osPriorityNormal, 0, 256);
+	  gpsTaskHandle = osThreadCreate(osThread(GPSTask), NULL);
+	  osDelay(10);
+	  osThreadDef(SendGPRSTask, GprsSendTask, osPriorityNormal, 0, 512);
+	  GprsSendTaskHandle = osThreadCreate(osThread(SendGPRSTask), NULL);
+	  osDelay(10);
 
 	  uint32_t ticks30ms = HAL_GetTick();
 	  uint32_t ticksbqwd = HAL_GetTick();
@@ -1002,6 +1058,17 @@ void THP_MainTask(void const *argument)
 				  registered = 1;
 			  }
 			  if(registered && Sim80x.Status.RegisterdToNetwork == 0) registered = 0;
+
+
+			  if(meas_start-seconds < 120) sendretry = 0;			// nie ponawiaj wysylek jak mniej niz 2min do kolejnej
+			  if(!meas_cont_mode && sendretry && lastSendStatus > GPRSsendStatusInprogress) {
+				  if(++sendretry > RESEND_DELAY*RESEND_RETRIES) sendretry = 0;		// za duzo prob, stop
+				  if(lastSendStatus == GPRSsendStatusOk) sendretry = 0;				// wyslano OK, stop
+				  if(lastSendStatus == GPRSsendStatusError && (sendretry % RESEND_DELAY) == RESEND_DELAY-1) {
+					  printf("GPRS Send retry %d\r\n", sendretry/RESEND_DELAY + 1);
+					  printf("Starting GPRS thread %s\r\n", StartSendGPRS() ? "OK":"ERROR");	// send retry
+				  }
+			  }
 		  }
 
 		  // reset BQ
@@ -1019,7 +1086,12 @@ void THP_MainTask(void const *argument)
 
 	    	  if(send_enable) {
 	    		  send_enable = 0;
-	    		  if(!meas_cont_mode) printf("Starting GPRS thread %s\r\n", StartSendGPRS() ? "OK":"ERROR");
+	    		  if(!meas_cont_mode) {
+	    			  printf("Starting GPRS thread %s\r\n", StartSendGPRS() ? "OK":"ERROR");
+					  CalculateNextMeasTime();					// oblicz czas rozpoczecia kolejnego pomiaru
+					  PreparePacketOutData();
+					  sendretry = 1;
+	    		  }
 	    	  }
 	      }
 //--------------------------------------------------------------------------------------------------
@@ -1047,7 +1119,6 @@ void THP_MainTask(void const *argument)
 								  send_enable = 1;
 								  measint = 99;
 								  meas_count = config.measures;
-								  CalculateNextMeasTime();					// oblicz czas rozpoczecia kolejnego pomiaru
 							  } else printf("Measure no.%u\r\n", config.measures-meas_count);
 						  }
 						  vTaskResume(measTaskHandle);						// odblokuj taks pomiarow
@@ -1059,9 +1130,9 @@ void THP_MainTask(void const *argument)
 
 			  // czas na odczyt GPS ?, nie odczytuj w trakcie połączenia z serwerem, bo komendy bruzdza
 			  if(++gps_start >= gps_interval) {
-				  if(StartReadGps()) {	// najpierw test na GPRS
+				  if(StartReadGps()) {
 					  gps_start = 0;
-					  gps_interval = 15*60;						// co 15 minut proba odczytu GPS
+					  gps_interval = 20*60;						// co 20 minut proba odczytu GPS
 				  } else gps_interval += 30;					// nie wolno zalaczyc GPS -> za 30sek kolejna proba
 			  }
 			  // jak zlapano FIX to następny odczyt GPS za 12 godzin

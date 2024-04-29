@@ -755,11 +755,13 @@ void StartSim80xTask(void const * argument)
 //      Gsm_UserNewCall(Sim80x.Gsm.CallerNumber);
     }    
     //###########################################
-    if(HAL_GetTick() - TimeForSlowRun > (Sim80x.Status.RegisterdToNetwork ? 45000:10000) && Sim80x.GPRS.Connection != GPRSConnection_ConnectOK) { // nie przy aktywnym GPRS
+    if(HAL_GetTick() - TimeForSlowRun > (Sim80x.Status.RegisterdToNetwork ? 45000:10000) && Sim80x.Status.LockSlowRun==0) {
+      Sim80x.Status.LockSlowRun = 1;
       Sim80x_SendAtCommand("AT+CSQ\r\n",200,1,"\r\n+CSQ:");
       Sim80x_SendAtCommand("AT+CREG?\r\n",200,1,"\r\n+CREG:");
       Gsm_MsgGetMemoryStatus();
       SysTimeSync();
+      Sim80x.Status.LockSlowRun = 0;
       TimeForSlowRun = HAL_GetTick();
     }
 
@@ -773,5 +775,13 @@ void StartSim80xTask(void const * argument)
   }    
 }
 
+void LockSlowRun(void)
+{
+	Sim80x.Status.LockSlowRun = 2;
+}
 
+void UnlockSlowRun(void)
+{
+	Sim80x.Status.LockSlowRun = 0;
+}
 

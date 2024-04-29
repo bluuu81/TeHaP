@@ -108,6 +108,7 @@ typedef struct
   uint8_t               BatteryPercent;
   float                 BatteryVoltage;
   uint8_t               Signal; 
+  uint8_t				LockSlowRun;
 }Sim80xStatus_t;
 //######################################################################################################################
 typedef struct
@@ -290,6 +291,8 @@ bool  					GPRS_SendString(char *DataString);
 bool  					GPRS_SendRaw(uint8_t *Data, uint16_t len);
 //######################################################################################################################
 bool  					GPS_SetPower(bool TurnOn);
+void 					LockSlowRun(void);
+void 					UnlockSlowRun(void);
 
 //######################################################################################################################
 

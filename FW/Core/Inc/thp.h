@@ -20,7 +20,7 @@
 
 
 #define HW_VER 10
-#define FW_VER 9
+#define FW_VER 10
 
 #define GSM_RESTART_INTERVAL (30*3600*24)		// 30ms tick x secperhour x 24h (set to 0 for disable)
 #define GPS_INTERVAL		 (60*60*12)			// w sekundach = 12h
@@ -83,7 +83,6 @@ typedef struct
 	float 	sensor1_val;
 	float 	sensor2_val;
 	float 	sensor3_val;
-
 } Meas_Send_t;
 
 typedef struct
