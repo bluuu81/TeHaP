@@ -83,7 +83,11 @@ typedef struct
 	float 	sensor1_val;
 	float 	sensor2_val;
 	float 	sensor3_val;
-} Meas_Send_t;
+	uint8_t anomaly1	:1;
+	uint8_t anomaly2	:1;
+	uint8_t anomaly3	:1;
+	uint8_t	uu			:5;
+} __attribute__((__packed__)) Meas_Send_t;  //14B
 
 typedef struct
 {
@@ -96,8 +100,9 @@ typedef struct
 	uint16_t	Vac2;
 	uint8_t		charg_state;
 	uint32_t	timestamp;
+	uint8_t		spare[9];
 	uint8_t		crc;
-} GPRS_status_t;
+} __attribute__((__packed__)) GPRS_status_t;
 
 typedef struct
 {
@@ -109,8 +114,9 @@ typedef struct
 	uint8_t		sats;
 	uint8_t		fix;
 	uint32_t	timestamp;
+	uint8_t		spare[10];
 	uint8_t		crc;
-} GPRS_localize_t;
+} __attribute__((__packed__)) GPRS_localize_t;
 
 typedef struct
 {
@@ -118,8 +124,9 @@ typedef struct
 	uint32_t	UID;
 	Meas_Send_t meas_frame;
 	uint32_t	timestamp;
+	uint8_t		spare[7];
 	uint8_t		crc;
-} GPRS_meas_frame_t;
+} __attribute__((__packed__)) GPRS_meas_frame_t;
 
 
 void setLed2(uint8_t bri);

@@ -174,17 +174,17 @@ uint8_t calculate_crc(uint8_t *data, uint32_t length)
 
 uint8_t calculate_crc_for_GPRS_status(GPRS_status_t *status)
 {
-    return calculate_crc((uint8_t*)status, sizeof(GPRS_status_t));
+    return calculate_crc((uint8_t*)status, (sizeof(GPRS_status_t)-1));
 }
 
 uint8_t calculate_crc_for_GPRS_GPS(GPRS_localize_t *status)
 {
-    return calculate_crc((uint8_t*)status, sizeof(GPRS_localize_t));
+    return calculate_crc((uint8_t*)status, (sizeof(GPRS_localize_t)-1));
 }
 
 uint8_t calculate_crc_for_GPRS_MEAS(GPRS_meas_frame_t *status)
 {
-    return calculate_crc((uint8_t*)status, sizeof(GPRS_meas_frame_t));
+    return calculate_crc((uint8_t*)status, (sizeof(GPRS_meas_frame_t)-1));
 }
 
 void printCSVheader()
