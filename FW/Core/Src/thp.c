@@ -1114,6 +1114,7 @@ void THP_MainTask(void const *argument)
 					  measint = 0;
 					  if (meas_count > 0 || meas_cont_mode) {
 						  if(meas_cont_mode == 0) {
+							  if(meas_count == config.measures && Sim80x.Status.RegisterdToNetwork == 0) Sim80x.Status.FatalError = 1;
 							  if(--meas_count == 0) {
 								  printf("Last measure & Send\r\n");
 								  send_enable = 1;

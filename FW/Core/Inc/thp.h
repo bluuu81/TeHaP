@@ -20,9 +20,9 @@
 
 
 #define HW_VER 10
-#define FW_VER 10
+#define FW_VER 11
 
-#define GSM_RESTART_INTERVAL (30*3600*24)		// 30ms tick x secperhour x 24h (set to 0 for disable)
+#define GSM_RESTART_INTERVAL (30*3600*12)		// 30ms tick x secperhour x 24h (set to 0 for disable) // zmiana na 12h
 #define GPS_INTERVAL		 (60*60*12)			// w sekundach = 12h
 
 #define SECS_PER_MIN  ((uint32_t)(60UL))
